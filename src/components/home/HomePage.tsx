@@ -26,12 +26,15 @@ import {
   Search,
   ExternalLink,
   Printer,
-  AlertTriangle
+  AlertTriangle,
+  Instagram,
+  Youtube
 } from 'lucide-react';
-import { Booking } from '../../types';
+import { Booking, PromotionPlatform } from '../../types';
 import { StatusBadge } from '../common/StatusBadge';
 import { PrintTicketModal } from '../common/PrintTicketModal';
 import { SafarGoLogo } from '../common/SafarGoLogo';
+import { PromotionClaimModal } from '../promotions/PromotionClaimModal';
 
 interface HomePageProps {
   onOpenAuth: (initialTab?: 'login' | 'register') => void;
@@ -58,6 +61,15 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab })
 
   // FAQ open/close accordion state
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+
+  // Viral Creator Promotion Claim Modal State
+  const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
+  const [claimModalPlatform, setClaimModalPlatform] = useState<PromotionPlatform>('instagram');
+
+  const handleOpenClaimModal = (p: PromotionPlatform) => {
+    setClaimModalPlatform(p);
+    setIsClaimModalOpen(true);
+  };
 
   const handleSearchRoutes = (e: React.FormEvent) => {
     e.preventDefault();
@@ -602,6 +614,149 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab })
       </section>
 
       {/* ======================================================== */}
+      {/* 2.5 VIRAL CREATOR & REELS PROMOTION SECTION (नकद रिवॉर्ड) */}
+      {/* ======================================================== */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 rounded-3xl p-6 sm:p-10 text-white border border-purple-800/50 shadow-2xl relative overflow-hidden">
+          
+          {/* Ambient Glows */}
+          <div className="absolute top-0 right-1/4 w-80 h-80 bg-pink-500/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-red-500/15 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 space-y-8">
+            
+            {/* Header Badge & Title */}
+            <div className="text-center max-w-3xl mx-auto space-y-3">
+              <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-gradient-to-r from-pink-500/20 to-red-500/20 border border-pink-500/30 text-xs font-black uppercase tracking-wider text-pink-300">
+                <Sparkles className="w-4 h-4 text-pink-400" />
+                <span>🚀 SafarGo वायरल क्रिएटर व प्रमोशन धमाका</span>
+                <span className="text-slate-500">|</span>
+                <span className="text-emerald-400">24 घंटे में पेमेंट</span>
+              </div>
+
+              <h2 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight">
+                सोशल मीडिया पर वीडियो बनाएं, <br className="hidden sm:inline" />
+                <span className="bg-gradient-to-r from-pink-400 via-purple-300 to-amber-300 bg-clip-text text-transparent">
+                  व्यूज लाएं और पाएं सीधा नकद बोनस!
+                </span>
+              </h2>
+
+              <p className="text-xs sm:text-base text-slate-300 leading-relaxed font-normal max-w-2xl mx-auto">
+                Instagram Reel पर 1 Million Views पर <strong className="text-pink-300">₹{settings.promo_instagram_reward || 500}</strong> और YouTube Video पर 10,000 Views पर <strong className="text-red-300">₹{settings.promo_youtube_reward || 100}</strong>! 
+                जेनुइन और यूनिक व्यूज होने पर क्लेम सबमिट करें — 24 घंटे में गारंटीड वेरिफिकेशन और आपके वॉलेट/बैंक में भुगतान!
+              </p>
+            </div>
+
+            {/* Two Main Promotion Feature Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              {/* Instagram Card */}
+              <div className="bg-slate-900/90 rounded-3xl p-6 sm:p-8 border border-pink-500/30 shadow-xl backdrop-blur-md flex flex-col justify-between space-y-6 hover:border-pink-400 transition-all group">
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-500 via-purple-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-pink-500/25">
+                      <Instagram className="w-7 h-7" />
+                    </div>
+
+                    <div className="text-right">
+                      <span className="inline-block px-3 py-1 rounded-full bg-pink-500/20 text-pink-300 text-xs font-black uppercase tracking-wider border border-pink-500/30">
+                        1 Million Views Target
+                      </span>
+                      <div className="text-2xl sm:text-3xl font-black text-white mt-1">
+                        ₹{settings.promo_instagram_reward || 500} <span className="text-xs font-bold text-pink-400">नकद बोनस</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-black text-white">
+                      📸 Instagram Reel वायरल रिवॉर्ड
+                    </h3>
+                    <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                      SafarGo बस बुकिंग सेवा या ऐप पर एक रियल व आकर्षक Reel पोस्ट करें। जब आपकी Reel पर <strong>10 लाख (1 Million) वास्तविक व यूनिक व्यूज</strong> आ जाएं, तो लिंक सबमिट करें।
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs text-slate-300 bg-white/5 p-3.5 rounded-2xl border border-white/10">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>टारगेट: 10,00,000 (1M) Genuine & Unique Views</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-pink-400 shrink-0" />
+                      <span>SLA गारंटी: सबमिट के 24 घंटे में वेरिफिकेशन व पेमेंट</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleOpenClaimModal('instagram')}
+                  className="w-full py-3.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 hover:from-pink-500 hover:to-purple-500 text-white font-black text-xs rounded-2xl shadow-lg transition flex items-center justify-center gap-2 active:scale-98"
+                >
+                  <Gift className="w-4 h-4" />
+                  <span>Instagram क्लेम सबमिट करें (₹{settings.promo_instagram_reward || 500})</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* YouTube Card */}
+              <div className="bg-slate-900/90 rounded-3xl p-6 sm:p-8 border border-red-500/30 shadow-xl backdrop-blur-md flex flex-col justify-between space-y-6 hover:border-red-400 transition-all group">
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 text-white flex items-center justify-center shadow-lg shadow-red-500/25">
+                      <Youtube className="w-7 h-7" />
+                    </div>
+
+                    <div className="text-right">
+                      <span className="inline-block px-3 py-1 rounded-full bg-red-500/20 text-red-300 text-xs font-black uppercase tracking-wider border border-red-500/30">
+                        10,000 Views Target
+                      </span>
+                      <div className="text-2xl sm:text-3xl font-black text-white mt-1">
+                        ₹{settings.promo_youtube_reward || 100} <span className="text-xs font-bold text-red-400">नकद बोनस</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-black text-white">
+                      ▶️ YouTube Video / Shorts रिवॉर्ड
+                    </h3>
+                    <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                      SafarGo बस बुकिंग कैसे करें या अपनी यात्रा अनुभव पर YouTube Video या Short बनाएं। <strong>10,000 (10K) वास्तविक व्यूज</strong> पूरे होने पर तुरंत लिंक सबमिट करें।
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs text-slate-300 bg-white/5 p-3.5 rounded-2xl border border-white/10">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>टारगेट: 10,00,0 (10K) Genuine Views (Video/Shorts)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-red-400 shrink-0" />
+                      <span>SLA गारंटी: सबमिट के 24 घंटे में वेरिफिकेशन व पेमेंट</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleOpenClaimModal('youtube')}
+                  className="w-full py-3.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-xs rounded-2xl shadow-lg transition flex items-center justify-center gap-2 active:scale-98"
+                >
+                  <Gift className="w-4 h-4" />
+                  <span>YouTube क्लेम सबमिट करें (₹{settings.promo_youtube_reward || 100})</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ======================================================== */}
       {/* 3. AGENT INSPIRATION STORIES IN HINDI (सफलता की कहानियाँ) */}
       {/* ======================================================== */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
@@ -1031,6 +1186,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab })
           onClose={() => setPrintModalBooking(null)}
         />
       )}
+
+      {/* Viral Creator & Social Media Promotion Claim Modal */}
+      <PromotionClaimModal
+        isOpen={isClaimModalOpen}
+        onClose={() => setIsClaimModalOpen(false)}
+        defaultPlatform={claimModalPlatform}
+      />
 
     </div>
   );

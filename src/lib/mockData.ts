@@ -8,7 +8,8 @@ import {
   AuditLog,
   PayoutRequest,
   WalletRechargeRequest,
-  WalletTransaction
+  WalletTransaction,
+  PromotionClaim
 } from '../types';
 
 export const INITIAL_SETTINGS: AdminSettings = {
@@ -73,6 +74,15 @@ export const INITIAL_SETTINGS: AdminSettings = {
       created_at: '2026-10-05T12:00:00Z',
     }
   ],
+
+  // Viral Creator & Social Media Promotion Settings
+  promo_instagram_active: true,
+  promo_instagram_target_views: 1000000, // 1,000,000 views
+  promo_instagram_reward: 500, // ₹500
+  promo_youtube_active: true,
+  promo_youtube_target_views: 10000, // 10,000 views
+  promo_youtube_reward: 100, // ₹100
+  promo_sla_hours: 24, // 24 Hours Verification & Payout Guarantee
 };
 
 export const INITIAL_PROFILES: Profile[] = [
@@ -470,4 +480,52 @@ export const INITIAL_WALLET_TRANSACTIONS: WalletTransaction[] = [
     created_at: '2026-10-09T10:15:00Z',
   }
 ];
+
+export const INITIAL_PROMOTION_CLAIMS: PromotionClaim[] = [
+  {
+    id: 'prm-001',
+    claim_code: 'PRM-20261010-001',
+    user_id: 'usr-agent-01',
+    user_name: 'Pawan Kumar Verma',
+    user_mobile: '9450123456',
+    user_role: 'agent',
+    platform: 'instagram',
+    content_type: 'reel',
+    post_url: 'https://www.instagram.com/reel/DA123456789/',
+    channel_or_handle: '@pawan_sitapur_csc',
+    views_count: 1250000, // 1.25M views
+    reward_amount: 500,
+    screenshot_url: '',
+    payout_method: 'wallet',
+    status: 'pending',
+    admin_notes: '',
+    created_at: '2026-10-10T09:00:00Z',
+    deadline_at: '2026-10-11T09:00:00Z', // 24-Hour SLA
+  },
+  {
+    id: 'prm-002',
+    claim_code: 'PRM-20261009-002',
+    user_id: 'usr-agent-02',
+    user_name: 'Anil Kumar Maurya',
+    user_mobile: '9839456789',
+    user_role: 'agent',
+    platform: 'youtube',
+    content_type: 'short',
+    post_url: 'https://www.youtube.com/shorts/xyz987654',
+    channel_or_handle: 'UP Digital Guide',
+    views_count: 14800, // 14.8k views
+    reward_amount: 100,
+    screenshot_url: '',
+    payout_method: 'upi',
+    upi_id: '9839456789@paytm',
+    status: 'paid',
+    payment_reference: 'UPI-YT-99482103',
+    admin_notes: '14.8K Genuine views verified on YouTube Shorts. Paid via UPI.',
+    reviewed_by: 'usr-admin-jia',
+    reviewed_at: '2026-10-09T18:30:00Z',
+    created_at: '2026-10-09T14:00:00Z',
+    deadline_at: '2026-10-10T14:00:00Z',
+  }
+];
+
 

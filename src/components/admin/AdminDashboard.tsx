@@ -16,7 +16,8 @@ import {
   ArrowRight,
   Eye,
   Bus,
-  FileCheck
+  FileCheck,
+  Sparkles
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -26,7 +27,7 @@ interface AdminDashboardProps {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOpenBooking }) => {
   const { allProfiles, approveAgent } = useAuth();
-  const { bookings, commissions, salaryRecords, settings } = useData();
+  const { bookings, commissions, salaryRecords, settings, promotionClaims } = useData();
 
   const now = new Date();
   const todayStr = now.toISOString().split('T')[0];
@@ -103,6 +104,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
     return allProfiles.filter((p) => p.role === 'agent' && p.agent_status === 'pending_approval');
   }, [allProfiles]);
 
+  const pendingPromotionsCount = useMemo(() => {
+    return promotionClaims.filter((c) => c.status === 'pending').length;
+  }, [promotionClaims]);
+
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-8">
       
@@ -121,6 +126,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => onNavigate('admin-promotions')}
+            className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg transition"
+          >
+            <Sparkles className="w-4 h-4 text-purple-200" />
+            <span>वायरल प्रमोशन ({pendingPromotionsCount})</span>
+          </button>
           <button
             onClick={() => onNavigate('admin-bookings')}
             className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs flex items-center gap-2 shadow-lg transition"

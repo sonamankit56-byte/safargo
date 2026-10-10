@@ -20,7 +20,10 @@ import {
   ChevronRight,
   Gift,
   Phone,
-  Megaphone
+  Megaphone,
+  Instagram,
+  Youtube,
+  Sparkles
 } from 'lucide-react';
 import { NewFeaturesSection } from './NewFeaturesSection';
 import { SafarGoLogo } from '../common/SafarGoLogo';
@@ -182,6 +185,39 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
           className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-yellow-300 font-bold text-xs rounded-xl transition flex items-center gap-1.5 shrink-0 self-start sm:self-auto shadow"
         >
           <span>रेफरल डैशबोर्ड देखें</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Social Media Viral Creator & Reels Offer Banner */}
+      <div className="bg-gradient-to-r from-purple-900 via-pink-900 to-indigo-950 rounded-2xl p-4 sm:p-5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg border border-pink-500/30">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-pink-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-md">
+            <Sparkles className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-[10px] bg-pink-500 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
+                नई क्रिएटर योजना
+              </span>
+              <span className="text-xs font-bold text-emerald-300">
+                ⚡ 24-घंटे में भुगतान
+              </span>
+            </div>
+            <h3 className="font-black text-sm sm:text-base">
+              Instagram Reel पर 1M Views = ₹{settings.promo_instagram_reward || 500} | YouTube पर 10K Views = ₹{settings.promo_youtube_reward || 100}!
+            </h3>
+            <p className="text-xs text-purple-200">
+              SafarGo का वीडियो बनाएं, व्यूज लाएं और 24 घंटे में सीधा बोनस अपने वॉलेट या बैंक में पाएं!
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => onNavigate('viral-promotions')}
+          className="px-5 py-2.5 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-black text-xs rounded-xl transition flex items-center gap-1.5 shrink-0 self-start sm:self-auto shadow-md"
+        >
+          <span>रिवॉर्ड्स देखें व क्लेम करें</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>

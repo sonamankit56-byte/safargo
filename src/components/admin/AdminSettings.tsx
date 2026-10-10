@@ -37,7 +37,10 @@ import {
   Smartphone,
   Upload,
   CreditCard,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Instagram,
+  Youtube,
+  Clock
 } from 'lucide-react';
 
 export const AdminSettings: React.FC = () => {
@@ -52,7 +55,17 @@ export const AdminSettings: React.FC = () => {
   } = useData();
   const { success, error, info } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'payment' | 'core' | 'announcement' | 'features' | 'database'>('payment');
+  const [activeTab, setActiveTab] = useState<'payment' | 'viral_promo' | 'core' | 'announcement' | 'features' | 'database'>('payment');
+
+  // VIRAL CREATOR PROMOTION SETTINGS STATE
+  const [promoInstaActive, setPromoInstaActive] = useState<boolean>(settings.promo_instagram_active ?? true);
+  const [promoInstaViews, setPromoInstaViews] = useState<number>(settings.promo_instagram_target_views || 1000000);
+  const [promoInstaReward, setPromoInstaReward] = useState<number>(settings.promo_instagram_reward || 500);
+  const [promoYtActive, setPromoYtActive] = useState<boolean>(settings.promo_youtube_active ?? true);
+  const [promoYtViews, setPromoYtViews] = useState<number>(settings.promo_youtube_target_views || 10000);
+  const [promoYtReward, setPromoYtReward] = useState<number>(settings.promo_youtube_reward || 100);
+  const [promoSlaHours, setPromoSlaHours] = useState<number>(settings.promo_sla_hours || 24);
+  const [isSavingPromo, setIsSavingPromo] = useState<boolean>(false);
 
   // PAYMENT & QR CODE GATEWAY STATES
   const [payUpiId, setPayUpiId] = useState<string>(settings.safargo_upi_id || 'safargo.booking@icici');
@@ -67,6 +80,25 @@ export const AdminSettings: React.FC = () => {
   const [payBankName, setPayBankName] = useState<string>(settings.safargo_bank_name || 'ICICI Bank');
   const [payMinRecharge, setPayMinRecharge] = useState<number>(settings.min_wallet_recharge || 2000);
   const [isSavingPayment, setIsSavingPayment] = useState<boolean>(false);
+
+  const handleSavePromo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingPromo(true);
+    try {
+      await updateSettings({
+        promo_instagram_active: promoInstaActive,
+        promo_instagram_target_views: promoInstaViews,
+        promo_instagram_reward: promoInstaReward,
+        promo_youtube_active: promoYtActive,
+        promo_youtube_target_views: promoYtViews,
+        promo_youtube_reward: promoYtReward,
+        promo_sla_hours: promoSlaHours,
+      });
+      success('प्रमोशन सेटिंग्स सुरक्षित!', 'Instagram व YouTube क्रिएटर रिवॉर्ड्स और 24-Hour SLA सेटिंग्स अपडेट हो गईं।');
+    } finally {
+      setIsSavingPromo(false);
+    }
+  };
 
   // CORE SETTINGS STATE
   const [commRate, setCommRate] = useState<number>(settings.commission_rate);
@@ -374,6 +406,18 @@ export const AdminSettings: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setActiveTab('viral_promo')}
+            className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
+              activeTab === 'viral_promo'
+                ? 'bg-white text-purple-600 shadow-xs font-bold'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+            वायरल क्रिएटर प्रमोशन (Viral Promo)
+          </button>
+
+          <button
             onClick={() => setActiveTab('core')}
             className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
               activeTab === 'core'
@@ -675,6 +719,206 @@ export const AdminSettings: React.FC = () => {
               >
                 <Save className="w-4 h-4" />
                 <span>{isSavingPayment ? 'सेव हो रहा है...' : 'सेटिंग्स सुरक्षित करें'}</span>
+              </button>
+            </div>
+
+          </div>
+        </form>
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB: VIRAL PROMOTION REWARDS CONFIGURATION (INSTA & YT)  */}
+      {/* ======================================================== */}
+      {activeTab === 'viral_promo' && (
+        <form onSubmit={handleSavePromo} className="space-y-6 animate-fadeIn">
+          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8 space-y-6">
+            
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center font-bold shadow-xs">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base sm:text-lg font-black text-slate-900">
+                    वायरल क्रिएटर प्रमोशन एवं बोनस नीतियां (Social Media Rewards Setup)
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Instagram Reels और YouTube Videos पर निर्धारित व्यूज लाने वाले एजेंटों व क्रिएटर्स के लिए बोनस राशि और 24-घंटे SLA सेटिंग्स।
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSavingPromo}
+                className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs shadow-md shadow-purple-600/20 transition active:scale-95 flex items-center gap-2 self-start sm:self-auto disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                <span>{isSavingPromo ? 'सेव हो रहा है...' : 'प्रमोशन सेटिंग्स सुरक्षित करें'}</span>
+              </button>
+            </div>
+
+            {/* Grid 1: Instagram Reel Promo Configuration */}
+            <div className="bg-gradient-to-br from-pink-50/50 to-purple-50/50 p-6 rounded-2xl border border-pink-200/80 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-pink-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-pink-500 to-purple-600 text-white flex items-center justify-center">
+                    <Instagram className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm text-slate-900">
+                      1. Instagram Reels प्रमोशन ऑफर
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Instagram पर रील पोस्ट करने और 1M व्यूज लाने पर नकद बोनस
+                    </p>
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={promoInstaActive}
+                    onChange={(e) => setPromoInstaActive(e.target.checked)}
+                    className="w-4 h-4 text-pink-600 rounded"
+                  />
+                  <span className="text-xs font-bold text-slate-700">ऑफर सक्रिय (Active)</span>
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    न्यूनतम लक्ष्य व्यूज (Target Views Required)
+                  </label>
+                  <input
+                    type="number"
+                    min={1000}
+                    step={10000}
+                    value={promoInstaViews}
+                    onChange={(e) => setPromoInstaViews(Number(e.target.value))}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-bold focus:ring-2 focus:ring-pink-500 outline-none bg-white"
+                  />
+                  <span className="text-[10px] text-slate-500 mt-1 block">डिफ़ॉल्ट: 10,00,000 (1 Million) व्यूज</span>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    बोनस इनाम राशि (Reward Bonus in ₹)
+                  </label>
+                  <input
+                    type="number"
+                    min={10}
+                    step={10}
+                    value={promoInstaReward}
+                    onChange={(e) => setPromoInstaReward(Number(e.target.value))}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-bold focus:ring-2 focus:ring-pink-500 outline-none bg-white text-emerald-700"
+                  />
+                  <span className="text-[10px] text-slate-500 mt-1 block">डिफ़ॉल्ट: ₹500 नकद बोनस</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Grid 2: YouTube Video Promo Configuration */}
+            <div className="bg-gradient-to-br from-red-50/50 to-rose-50/50 p-6 rounded-2xl border border-red-200/80 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-red-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-600 to-rose-700 text-white flex items-center justify-center">
+                    <Youtube className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm text-slate-900">
+                      2. YouTube Video / Shorts प्रमोशन ऑफर
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      YouTube पर वीडियो/शॉर्ट्स पोस्ट करने और 10K व्यूज लाने पर नकद बोनस
+                    </p>
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={promoYtActive}
+                    onChange={(e) => setPromoYtActive(e.target.checked)}
+                    className="w-4 h-4 text-red-600 rounded"
+                  />
+                  <span className="text-xs font-bold text-slate-700">ऑफर सक्रिय (Active)</span>
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    न्यूनतम लक्ष्य व्यूज (Target Views Required)
+                  </label>
+                  <input
+                    type="number"
+                    min={100}
+                    step={1000}
+                    value={promoYtViews}
+                    onChange={(e) => setPromoYtViews(Number(e.target.value))}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-bold focus:ring-2 focus:ring-red-500 outline-none bg-white"
+                  />
+                  <span className="text-[10px] text-slate-500 mt-1 block">डिफ़ॉल्ट: 10,000 (10K) व्यूज</span>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    बोनस इनाम राशि (Reward Bonus in ₹)
+                  </label>
+                  <input
+                    type="number"
+                    min={10}
+                    step={10}
+                    value={promoYtReward}
+                    onChange={(e) => setPromoYtReward(Number(e.target.value))}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-bold focus:ring-2 focus:ring-red-500 outline-none bg-white text-emerald-700"
+                  />
+                  <span className="text-[10px] text-slate-500 mt-1 block">डिफ़ॉल्ट: ₹100 नकद बोनस</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Grid 3: SLA Window Settings */}
+            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-orange-600" />
+                <h3 className="font-black text-xs text-slate-900 uppercase tracking-wide">
+                  3. सत्यापन व भुगतान गारंटी विंडो (Verification SLA Guarantee)
+                </h3>
+              </div>
+
+              <div className="max-w-xs text-xs">
+                <label className="block font-bold text-slate-700 mb-1">
+                  अधिकतम सत्यापन समय (Hours)
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={72}
+                  value={promoSlaHours}
+                  onChange={(e) => setPromoSlaHours(Number(e.target.value))}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 font-bold focus:ring-2 focus:ring-orange-500 outline-none bg-white"
+                />
+                <span className="text-[10px] text-slate-500 mt-1 block">
+                  डिफ़ॉल्ट: 24 घंटे (क्रिएटर को 24-hour SLA काउंटडाउन दिखेगा)
+                </span>
+              </div>
+            </div>
+
+            {/* Bottom Save Bar */}
+            <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <span className="text-xs text-slate-500">
+                💾 सेव करने पर यह नियम वेबसाइट और एजेंट डैशबोर्ड पर तुरंत प्रभावी हो जाएंगे।
+              </span>
+              <button
+                type="submit"
+                disabled={isSavingPromo}
+                className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs shadow-md shadow-purple-600/20 transition active:scale-95 flex items-center gap-2 disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                <span>{isSavingPromo ? 'सेव हो रहा है...' : 'प्रमोशन सेटिंग्स सुरक्षित करें'}</span>
               </button>
             </div>
 

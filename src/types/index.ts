@@ -260,6 +260,15 @@ export interface AdminSettings {
 
   // Dynamic custom features added by Admin
   custom_features: CustomFeature[];
+
+  // Viral Creator & Social Media Promotion Settings
+  promo_instagram_active?: boolean;
+  promo_instagram_target_views?: number; // 1,000,000 views
+  promo_instagram_reward?: number; // ₹500
+  promo_youtube_active?: boolean;
+  promo_youtube_target_views?: number; // 10,000 views
+  promo_youtube_reward?: number; // ₹100
+  promo_sla_hours?: number; // 24 hours
 }
 
 export type WalletRechargeStatus = 'pending' | 'approved' | 'rejected';
@@ -304,4 +313,35 @@ export interface AuditLog {
   record_id?: string;
   metadata?: Record<string, any>;
   created_at: string;
+}
+
+export type PromotionPlatform = 'instagram' | 'youtube';
+export type PromotionContentType = 'reel' | 'video' | 'short';
+export type PromotionClaimStatus = 'pending' | 'approved' | 'rejected' | 'paid';
+
+export interface PromotionClaim {
+  id: string;
+  claim_code: string; // e.g. "PRM-20261010-001"
+  user_id: string;
+  user_name: string;
+  user_mobile: string;
+  user_role: 'admin' | 'agent' | 'customer' | 'creator';
+  platform: PromotionPlatform;
+  content_type: PromotionContentType;
+  post_url: string;
+  channel_or_handle: string; // e.g. "@creator_rahul" or "UP Bus Diaries"
+  views_count: number;
+  reward_amount: number; // ₹500 for Instagram 1M, ₹100 for YouTube 10k
+  screenshot_url?: string;
+  payout_method: 'wallet' | 'upi' | 'bank';
+  upi_id?: string;
+  bank_details?: string;
+  status: PromotionClaimStatus;
+  admin_notes?: string;
+  rejection_reason?: string;
+  payment_reference?: string;
+  created_at: string;
+  deadline_at: string; // created_at + 24 Hours SLA
+  reviewed_at?: string;
+  reviewed_by?: string;
 }

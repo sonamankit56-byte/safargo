@@ -23,7 +23,8 @@ import {
   LogIn,
   UserPlus,
   User,
-  Wallet
+  Wallet,
+  Sparkles
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -138,6 +139,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                   <Gift className="w-4 h-4" />
                   Refer & Earn (₹50)
                 </button>
+
+                <button
+                  onClick={() => handleTabChange('viral-promotions')}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition ${
+                    currentTab === 'viral-promotions'
+                      ? 'bg-purple-600 text-white shadow-sm'
+                      : 'text-purple-300 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4 text-purple-400" />
+                  क्रिएटर बोनस (Earn ₹500)
+                </button>
               </>
             )}
 
@@ -165,6 +178,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                 >
                   <FileText className="w-4 h-4" />
                   Bookings Desk
+                </button>
+
+                <button
+                  onClick={() => handleTabChange('admin-promotions')}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition ${
+                    currentTab === 'admin-promotions'
+                      ? 'bg-purple-600 text-white shadow-sm'
+                      : 'text-purple-300 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4 text-purple-400" />
+                  वायरल प्रमोशन
                 </button>
 
                 <button
@@ -430,6 +455,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                   <Gift className="w-4 h-4" /> Refer & Earn (₹50)
                 </button>
                 <button
+                  onClick={() => handleTabChange('viral-promotions')}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
+                    currentTab === 'viral-promotions' ? 'bg-purple-600 text-white' : 'text-purple-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4 text-purple-400" /> क्रिएटर बोनस (Earn ₹500)
+                </button>
+                <button
                   onClick={() => handleTabChange('agent-profile')}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
                     currentTab === 'agent-profile' ? 'bg-orange-500 text-white' : 'text-slate-300 hover:bg-slate-800'
@@ -461,6 +494,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                   }`}
                 >
                   <FileText className="w-4 h-4" /> Bookings Desk
+                </button>
+                <button
+                  onClick={() => handleTabChange('admin-promotions')}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
+                    currentTab === 'admin-promotions' ? 'bg-purple-600 text-white' : 'text-purple-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4 text-purple-400" /> वायरल प्रमोशन
                 </button>
                 <button
                   onClick={() => handleTabChange('admin-agents')}

@@ -12,7 +12,10 @@ import {
   CustomFeature,
   PayoutRequest,
   WalletRechargeRequest,
-  WalletTransaction
+  WalletTransaction,
+  PromotionClaim,
+  PromotionPlatform,
+  PromotionContentType
 } from '../types';
 import {
   INITIAL_BOOKINGS,
@@ -23,7 +26,8 @@ import {
   INITIAL_AUDIT_LOGS,
   INITIAL_PAYOUT_REQUESTS,
   INITIAL_WALLET_RECHARGES,
-  INITIAL_WALLET_TRANSACTIONS
+  INITIAL_WALLET_TRANSACTIONS,
+  INITIAL_PROMOTION_CLAIMS
 } from '../lib/mockData';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
@@ -93,6 +97,25 @@ interface DataContextType {
   approveWalletRecharge: (rechargeId: string, adminNotes?: string) => Promise<boolean>;
   rejectWalletRecharge: (rechargeId: string, reason: string) => Promise<boolean>;
 
+  // Viral Creator & Social Media Promotion (Instagram 1M => ₹500, YouTube 10k => ₹100, 24-hr SLA)
+  promotionClaims: PromotionClaim[];
+  agentPromotionClaims: PromotionClaim[];
+  submitPromotionClaim: (claimData: {
+    user_name: string;
+    user_mobile: string;
+    platform: PromotionPlatform;
+    content_type: PromotionContentType;
+    post_url: string;
+    channel_or_handle: string;
+    views_count: number;
+    screenshot_url?: string;
+    payout_method: 'wallet' | 'upi' | 'bank';
+    upi_id?: string;
+    bank_details?: string;
+  }) => Promise<boolean>;
+  approvePromotionClaim: (claimId: string, paymentReference?: string, notes?: string) => Promise<boolean>;
+  rejectPromotionClaim: (claimId: string, reason: string) => Promise<boolean>;
+
   // Commission Celebration Modal Trigger
   celebrationBooking: Booking | null;
   dismissCelebration: () => void;
@@ -108,6 +131,7 @@ const STORAGE_KEY_SEEN_CONFIRMATIONS = 'safargo_seen_confirmations_v1';
 const STORAGE_KEY_PAYOUTS = 'safargo_payouts_v1';
 const STORAGE_KEY_WALLET_RECHARGES = 'safargo_wallet_recharges_v1';
 const STORAGE_KEY_WALLET_TX = 'safargo_wallet_tx_v1';
+const STORAGE_KEY_PROMOTIONS = 'safargo_promotion_claims_v1';
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
@@ -218,6 +242,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return INITIAL_WALLET_TRANSACTIONS;
   });
 
+  const [promotionClaims, setPromotionClaims] = useState<PromotionClaim[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_PROMOTIONS);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return INITIAL_PROMOTION_CLAIMS;
+  });
+
   // Track seen confirmation IDs so animation only plays once per confirmed booking
   const [seenConfirmations, setSeenConfirmations] = useState<string[]>(() => {
     try {
@@ -272,13 +306,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(STORAGE_KEY_WALLET_TX, JSON.stringify(walletTransactions));
   }, [walletTransactions]);
 
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_PROMOTIONS, JSON.stringify(promotionClaims));
+  }, [promotionClaims]);
+
   // Real Database Sync: Load initial live data from Supabase when configured
   useEffect(() => {
     if (!isSupabaseConfigured) return;
 
     const loadLiveSupabaseData = async () => {
       try {
-        const [liveBookings, liveTrips, liveCommissions, liveSalaries, livePayouts, liveRecharges, liveTxs] = await Promise.all([
+        const [liveBookings, liveTrips, liveCommissions, liveSalaries, livePayouts, liveRecharges, liveTxs, liveClaims] = await Promise.all([
           db.getBookings(),
           db.getBusTrips(),
           db.getCommissions(),
@@ -286,6 +324,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           db.getPayoutRequests(),
           db.getWalletRecharges(),
           db.getWalletTransactions(),
+          db.getPromotionClaims(),
         ]);
 
         if (liveBookings && liveBookings.length > 0) setBookings(liveBookings);
@@ -295,6 +334,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (livePayouts && livePayouts.length > 0) setPayoutRequests(livePayouts);
         if (liveRecharges && liveRecharges.length > 0) setWalletRecharges(liveRecharges);
         if (liveTxs && liveTxs.length > 0) setWalletTransactions(liveTxs);
+        if (liveClaims && liveClaims.length > 0) setPromotionClaims(liveClaims);
       } catch (err) {
         console.error('Error fetching live Supabase data:', err);
       }
@@ -410,6 +450,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentUser.role === 'admin') return walletTransactions;
     return walletTransactions.filter((t) => t.agent_id === currentUser.id);
   }, [walletTransactions, currentUser]);
+
+  // Agent's Viral Promotion Claims Filter
+  const agentPromotionClaims = useMemo(() => {
+    if (!currentUser) return [];
+    if (currentUser.role === 'admin') return promotionClaims;
+    return promotionClaims.filter((p) => p.user_id === currentUser.id);
+  }, [promotionClaims, currentUser]);
 
   // Agent's live wallet balance
   const agentWalletBalance = useMemo(() => {
@@ -1541,6 +1588,196 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
+  // Viral Creator & Social Media Promotion Handlers
+  const submitPromotionClaim = async (claimData: {
+    user_name: string;
+    user_mobile: string;
+    platform: PromotionPlatform;
+    content_type: PromotionContentType;
+    post_url: string;
+    channel_or_handle: string;
+    views_count: number;
+    screenshot_url?: string;
+    payout_method: 'wallet' | 'upi' | 'bank';
+    upi_id?: string;
+    bank_details?: string;
+  }): Promise<boolean> => {
+    if (!claimData.post_url || !claimData.post_url.trim()) {
+      error('URL Required', 'कृपया अपनी Instagram Reel या YouTube वीडियो का लिंक दर्ज करें।');
+      return false;
+    }
+
+    const isInsta = claimData.platform === 'instagram';
+    const targetViews = isInsta
+      ? (settings.promo_instagram_target_views || 1000000)
+      : (settings.promo_youtube_target_views || 10000);
+    const rewardAmount = isInsta
+      ? (settings.promo_instagram_reward || 500)
+      : (settings.promo_youtube_reward || 100);
+
+    const now = new Date();
+    const slaHours = settings.promo_sla_hours || 24;
+    const deadline = new Date(now.getTime() + slaHours * 60 * 60 * 1000).toISOString();
+    const dateCode = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const randSuffix = Math.floor(100 + Math.random() * 900);
+    const claimCode = `PRM-${dateCode}-${randSuffix}`;
+
+    const newClaim: PromotionClaim = {
+      id: `prm-${Date.now()}`,
+      claim_code: claimCode,
+      user_id: currentUser?.id || `guest-${Date.now()}`,
+      user_name: claimData.user_name.trim() || currentUser?.full_name || 'Creator',
+      user_mobile: claimData.user_mobile.trim() || currentUser?.mobile || '',
+      user_role: currentUser?.role || 'creator',
+      platform: claimData.platform,
+      content_type: claimData.content_type,
+      post_url: claimData.post_url.trim(),
+      channel_or_handle: claimData.channel_or_handle.trim() || '@creator',
+      views_count: Number(claimData.views_count) || 0,
+      reward_amount: rewardAmount,
+      screenshot_url: claimData.screenshot_url,
+      payout_method: claimData.payout_method,
+      upi_id: claimData.upi_id?.trim(),
+      bank_details: claimData.bank_details?.trim(),
+      status: 'pending',
+      created_at: now.toISOString(),
+      deadline_at: deadline,
+    };
+
+    setPromotionClaims((prev) => [newClaim, ...prev]);
+    if (isSupabaseConfigured) {
+      db.createPromotionClaim(newClaim).catch(console.error);
+    }
+
+    addAuditLog('submit_promotion_claim', 'promotion_claims', newClaim.id, {
+      platform: newClaim.platform,
+      views: newClaim.views_count,
+      reward: newClaim.reward_amount,
+    });
+
+    success(
+      'प्रमोशन क्लेम सबमिट हुआ! 🚀',
+      `आपका क्लेम ID #${newClaim.claim_code} दर्ज कर लिया गया है। SafarGo टीम 24 घंटे के अंदर व्यूज चेक करके ₹${newClaim.reward_amount} बोनस क्रेडिट करेगी!`
+    );
+    return true;
+  };
+
+  const approvePromotionClaim = async (
+    claimId: string,
+    paymentReference?: string,
+    notes?: string
+  ): Promise<boolean> => {
+    if (!isAdmin) {
+      error('Unauthorized', 'केवल एडमिन ही प्रमोशन क्लेम स्वीकृत कर सकते हैं।');
+      return false;
+    }
+
+    const claim = promotionClaims.find((c) => c.id === claimId);
+    if (!claim || claim.status !== 'pending') return false;
+
+    const nowIso = new Date().toISOString();
+    const txnRef = paymentReference?.trim() || `TXN-PRM-${Date.now().toString().slice(-6)}`;
+
+    setPromotionClaims((prev) =>
+      prev.map((c) =>
+        c.id === claimId
+          ? {
+              ...c,
+              status: 'paid',
+              payment_reference: txnRef,
+              admin_notes: notes || 'Verified genuine views & SafarGo mention.',
+              reviewed_by: currentUser?.id,
+              reviewed_at: nowIso,
+            }
+          : c
+      )
+    );
+
+    // If payout method is 'wallet' and user is an agent, credit agent's wallet
+    const targetProfile = allProfiles.find((p) => p.id === claim.user_id);
+    if (claim.payout_method === 'wallet' && targetProfile && targetProfile.role === 'agent') {
+      const currentBal = targetProfile.wallet_balance || 0;
+      const newBal = currentBal + claim.reward_amount;
+
+      if (currentUser?.id === claim.user_id) {
+        await updateProfile({ wallet_balance: newBal });
+      } else if (isSupabaseConfigured) {
+        db.updateProfile(claim.user_id, { wallet_balance: newBal }).catch(console.error);
+      }
+
+      const creditTx: WalletTransaction = {
+        id: `wtx-${Date.now()}`,
+        agent_id: claim.user_id,
+        amount: claim.reward_amount,
+        type: 'adjustment',
+        description: `Viral Promotion Bonus (${claim.platform.toUpperCase()} - ${claim.claim_code})`,
+        balance_after: newBal,
+        created_at: nowIso,
+      };
+
+      setWalletTransactions((prev) => [creditTx, ...prev]);
+      if (isSupabaseConfigured) {
+        db.createWalletTransaction(creditTx).catch(console.error);
+      }
+    }
+
+    if (isSupabaseConfigured) {
+      db.updatePromotionClaim(claimId, {
+        status: 'paid',
+        payment_reference: txnRef,
+        admin_notes: notes || 'Verified genuine views & SafarGo mention.',
+        reviewed_by: currentUser?.id,
+        reviewed_at: nowIso,
+      }).catch(console.error);
+    }
+
+    addAuditLog('approve_promotion_claim', 'promotion_claims', claimId, {
+      reward_amount: claim.reward_amount,
+      payout_method: claim.payout_method,
+      payment_reference: txnRef,
+    });
+
+    success(
+      'प्रमोशन स्वीकृत व भुगतान संपन्न! ✅',
+      `${claim.user_name} को ${claim.platform.toUpperCase()} के लिए ₹${claim.reward_amount} बोनस स्वीकृत व भुगतान किया गया।`
+    );
+    return true;
+  };
+
+  const rejectPromotionClaim = async (claimId: string, reason: string): Promise<boolean> => {
+    if (!isAdmin) return false;
+    const claim = promotionClaims.find((c) => c.id === claimId);
+    if (!claim) return false;
+
+    const nowIso = new Date().toISOString();
+    setPromotionClaims((prev) =>
+      prev.map((c) =>
+        c.id === claimId
+          ? {
+              ...c,
+              status: 'rejected',
+              rejection_reason: reason,
+              reviewed_by: currentUser?.id,
+              reviewed_at: nowIso,
+            }
+          : c
+      )
+    );
+
+    if (isSupabaseConfigured) {
+      db.updatePromotionClaim(claimId, {
+        status: 'rejected',
+        rejection_reason: reason,
+        reviewed_by: currentUser?.id,
+        reviewed_at: nowIso,
+      }).catch(console.error);
+    }
+
+    addAuditLog('reject_promotion_claim', 'promotion_claims', claimId, { reason });
+    warning('Promotion Rejected', `प्रमोशन क्लेम अस्वीकृत: ${reason}`);
+    return true;
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -1575,6 +1812,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         requestWalletRecharge,
         approveWalletRecharge,
         rejectWalletRecharge,
+        promotionClaims,
+        agentPromotionClaims,
+        submitPromotionClaim,
+        approvePromotionClaim,
+        rejectPromotionClaim,
         settings,
         updateSettings,
         updateAnnouncement,

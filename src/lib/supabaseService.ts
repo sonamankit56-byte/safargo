@@ -8,7 +8,8 @@ import {
   Profile,
   PayoutRequest,
   WalletRechargeRequest,
-  WalletTransaction
+  WalletTransaction,
+  PromotionClaim
 } from '../types';
 
 export const db = {
@@ -428,6 +429,58 @@ export const db = {
       return true;
     } catch (e) {
       console.error('Supabase createWalletTransaction network error:', e);
+      return false;
+    }
+  },
+
+  // Viral Promotion Claims
+  async getPromotionClaims(): Promise<PromotionClaim[] | null> {
+    if (!isSupabaseConfigured || !supabase) return null;
+    try {
+      const { data, error } = await supabase
+        .from('promotion_claims')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.error('Supabase getPromotionClaims error:', error);
+        return null;
+      }
+      return data as PromotionClaim[];
+    } catch (e) {
+      console.error('Supabase getPromotionClaims network error:', e);
+      return null;
+    }
+  },
+
+  async createPromotionClaim(claim: PromotionClaim): Promise<boolean> {
+    if (!isSupabaseConfigured || !supabase) return false;
+    try {
+      const { error } = await supabase.from('promotion_claims').insert(claim);
+      if (error) {
+        console.error('Supabase createPromotionClaim error:', error);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('Supabase createPromotionClaim network error:', e);
+      return false;
+    }
+  },
+
+  async updatePromotionClaim(id: string, updates: Partial<PromotionClaim>): Promise<boolean> {
+    if (!isSupabaseConfigured || !supabase) return false;
+    try {
+      const { error } = await supabase
+        .from('promotion_claims')
+        .update(updates)
+        .eq('id', id);
+      if (error) {
+        console.error('Supabase updatePromotionClaim error:', error);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('Supabase updatePromotionClaim network error:', e);
       return false;
     }
   }

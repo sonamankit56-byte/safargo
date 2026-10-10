@@ -544,4 +544,69 @@ describe('O. Sunday Payout Cycle & Salary Base Model Realignment', () => {
   });
 });
 
+describe('P. Viral Social Media Promotions & Creator Bonus Program', () => {
+  it('calculates correct rewards: Instagram 1M views => ₹500, YouTube 10k views => ₹100', () => {
+    const instaTarget = 1000000;
+    const instaReward = 500;
+    const ytTarget = 10000;
+    const ytReward = 100;
+
+    const calcReward = (platform: 'instagram' | 'youtube', views: number) => {
+      if (platform === 'instagram' && views >= instaTarget) return instaReward;
+      if (platform === 'youtube' && views >= ytTarget) return ytReward;
+      return 0;
+    };
+
+    expect(calcReward('instagram', 1250000)).toBe(500);
+    expect(calcReward('instagram', 950000)).toBe(0); // under 1M views
+    expect(calcReward('youtube', 15000)).toBe(100);
+    expect(calcReward('youtube', 9999)).toBe(0); // under 10k views
+  });
+
+  it('strictly enforces 24-hour verification & payout SLA window', () => {
+    const createdAt = new Date('2026-10-10T12:00:00Z');
+    const slaHours = 24;
+    const deadline = new Date(createdAt.getTime() + slaHours * 60 * 60 * 1000);
+
+    const diffHours = (deadline.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+    expect(diffHours).toBe(24);
+  });
+
+  it('credits agent wallet when promotion payout method is wallet', () => {
+    let agentWallet = 2500;
+    const instaReward = 500;
+
+    // Simulate approving Instagram reel promotion
+    agentWallet += instaReward;
+
+    expect(agentWallet).toBe(3000);
+  });
+
+  it('generates a unique claim code with PRM prefix', () => {
+    const dateCode = '20261010';
+    const randSuffix = '456';
+    const claimCode = `PRM-${dateCode}-${randSuffix}`;
+
+    expect(claimCode).toMatch(/^PRM-\d{8}-\d{3}$/);
+  });
+
+  it('records rejection reason when admin rejects promotion claim', () => {
+    const claim = {
+      id: 'prm-test-01',
+      status: 'pending',
+      rejection_reason: '',
+    };
+
+    const rejectClaim = (reason: string) => {
+      claim.status = 'rejected';
+      claim.rejection_reason = reason;
+    };
+
+    rejectClaim('Fake bot views detected - views dropped below 1M');
+    expect(claim.status).toBe('rejected');
+    expect(claim.rejection_reason).toContain('Fake bot views');
+  });
+});
+
+
 

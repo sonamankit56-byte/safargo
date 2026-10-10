@@ -18,6 +18,8 @@ import { AdminBusTripManagement } from './components/admin/AdminBusTripManagemen
 import { AdminCommissionAndSalary } from './components/admin/AdminCommissionAndSalary';
 import { AdminSettings } from './components/admin/AdminSettings';
 import { AdminAuditLogs } from './components/admin/AdminAuditLogs';
+import { AgentViralPromotions } from './components/agent/AgentViralPromotions';
+import { AdminPromotionManagement } from './components/admin/AdminPromotionManagement';
 import { AuthModal } from './components/auth/AuthModal';
 import { AnnouncementBanner } from './components/common/AnnouncementBanner';
 import { HomePage } from './components/home/HomePage';
@@ -72,6 +74,7 @@ const AppContent: React.FC = () => {
             {currentTab === 'my-bookings' && <AgentBookingsList />}
             {currentTab === 'commission' && <AgentCommissionLedger />}
             {currentTab === 'refer-earn' && <ReferAndEarn />}
+            {currentTab === 'viral-promotions' && <AgentViralPromotions />}
             {currentTab === 'agent-profile' && <AgentProfile />}
           </>
         ) : (
@@ -87,6 +90,7 @@ const AppContent: React.FC = () => {
             )}
             {currentTab === 'admin-agents' && <AdminAgentManagement />}
             {currentTab === 'admin-trips' && <AdminBusTripManagement />}
+            {currentTab === 'admin-promotions' && <AdminPromotionManagement />}
             {currentTab === 'admin-salary' && <AdminCommissionAndSalary />}
             {currentTab === 'admin-settings' && <AdminSettings />}
             {currentTab === 'admin-logs' && <AdminAuditLogs />}
