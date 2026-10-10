@@ -1,4 +1,15 @@
-import { Profile, Booking, BusTrip, CommissionEntry, SalaryRecord, AdminSettings, AuditLog, PayoutRequest } from '../types';
+import {
+  Profile,
+  Booking,
+  BusTrip,
+  CommissionEntry,
+  SalaryRecord,
+  AdminSettings,
+  AuditLog,
+  PayoutRequest,
+  WalletRechargeRequest,
+  WalletTransaction
+} from '../types';
 
 export const INITIAL_SETTINGS: AdminSettings = {
   commission_rate: 19.34,
@@ -8,6 +19,10 @@ export const INITIAL_SETTINGS: AdminSettings = {
   referral_required_bookings: 5,
   support_whatsapp: '919876543210',
   cancellation_reversal_policy: 'reverse_commission',
+
+  // Advance Online Payment & Agent Prepaid Wallet Settings
+  min_wallet_recharge: 2000,
+  safargo_upi_id: 'safargo.booking@icici',
 
   announcement: {
     is_active: true,
@@ -94,6 +109,7 @@ export const INITIAL_PROFILES: Profile[] = [
     district: 'Sitapur',
     address: 'Near Block Office, Laharpur Road',
     shop_name: 'Kisan Jan Seva Kendra',
+    wallet_balance: 2500,
     agent_status: 'approved',
     approved_by: 'usr-admin-jia',
     approved_at: '2026-09-05T10:00:00Z',
@@ -112,6 +128,7 @@ export const INITIAL_PROFILES: Profile[] = [
     district: 'Hardoi',
     address: 'Station Road, Sandila',
     shop_name: 'Maurya Digital Cyber Cafe',
+    wallet_balance: 0,
     agent_status: 'pending_approval',
     referral_code: 'SFG-REF-ANIL50',
     referred_by_code: 'SFG-REF-PAWAN50',
@@ -413,3 +430,35 @@ export const INITIAL_AUDIT_LOGS: AuditLog[] = [
     created_at: new Date(new Date(yesterday).getTime() + 8 * 60 * 1000).toISOString(),
   }
 ];
+
+export const INITIAL_WALLET_RECHARGES: WalletRechargeRequest[] = [
+  {
+    id: 'rech-001',
+    agent_id: 'usr-agent-01',
+    agent_name: 'Pawan Kumar Verma',
+    agent_mobile: '9450123456',
+    amount: 2500,
+    payment_method: 'upi_qr',
+    utr_number: 'UTR-20261009112233',
+    screenshot_url: '',
+    status: 'approved',
+    admin_notes: 'Verified against ICICI bank statement',
+    approved_by: 'usr-admin-jia',
+    approved_at: '2026-10-09T10:15:00Z',
+    created_at: '2026-10-09T10:00:00Z',
+  }
+];
+
+export const INITIAL_WALLET_TRANSACTIONS: WalletTransaction[] = [
+  {
+    id: 'wtx-001',
+    agent_id: 'usr-agent-01',
+    amount: 2500,
+    type: 'recharge',
+    recharge_id: 'rech-001',
+    description: 'Wallet Recharge Approved (Min ₹2,000 Model)',
+    balance_after: 2500,
+    created_at: '2026-10-09T10:15:00Z',
+  }
+];
+

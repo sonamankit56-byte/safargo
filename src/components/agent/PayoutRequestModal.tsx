@@ -122,12 +122,28 @@ export const PayoutRequestModal: React.FC<PayoutRequestModalProps> = ({
 
         {/* Balance Highlight Banner */}
         <div className="p-4 bg-orange-50 border-b border-orange-100 flex items-center justify-between">
-          <span className="text-xs font-bold text-orange-900">
-            वर्तमान निकासी योग्य शेष:
-          </span>
+          <div>
+            <span className="text-xs font-bold text-orange-900 block">
+              वर्तमान निकासी योग्य शेष:
+            </span>
+            <span className="text-[11px] text-orange-700 font-semibold">
+              साप्ताहिक पेआउट चक्र: हर रविवार (Every Sunday)
+            </span>
+          </div>
           <span className="text-xl font-black text-orange-600">
             ₹{availableBalance.toFixed(2)}
           </span>
+        </div>
+
+        {/* Salary Base Model Advisory */}
+        <div className="mx-5 sm:mx-6 mt-4 p-3 bg-amber-50 border border-amber-200/80 rounded-2xl flex items-start gap-2.5 text-xs text-amber-900">
+          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <div className="space-y-0.5 text-[11px] leading-relaxed">
+            <span className="font-bold text-amber-900 block">सैलरी बेस टिप (Salary Base Incentive):</span>
+            <span className="text-amber-800">
+              150 बुकिंग का लक्ष्य पूरा करने पर आपको <strong>पूरा ₹5,000 फिक्स्ड वेतन</strong> मिलता है यदि आप बीच में कमीशन विथड्रॉ नहीं करते हैं। यदि आप अभी राशि निकालते हैं, तो 150 पूरा होने पर शेष बची राशि रविवार को स्वतः प्राप्त होगी।
+            </span>
+          </div>
         </div>
 
         {/* Form Body */}

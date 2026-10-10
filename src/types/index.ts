@@ -48,6 +48,7 @@ export interface Profile {
   district: string;
   address: string;
   shop_name?: string;
+  wallet_balance?: number;
   agent_status: AgentStatus;
   approved_by?: string;
   approved_at?: string;
@@ -86,6 +87,12 @@ export interface Booking {
   deadline_at: string;
   status: BookingStatus;
   
+  // Advance Payment Mode (SafarGo QR or Agent Prepaid Wallet)
+  payment_mode?: 'safargo_qr' | 'agent_wallet';
+  payment_status?: 'paid' | 'pending_verification';
+  payment_utr?: string;
+  payment_screenshot_url?: string;
+
   // Admin verification fields
   actual_fare?: number;
   confirmed_seats?: string;
@@ -103,6 +110,7 @@ export interface Booking {
   confirmed_at?: string;
   updated_at: string;
 }
+
 
 export interface CommissionEntry {
   id: string;
@@ -226,6 +234,10 @@ export interface AdminSettings {
   support_whatsapp: string;
   cancellation_reversal_policy: 'reverse_commission' | 'keep_commission';
   
+  // Advance Payment & Wallet System Settings
+  min_wallet_recharge: number; // default: 2000
+  safargo_upi_id: string; // e.g. "safargo@icici" or "919876543210@paytm"
+
   // Announcement broadcast
   announcement: AdminAnnouncement;
 
@@ -240,6 +252,38 @@ export interface AdminSettings {
   // Dynamic custom features added by Admin
   custom_features: CustomFeature[];
 }
+
+export type WalletRechargeStatus = 'pending' | 'approved' | 'rejected';
+
+export interface WalletRechargeRequest {
+  id: string;
+  agent_id: string;
+  agent_name: string;
+  agent_mobile: string;
+  amount: number; // Minimum ₹2,000
+  payment_method: 'upi_qr' | 'bank_transfer';
+  utr_number: string;
+  screenshot_url?: string;
+  status: WalletRechargeStatus;
+  admin_notes?: string;
+  approved_by?: string;
+  approved_at?: string;
+  created_at: string;
+}
+
+export interface WalletTransaction {
+  id: string;
+  agent_id: string;
+  amount: number; // Positive for credit, negative for debit
+  type: 'recharge' | 'ticket_booking' | 'refund' | 'adjustment';
+  booking_id?: string;
+  booking_code?: string;
+  recharge_id?: string;
+  description: string;
+  balance_after: number;
+  created_at: string;
+}
+
 
 export interface AuditLog {
   id: string;

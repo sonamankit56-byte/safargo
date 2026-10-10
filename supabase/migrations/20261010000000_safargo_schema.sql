@@ -325,3 +325,43 @@ INSERT INTO public.bus_trips (
     true
 )
 ON CONFLICT (id) DO NOTHING;
+
+-- 9. Wallet Balance & Prepaid Advance Booking System
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS wallet_balance NUMERIC(10,2) DEFAULT 0;
+
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS payment_mode TEXT DEFAULT 'safargo_qr';
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT 'pending_verification';
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS payment_utr TEXT;
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS payment_screenshot_url TEXT;
+
+CREATE TABLE IF NOT EXISTS public.wallet_recharge_requests (
+    id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    agent_name TEXT,
+    agent_mobile TEXT,
+    amount NUMERIC(10,2) NOT NULL,
+    payment_method TEXT NOT NULL DEFAULT 'upi_qr',
+    utr_number TEXT NOT NULL,
+    screenshot_url TEXT,
+    status TEXT NOT NULL DEFAULT 'pending',
+    admin_notes TEXT,
+    approved_by TEXT,
+    approved_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.wallet_transactions (
+    id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    amount NUMERIC(10,2) NOT NULL,
+    type TEXT NOT NULL,
+    booking_id TEXT,
+    booking_code TEXT,
+    recharge_id TEXT,
+    description TEXT,
+    balance_after NUMERIC(10,2) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.wallet_recharge_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.wallet_transactions ENABLE ROW LEVEL SECURITY;

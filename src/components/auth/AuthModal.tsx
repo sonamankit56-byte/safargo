@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { SafarGoLogo } from '../common/SafarGoLogo';
 import {
   User,
   Phone,
@@ -175,10 +176,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <X className="w-5 h-5" />
           </button>
           
-          <div className="flex items-center gap-2">
-            <span className="text-xs uppercase tracking-wider font-extrabold px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30">
-              SafarGo Secure Access
-            </span>
+          <div className="mb-3">
+            <SafarGoLogo size="md" variant="light" showBadge={true} showTagline={false} />
           </div>
 
           <h2 className="text-xl font-black mt-2">

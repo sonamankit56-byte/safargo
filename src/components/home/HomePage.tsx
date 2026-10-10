@@ -31,6 +31,7 @@ import {
 import { Booking } from '../../types';
 import { StatusBadge } from '../common/StatusBadge';
 import { PrintTicketModal } from '../common/PrintTicketModal';
+import { SafarGoLogo } from '../common/SafarGoLogo';
 
 interface HomePageProps {
   onOpenAuth: (initialTab?: 'login' | 'register') => void;
@@ -98,8 +99,16 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab })
       a: 'नहीं, सफ़ारगो पर एजेंट रजिस्ट्रेशन 100% फ्री (मुफ्त) है। कोई भी सीएससी (CSC), जन सेवा केंद्र, ऑनलाइन कैफे या मोबाइल दुकानदार केवल 1 मिनट में निःशुल्क पंजीकरण कर सकता है।'
     },
     {
+      q: 'टिकट बुकिंग से पहले ऑनलाइन पेमेंट कैसे करनी होती है? क्या वॉलेट का भी विकल्प है?',
+      a: 'हाँ, सफ़ारगो के नियम के अनुसार बुकिंग से पहले अग्रिम ऑनलाइन पेमेंट अनिवार्य है। आपके पास 2 आसान विकल्प हैं: 1. सफ़ारगो के ऑफिशियल QR कोड या UPI ID (safargo.booking@icici) पर ग्राहक/दुकानदार से सीधे भुगतान कराएं, 12-अंकों का UTR व स्क्रीनशॉट दर्ज करें तथा 15 मिनट विंडो में WhatsApp पर भेजें। 2. एजेंट प्रीपेड वॉलेट - एजेंट अपने वॉलेट में न्यूनतम ₹2,000 या अधिक राशि ऐड कर सकते हैं। एडमिन अनुमोदन के बाद राशि वॉलेट में जमा होगी और बुकिंग का किराया सीधे वॉलेट से कट जाएगा।'
+    },
+    {
       q: '15 मिनट के टाइमर में WhatsApp पर एक्टिव रहना क्यों जरूरी है?',
       a: 'सफ़ारगो एक 100% सुरक्षित मैनुअल बुकिंग मॉडल है। जब आप ग्राहक की बुकिंग सबमिट करते हैं, तो हमारी बैकएंड टीम तुरंत बस ऑपरेटर से सीधे फोन/सिस्टम पर बात करती है। ऑपरेटर की उपलब्धता की पुष्टि SafarGo टीम आपके WhatsApp पर ही मांगती और भेजती है। इसलिए 15 मिनट तक WhatsApp एक्टिव रहना अनिवार्य है।'
+    },
+    {
+      q: 'कमीशन और वेतन का भुगतान (Payout) किस दिन मिलता है?',
+      a: 'सफ़ारगो का भुगतान चक्र हर रविवार (Every Sunday) को होता है। सभी कन्फर्म बुकिंग्स का कमीशन और 150 बुकिंग का लक्ष्य पूरा करने वाले एजेंटों का ₹5,000 का फिक्स्ड मानदेय हर रविवार को सीधे बैंक खाते या UPI में स्थानांतरित कर दिया जाता है।'
     },
     {
       q: 'प्रति टिकट ₹19.34 कमीशन कैसे और कब मिलता है?',
@@ -107,7 +116,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab })
     },
     {
       q: 'महीने का ₹5,000 फिक्स्ड मानदेय कैसे प्राप्त होता है?',
-      a: 'जब आप एक कैलेंडर माह में 150 पात्र कन्फर्म बस बुकिंग्स पूरी कर लेते हैं, तो आपको बुकिंग कमीशन के अतिरिक्त स्वतंत्र रूप से ₹5,000 का फिक्स्ड मासिक मानदेय प्रदान किया जाता है।'
+      a: 'जब आप एक कैलेंडर माह में 150 पात्र कन्फर्म बस बुकिंग्स पूरी कर लेते हैं और बीच में विथड्रॉल नहीं करते हैं, तो आपको आगामी रविवार को पूरा ₹5,000 का एकमुश्त वेतन प्रदान किया जाता है। आंशिक निकासी होने पर शेष राशि रविवार को ट्रांसफर की जाती है।'
     },
     {
       q: 'रेफर एंड अर्न में ₹50 और 5 बुकिंग्स का क्या नियम है?',
@@ -134,6 +143,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab })
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center max-w-4xl mx-auto space-y-6">
             
+            {/* 3D Animated SafarGo Emblem Logo */}
+            <div className="flex justify-center pt-2">
+              <SafarGoLogo size="xl" variant="light" />
+            </div>
+
             {/* National Mission Pill */}
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-800/90 border border-slate-700/80 shadow-md">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
@@ -199,44 +213,64 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab })
             </div>
 
             {/* Key Trust Badges */}
-            <div className="pt-8 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs text-left max-w-4xl mx-auto">
-              <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center shrink-0">
+            <div className="pt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs text-left max-w-5xl mx-auto">
+              <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center shrink-0">
                   <Clock className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="font-bold text-white block">15-Min Deadline</span>
-                  <span className="text-[11px] text-slate-400">फास्ट ऑपरेटर रिस्पॉन्स</span>
+                  <span className="font-bold text-white block">15-Min Timer</span>
+                  <span className="text-[10px] text-slate-400">फास्ट रिस्पॉन्स</span>
                 </div>
               </div>
 
-              <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+              <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
                   <DollarSign className="w-4 h-4" />
                 </div>
                 <div>
                   <span className="font-bold text-white block">₹19.34 कमीशन</span>
-                  <span className="text-[11px] text-slate-400">हर कन्फर्म टिकट पर</span>
+                  <span className="text-[10px] text-slate-400">हर कन्फर्म टिकट</span>
                 </div>
               </div>
 
-              <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+              <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+                  <Calendar className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="font-bold text-white block">रविवार पेआउट</span>
+                  <span className="text-[10px] text-slate-400">साप्ताहिक भुगतान</span>
+                </div>
+              </div>
+
+              <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
                   <Award className="w-4 h-4" />
                 </div>
                 <div>
                   <span className="font-bold text-white block">₹5,000 मानदेय</span>
-                  <span className="text-[11px] text-slate-400">150 बुकिंग लक्ष्य पर</span>
+                  <span className="text-[10px] text-slate-400">150 बुकिंग लक्ष्य</span>
                 </div>
               </div>
 
-              <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
+              <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="font-bold text-white block">प्रीपेड वॉलेट</span>
+                  <span className="text-[10px] text-slate-400">Min ₹2,000 टॉप-अप</span>
+                </div>
+              </div>
+
+              <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
                   <Gift className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="font-bold text-white block">₹50 रेफरल बोनस</span>
-                  <span className="text-[11px] text-slate-400">5 बुकिंग पूरी होने पर</span>
+                  <span className="font-bold text-white block">₹50 रेफरल</span>
+                  <span className="text-[10px] text-slate-400">5 बुकिंग पूरी पर</span>
                 </div>
               </div>
             </div>

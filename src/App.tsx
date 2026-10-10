@@ -21,6 +21,7 @@ import { AdminAuditLogs } from './components/admin/AdminAuditLogs';
 import { AuthModal } from './components/auth/AuthModal';
 import { AnnouncementBanner } from './components/common/AnnouncementBanner';
 import { HomePage } from './components/home/HomePage';
+import { SafarGoLogo } from './components/common/SafarGoLogo';
 import { Bus, ShieldCheck, Heart, UserPlus, LogIn, ExternalLink } from 'lucide-react';
 
 const AppContent: React.FC = () => {
@@ -121,12 +122,7 @@ const AppContent: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center">
-                  <Bus className="w-5 h-5 text-white" />
-                </div>
-                <span className="font-black text-lg tracking-tight">Safar<span className="text-orange-500">Go</span></span>
-              </div>
+              <SafarGoLogo size="md" variant="light" showTagline={false} />
               <p className="text-xs text-slate-400 leading-relaxed">
                 ग्रामीण जन सेवा केंद्रों (CSC) को अधिकृत बस बुकिंग सेंटर बनाकर स्थानीय युवाओं को स्थायी रोजगार प्रदान करने वाला भारत का पहला मैनुअल बस बुकिंग नेटवर्क।
               </p>

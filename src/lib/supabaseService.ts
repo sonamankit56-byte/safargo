@@ -6,7 +6,9 @@ import {
   SalaryRecord,
   AuditLog,
   Profile,
-  PayoutRequest
+  PayoutRequest,
+  WalletRechargeRequest,
+  WalletTransaction
 } from '../types';
 
 export const db = {
@@ -338,5 +340,96 @@ export const db = {
       console.error('Supabase createAuditLog network error:', e);
       return false;
     }
+  },
+
+  // Wallet Recharges
+  async getWalletRecharges(): Promise<WalletRechargeRequest[] | null> {
+    if (!isSupabaseConfigured || !supabase) return null;
+    try {
+      const { data, error } = await supabase
+        .from('wallet_recharge_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.error('Supabase getWalletRecharges error:', error);
+        return null;
+      }
+      return data as WalletRechargeRequest[];
+    } catch (e) {
+      console.error('Supabase getWalletRecharges network error:', e);
+      return null;
+    }
+  },
+
+  async createWalletRecharge(recharge: WalletRechargeRequest): Promise<WalletRechargeRequest | null> {
+    if (!isSupabaseConfigured || !supabase) return null;
+    try {
+      const { data, error } = await supabase
+        .from('wallet_recharge_requests')
+        .insert(recharge)
+        .select()
+        .single();
+      if (error) {
+        console.error('Supabase createWalletRecharge error:', error);
+        return null;
+      }
+      return data as WalletRechargeRequest;
+    } catch (e) {
+      console.error('Supabase createWalletRecharge network error:', e);
+      return null;
+    }
+  },
+
+  async updateWalletRecharge(id: string, updates: Partial<WalletRechargeRequest>): Promise<boolean> {
+    if (!isSupabaseConfigured || !supabase) return false;
+    try {
+      const { error } = await supabase
+        .from('wallet_recharge_requests')
+        .update(updates)
+        .eq('id', id);
+      if (error) {
+        console.error('Supabase updateWalletRecharge error:', error);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('Supabase updateWalletRecharge network error:', e);
+      return false;
+    }
+  },
+
+  // Wallet Transactions
+  async getWalletTransactions(): Promise<WalletTransaction[] | null> {
+    if (!isSupabaseConfigured || !supabase) return null;
+    try {
+      const { data, error } = await supabase
+        .from('wallet_transactions')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.error('Supabase getWalletTransactions error:', error);
+        return null;
+      }
+      return data as WalletTransaction[];
+    } catch (e) {
+      console.error('Supabase getWalletTransactions network error:', e);
+      return null;
+    }
+  },
+
+  async createWalletTransaction(tx: WalletTransaction): Promise<boolean> {
+    if (!isSupabaseConfigured || !supabase) return false;
+    try {
+      const { error } = await supabase.from('wallet_transactions').insert(tx);
+      if (error) {
+        console.error('Supabase createWalletTransaction error:', error);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('Supabase createWalletTransaction network error:', e);
+      return false;
+    }
   }
 };
+

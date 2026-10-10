@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useData } from '../../context/DataContext';
+import { SafarGoLogo } from './SafarGoLogo';
+import { WalletRechargeModal } from '../agent/WalletRechargeModal';
 import {
   Bus,
   LayoutDashboard,
@@ -19,7 +22,8 @@ import {
   Home,
   LogIn,
   UserPlus,
-  User
+  User,
+  Wallet
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -30,8 +34,11 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpenAuth }) => {
   const { currentUser, role, isApprovedAgent, isAdmin, logout } = useAuth();
+  const { agentWalletBalance } = useData();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+
 
   const handleTabChange = (tab: string) => {
     setCurrentTab(tab);
@@ -50,23 +57,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
-          {/* Logo & Tagline */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => handleTabChange('home')}>
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-600 to-orange-400 flex items-center justify-center shadow-md shadow-orange-500/20">
-              <Bus className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black tracking-tight text-white">Safar</span>
-                <span className="text-xl font-black text-orange-500">Go</span>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30 ml-1">
-                  Manual Portal
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 font-medium font-sans">
-                अब हर सफर होगा आसान
-              </p>
-            </div>
+          {/* 3D Animated Logo & Brand */}
+          <div className="flex items-center cursor-pointer py-1" onClick={() => handleTabChange('home')}>
+            <SafarGoLogo size="md" variant="light" showBadge={true} showTagline={true} />
           </div>
 
           {/* Desktop Navigation Links */}
@@ -264,7 +257,22 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
               <div className="flex items-center gap-2.5">
                 {/* Agent Approval Status */}
                 {role === 'agent' && (
-                  <div className="hidden sm:block">
+                  <div className="hidden sm:flex items-center gap-2">
+                    {/* Agent Prepaid Wallet Balance Pill */}
+                    <button
+                      onClick={() => setIsWalletModalOpen(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-950 to-slate-800 hover:from-emerald-900 hover:to-slate-700 text-white rounded-xl border border-emerald-500/40 transition shadow-xs group"
+                      title="वॉलेट बैलेंस देखें व रिचार्ज करें (न्यूनतम ₹2,000)"
+                    >
+                      <Wallet className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+                      <span className="text-xs font-bold text-emerald-300">
+                        ₹{agentWalletBalance.toFixed(2)}
+                      </span>
+                      <span className="text-[10px] font-black bg-emerald-500 text-slate-950 px-1.5 py-0.2 rounded-full">
+                        +जोड़ें
+                      </span>
+                    </button>
+
                     {isApprovedAgent ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-500/40">
                         <UserCheck className="w-3.5 h-3.5" />
@@ -278,6 +286,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                     )}
                   </div>
                 )}
+
 
                 {/* Profile Dropdown */}
                 <div className="relative">
@@ -504,6 +513,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
           </div>
         )}
       </div>
+
+      {/* Wallet Recharge Modal */}
+      {isWalletModalOpen && (
+        <WalletRechargeModal onClose={() => setIsWalletModalOpen(false)} />
+      )}
     </header>
   );
 };
+

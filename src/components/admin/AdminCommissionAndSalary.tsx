@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { SalaryRecord, PayoutRequest } from '../../types';
+import { SalaryRecord, PayoutRequest, WalletRechargeRequest } from '../../types';
 import {
   DollarSign,
   Wallet,
@@ -18,7 +18,10 @@ import {
   Building2,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Image as ImageIcon,
+  Eye,
+  Check
 } from 'lucide-react';
 
 export const AdminCommissionAndSalary: React.FC = () => {
@@ -31,12 +34,15 @@ export const AdminCommissionAndSalary: React.FC = () => {
     approvePayout,
     rejectPayout,
     settings,
-    bookings
+    bookings,
+    walletRecharges,
+    approveWalletRecharge,
+    rejectWalletRecharge
   } = useData();
   const { allProfiles } = useAuth();
   const { success, error } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'salaries' | 'payouts' | 'ledger'>('salaries');
+  const [activeTab, setActiveTab] = useState<'salaries' | 'payouts' | 'wallet' | 'ledger'>('salaries');
   
   // Salary Payment Modal state
   const [paymentModalRecord, setPaymentModalRecord] = useState<SalaryRecord | null>(null);
@@ -52,6 +58,14 @@ export const AdminCommissionAndSalary: React.FC = () => {
   // Payout Rejection prompt state
   const [rejectingPayoutId, setRejectingPayoutId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+
+  // Wallet Recharge Approval/Rejection & Screenshot states
+  const [rejectingRechargeId, setRejectingRechargeId] = useState<string | null>(null);
+  const [rechargeRejectionReason, setRechargeRejectionReason] = useState('');
+  const [viewingScreenshotUrl, setViewingScreenshotUrl] = useState<string | null>(null);
+  const [approvingRechargeId, setApprovingRechargeId] = useState<string | null>(null);
+  const [rechargeApproveNotes, setRechargeApproveNotes] = useState('');
+  const [isSubmittingRechargeAction, setIsSubmittingRechargeAction] = useState(false);
 
   const handlePaySalary = async () => {
     if (!paymentModalRecord) return;
@@ -104,6 +118,37 @@ export const AdminCommissionAndSalary: React.FC = () => {
     }
   };
 
+  const handleConfirmApproveRecharge = async (id: string, notes?: string) => {
+    setIsSubmittingRechargeAction(true);
+    try {
+      const ok = await approveWalletRecharge(id, notes);
+      if (ok) {
+        setApprovingRechargeId(null);
+        setRechargeApproveNotes('');
+      }
+    } finally {
+      setIsSubmittingRechargeAction(false);
+    }
+  };
+
+  const handleConfirmRejectRecharge = async () => {
+    if (!rejectingRechargeId) return;
+    if (!rechargeRejectionReason.trim()) {
+      error('Reason Required', 'कृपया अस्वीकृति का कारण दर्ज करें।');
+      return;
+    }
+    setIsSubmittingRechargeAction(true);
+    try {
+      const ok = await rejectWalletRecharge(rejectingRechargeId, rechargeRejectionReason.trim());
+      if (ok) {
+        setRejectingRechargeId(null);
+        setRechargeRejectionReason('');
+      }
+    } finally {
+      setIsSubmittingRechargeAction(false);
+    }
+  };
+
   const totalCommissionCredited = commissions
     .filter((c) => c.status === 'credited')
     .reduce((sum, c) => sum + c.amount, 0);
@@ -115,6 +160,7 @@ export const AdminCommissionAndSalary: React.FC = () => {
   const netCommissionPayable = totalCommissionCredited - totalCommissionReversed;
 
   const pendingPayoutsCount = payoutRequests.filter((p) => p.status === 'pending').length;
+  const pendingRechargesCount = walletRecharges.filter((r) => r.status === 'pending').length;
 
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-6">
@@ -122,17 +168,17 @@ export const AdminCommissionAndSalary: React.FC = () => {
       {/* Title */}
       <div>
         <h1 className="text-2xl font-black text-slate-900">
-          कमीशन एवं मानदेय वितरण डेस्क (Commissions & Salary Ledger)
+          कमीशन, वॉलेट एवं मानदेय वितरण डेस्क (Commissions, Wallet & Salary Ledger)
         </h1>
         <p className="text-xs text-slate-500 mt-1">
-          एजेंट्स का कमीशन लेजर (₹{settings.commission_rate.toFixed(2)}/बुकिंग), UPI/बैंक निकासी अनुरोध एवं ₹{settings.monthly_salary.toLocaleString('en-IN')} मासिक मानदेय वितरण
+          एजेंट्स का कमीशन लेजर (₹{settings.commission_rate.toFixed(2)}/बुकिंग), प्रीपेड वॉलेट टॉप-अप (न्यूनतम ₹{settings.min_wallet_recharge.toLocaleString('en-IN')}), UPI/बैंक निकासी अनुरोध एवं ₹{settings.monthly_salary.toLocaleString('en-IN')} मानदेय वितरण
         </p>
       </div>
 
       {/* Overview Totals */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <span className="text-xs font-semibold text-slate-400 block uppercase">Net Commission Incurred</span>
+          <span className="text-xs font-semibold text-slate-400 block uppercase">Net Commission</span>
           <span className="text-2xl font-black text-emerald-600 mt-1 block">
             ₹{netCommissionPayable.toFixed(2)}
           </span>
@@ -142,7 +188,17 @@ export const AdminCommissionAndSalary: React.FC = () => {
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <span className="text-xs font-semibold text-slate-400 block uppercase">Pending Payout Requests</span>
+          <span className="text-xs font-semibold text-slate-400 block uppercase">Wallet Top-up Requests</span>
+          <span className="text-2xl font-black text-blue-600 mt-1 block">
+            {pendingRechargesCount}
+          </span>
+          <span className="text-[10px] text-slate-500">
+            {walletRecharges.length} Total Top-ups (Min ₹{settings.min_wallet_recharge.toLocaleString('en-IN')})
+          </span>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <span className="text-xs font-semibold text-slate-400 block uppercase">Pending Payouts</span>
           <span className="text-2xl font-black text-orange-600 mt-1 block">
             {pendingPayoutsCount}
           </span>
@@ -157,12 +213,12 @@ export const AdminCommissionAndSalary: React.FC = () => {
             ₹{totalCommissionReversed.toFixed(2)}
           </span>
           <span className="text-[10px] text-slate-500">
-            {commissions.filter((c) => c.status === 'reversed').length} Reversals (Cancellations)
+            {commissions.filter((c) => c.status === 'reversed').length} Cancellations
           </span>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <span className="text-xs font-semibold text-slate-400 block uppercase">Fixed Monthly Salary Standard</span>
+          <span className="text-xs font-semibold text-slate-400 block uppercase">Monthly Salary Base</span>
           <span className="text-2xl font-black text-slate-900 mt-1 block">
             ₹{settings.monthly_salary.toLocaleString('en-IN')}
           </span>
@@ -171,10 +227,10 @@ export const AdminCommissionAndSalary: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab('salaries')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
             activeTab === 'salaries'
               ? 'bg-slate-900 text-white shadow-sm'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
@@ -184,8 +240,25 @@ export const AdminCommissionAndSalary: React.FC = () => {
         </button>
 
         <button
+          onClick={() => setActiveTab('wallet')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
+            activeTab === 'wallet'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          }`}
+        >
+          <Wallet className="w-3.5 h-3.5" />
+          <span>वॉलेट टॉप-अप अनुरोध ({walletRecharges.length})</span>
+          {pendingRechargesCount > 0 && (
+            <span className="w-5 h-5 rounded-full bg-amber-400 text-slate-900 text-[10px] font-black flex items-center justify-center">
+              {pendingRechargesCount}
+            </span>
+          )}
+        </button>
+
+        <button
           onClick={() => setActiveTab('payouts')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
             activeTab === 'payouts'
               ? 'bg-orange-600 text-white shadow-sm'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
@@ -201,7 +274,7 @@ export const AdminCommissionAndSalary: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('ledger')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
             activeTab === 'ledger'
               ? 'bg-slate-900 text-white shadow-sm'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
@@ -445,6 +518,162 @@ export const AdminCommissionAndSalary: React.FC = () => {
                         {p.status === 'rejected' && (
                           <span className="text-rose-600 font-bold text-[11px] flex items-center justify-end gap-1">
                             <XCircle className="w-3.5 h-3.5" /> Rejected
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ) : activeTab === 'wallet' ? (
+        /* Agent Wallet Recharge Requests Table */
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">
+                एजेंट वॉलेट टॉप-अप अनुरोध (Wallet Recharge Requests)
+              </h2>
+              <p className="text-[11px] text-slate-500">
+                एजेंट्स द्वारा प्रीपेड बैलेंस (न्यूनतम ₹{settings.min_wallet_recharge.toLocaleString('en-IN')}) हेतु जमा किए गए अनुरोध • सत्यापन के बाद बैलेंस तुरंत एजेंट वॉलेट में क्रेडिट होता है
+              </p>
+            </div>
+            <span className="text-xs font-bold text-slate-400">
+              {walletRecharges.length} कुल अनुरोध
+            </span>
+          </div>
+
+          {walletRecharges.length === 0 ? (
+            <div className="p-12 text-center text-slate-400 text-xs">
+              वर्तमान में कोई वॉलेट टॉप-अप अनुरोध दर्ज नहीं है। जब कोई एजेंट न्यूनतम ₹{settings.min_wallet_recharge.toLocaleString('en-IN')} जमा करेगा, तो अनुरोध यहाँ दिखाई देगा।
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
+                  <tr>
+                    <th className="p-4">Agent Name</th>
+                    <th className="p-4">Recharge Amount</th>
+                    <th className="p-4">Payment Method</th>
+                    <th className="p-4">Bank UTR / Reference</th>
+                    <th className="p-4">Receipt Screenshot</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4">Request Date</th>
+                    <th className="p-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {walletRecharges.map((r) => (
+                    <tr key={r.id} className="hover:bg-slate-50 transition">
+                      <td className="p-4">
+                        <span className="font-bold text-slate-900 block">{r.agent_name}</span>
+                        <span className="text-[10px] text-slate-400 font-mono">+91 {r.agent_mobile}</span>
+                      </td>
+
+                      <td className="p-4">
+                        <span className="font-black text-sm text-blue-700">
+                          ₹{r.amount.toLocaleString('en-IN')}
+                        </span>
+                        {r.amount >= settings.min_wallet_recharge && (
+                          <span className="block text-[10px] text-emerald-600 font-medium">✓ Min ₹{settings.min_wallet_recharge.toLocaleString('en-IN')} Valid</span>
+                        )}
+                      </td>
+
+                      <td className="p-4">
+                        <span className="inline-flex items-center gap-1.5 font-bold text-slate-700 capitalize">
+                          {r.payment_method === 'upi_qr' ? (
+                            <>
+                              <Smartphone className="w-3.5 h-3.5 text-orange-600" />
+                              SafarGo UPI QR
+                            </>
+                          ) : (
+                            <>
+                              <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                              Bank Transfer
+                            </>
+                          )}
+                        </span>
+                      </td>
+
+                      <td className="p-4 font-mono font-bold text-slate-900">
+                        <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200">
+                          {r.utr_number}
+                        </span>
+                      </td>
+
+                      <td className="p-4">
+                        {r.screenshot_url ? (
+                          <button
+                            onClick={() => setViewingScreenshotUrl(r.screenshot_url || null)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-semibold text-[11px] transition"
+                          >
+                            <ImageIcon className="w-3.5 h-3.5" />
+                            <span>देखें (Receipt)</span>
+                          </button>
+                        ) : (
+                          <span className="text-slate-400 text-[11px]">रसीद नहीं है</span>
+                        )}
+                      </td>
+
+                      <td className="p-4">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                            r.status === 'approved'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : r.status === 'rejected'
+                              ? 'bg-rose-100 text-rose-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {r.status === 'approved' && <CheckCircle className="w-3 h-3" />}
+                          {r.status === 'rejected' && <XCircle className="w-3 h-3" />}
+                          {r.status === 'pending' && <Clock className="w-3 h-3" />}
+                          {r.status}
+                        </span>
+                        {r.admin_notes && (
+                          <span className="block text-[10px] text-slate-500 mt-0.5 max-w-xs truncate" title={r.admin_notes}>
+                            {r.admin_notes}
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="p-4 text-slate-500">
+                        {new Date(r.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+                      </td>
+
+                      <td className="p-4 text-right space-x-2 shrink-0">
+                        {r.status === 'pending' && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setApprovingRechargeId(r.id);
+                                setRechargeApproveNotes('');
+                              }}
+                              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[11px] shadow-xs"
+                            >
+                              Approve (क्रेडिट करें)
+                            </button>
+                            <button
+                              onClick={() => {
+                                setRejectingRechargeId(r.id);
+                                setRechargeRejectionReason('');
+                              }}
+                              className="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg font-bold text-[11px]"
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+                        {r.status === 'approved' && (
+                          <span className="text-emerald-700 font-bold text-[11px] flex items-center justify-end gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> वॉलेट में जमा
+                          </span>
+                        )}
+                        {r.status === 'rejected' && (
+                          <span className="text-rose-600 font-bold text-[11px] flex items-center justify-end gap-1">
+                            <XCircle className="w-3.5 h-3.5" /> अस्वीकृत
                           </span>
                         )}
                       </td>
@@ -702,6 +931,145 @@ export const AdminCommissionAndSalary: React.FC = () => {
                 className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs"
               >
                 अस्वीकृत करें
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Wallet Recharge Approval Modal */}
+      {approvingRechargeId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white max-w-md w-full rounded-2xl p-6 shadow-2xl space-y-4 border border-slate-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">
+                  <Wallet className="w-4 h-4" />
+                </div>
+                <h3 className="font-extrabold text-base text-slate-900">वॉलेट रिचार्ज स्वीकृत करें</h3>
+              </div>
+              <button
+                onClick={() => setApprovingRechargeId(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {(() => {
+              const rec = walletRecharges.find(r => r.id === approvingRechargeId);
+              if (!rec) return null;
+              return (
+                <div className="space-y-3">
+                  <div className="bg-slate-50 p-3.5 rounded-xl text-xs space-y-1.5 border border-slate-200">
+                    <p>एजेंट: <strong>{rec.agent_name}</strong> (+91 {rec.agent_mobile})</p>
+                    <p>रिचार्ज राशि: <strong className="text-emerald-600 text-sm">₹{rec.amount.toLocaleString('en-IN')}</strong></p>
+                    <p>बैंक UTR: <strong className="font-mono">{rec.utr_number}</strong></p>
+                    <p>भुगतान माध्यम: <strong>{rec.payment_method === 'upi_qr' ? 'SafarGo UPI QR' : 'बैंक ट्रांसफर'}</strong></p>
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1 text-xs">
+                      एडमिन टिप्पणी (वैकल्पिक / Notes)
+                    </label>
+                    <input
+                      type="text"
+                      value={rechargeApproveNotes}
+                      onChange={(e) => setRechargeApproveNotes(e.target.value)}
+                      placeholder="e.g. Bank statement verified"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 text-xs"
+                    />
+                  </div>
+                  <div className="pt-2 flex justify-end gap-2">
+                    <button
+                      onClick={() => setApprovingRechargeId(null)}
+                      className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-bold"
+                    >
+                      रद्द करें
+                    </button>
+                    <button
+                      onClick={() => handleConfirmApproveRecharge(rec.id, rechargeApproveNotes)}
+                      disabled={isSubmittingRechargeAction}
+                      className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition disabled:opacity-50"
+                    >
+                      {isSubmittingRechargeAction ? 'जमा हो रहा है...' : `स्वीकृत करें और ₹${rec.amount.toLocaleString('en-IN')} जमा करें`}
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* Wallet Recharge Rejection Modal */}
+      {rejectingRechargeId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white max-w-sm w-full rounded-2xl p-5 shadow-2xl space-y-3 border border-slate-200">
+            <div className="flex items-center gap-2 text-rose-600">
+              <AlertCircle className="w-5 h-5" />
+              <h3 className="font-extrabold text-sm text-slate-900">वॉलेट रिचार्ज अस्वीकृत करें</h3>
+            </div>
+            
+            <p className="text-xs text-slate-500">
+              कृपया अस्वीकृति का कारण दर्ज करें (उदा. बैंक में UTR नहीं मिला, अमान्य रसीद)।
+            </p>
+
+            <div>
+              <textarea
+                required
+                rows={3}
+                value={rechargeRejectionReason}
+                onChange={(e) => setRechargeRejectionReason(e.target.value)}
+                placeholder="कारण दर्ज करें..."
+                className="w-full p-2.5 rounded-xl border border-slate-300 text-xs outline-none focus:ring-2 focus:ring-rose-500"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                onClick={() => setRejectingRechargeId(null)}
+                className="px-3.5 py-1.5 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-bold"
+              >
+                रद्द करें
+              </button>
+              <button
+                onClick={handleConfirmRejectRecharge}
+                disabled={isSubmittingRechargeAction}
+                className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs disabled:opacity-50"
+              >
+                {isSubmittingRechargeAction ? 'प्रोसेसिंग...' : 'अस्वीकृत करें'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Screenshot Preview Modal */}
+      {viewingScreenshotUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="relative max-w-2xl w-full bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-800">
+            <div className="flex items-center justify-between p-4 border-b border-slate-800 text-white">
+              <span className="font-bold text-sm">भुगतान रसीद स्क्रीनशॉट (Payment Receipt)</span>
+              <button
+                onClick={() => setViewingScreenshotUrl(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white bg-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 flex items-center justify-center max-h-[75vh] overflow-auto bg-slate-950">
+              <img
+                src={viewingScreenshotUrl}
+                alt="Payment Receipt"
+                className="max-h-[65vh] w-auto object-contain rounded-lg border border-slate-800 shadow-md"
+              />
+            </div>
+            <div className="p-3 bg-slate-900 border-t border-slate-800 flex justify-end">
+              <button
+                onClick={() => setViewingScreenshotUrl(null)}
+                className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold"
+              >
+                बंद करें
               </button>
             </div>
           </div>

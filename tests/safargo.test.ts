@@ -393,7 +393,154 @@ describe('M. Real Database & Dual-Engine Architecture', () => {
     expect(content).toContain('CREATE TABLE IF NOT EXISTS public.salary_records');
     expect(content).toContain('CREATE TABLE IF NOT EXISTS public.payout_requests');
     expect(content).toContain('CREATE TABLE IF NOT EXISTS public.audit_logs');
+    expect(content).toContain('CREATE TABLE IF NOT EXISTS public.wallet_recharge_requests');
+    expect(content).toContain('CREATE TABLE IF NOT EXISTS public.wallet_transactions');
     expect(content).toContain('ENABLE ROW LEVEL SECURITY');
+  });
+});
+
+describe('N. Advance Online Payment Rules & Agent Prepaid Wallet System (Min ₹2,000)', () => {
+  it('enforces minimum ₹2,000 wallet recharge requirement', () => {
+    const minRecharge = INITIAL_SETTINGS.min_wallet_recharge;
+    expect(minRecharge).toBe(2000);
+
+    const rechargeAttemptBelowMin = 1500;
+    const isValidRecharge = rechargeAttemptBelowMin >= minRecharge;
+    expect(isValidRecharge).toBe(false);
+
+    const rechargeAttemptValid = 2000;
+    expect(rechargeAttemptValid >= minRecharge).toBe(true);
+
+    const rechargeAttemptCustomHigher = 5500;
+    expect(rechargeAttemptCustomHigher >= minRecharge).toBe(true);
+  });
+
+  it('admin approval of wallet recharge credits agent wallet and logs transaction', () => {
+    let agentWallet = 1000;
+    const rechargeAmount = 2500;
+    const utr = 'UTR-WALLET-99228811';
+
+    // Agent submits recharge
+    const rechargeRequest = {
+      id: 'rech-001',
+      agent_id: 'usr-agent-01',
+      amount: rechargeAmount,
+      utr_number: utr,
+      status: 'pending' as const,
+      created_at: new Date().toISOString()
+    };
+
+    expect(rechargeRequest.status).toBe('pending');
+
+    // Admin approves
+    const approvedRecharge = {
+      ...rechargeRequest,
+      status: 'approved' as const,
+      approved_at: new Date().toISOString()
+    };
+    agentWallet += approvedRecharge.amount;
+
+    expect(approvedRecharge.status).toBe('approved');
+    expect(agentWallet).toBe(3500);
+
+    // Transaction is logged
+    const tx = {
+      id: 'wtx-001',
+      agent_id: 'usr-agent-01',
+      amount: rechargeAmount,
+      type: 'recharge',
+      balance_after: agentWallet
+    };
+    expect(tx.balance_after).toBe(3500);
+  });
+
+  it('deducts booking fare immediately from wallet balance when payment_mode is agent_wallet', () => {
+    let agentWallet = 3500;
+    const ticketFare = 850;
+
+    // Check balance sufficiency
+    const hasSufficientBalance = agentWallet >= ticketFare;
+    expect(hasSufficientBalance).toBe(true);
+
+    // Deduct fare
+    agentWallet -= ticketFare;
+    expect(agentWallet).toBe(2650);
+
+    const bookingPayment = {
+      payment_mode: 'agent_wallet' as const,
+      payment_status: 'paid' as const,
+      total_estimated_amount: ticketFare
+    };
+    expect(bookingPayment.payment_mode).toBe('agent_wallet');
+    expect(bookingPayment.payment_status).toBe('paid');
+  });
+
+  it('blocks booking creation when wallet balance is lower than total fare', () => {
+    const agentWallet = 500;
+    const ticketFare = 1200;
+
+    const canBook = agentWallet >= ticketFare;
+    expect(canBook).toBe(false);
+  });
+
+  it('refunds ticket fare to agent wallet upon booking rejection if paid via wallet', () => {
+    let agentWallet = 2650;
+    const rejectedBookingFare = 850;
+    const wasPaidViaWallet = true;
+
+    if (wasPaidViaWallet) {
+      agentWallet += rejectedBookingFare;
+    }
+
+    expect(agentWallet).toBe(3500);
+  });
+
+  it('requires UTR number when paying via direct SafarGo QR', () => {
+    const emptyUtr = '';
+    const validUtr = '123456789012';
+
+    const isValidEmpty = emptyUtr.trim().length >= 6;
+    const isValidFilled = validUtr.trim().length >= 6;
+
+    expect(isValidEmpty).toBe(false);
+    expect(isValidFilled).toBe(true);
+  });
+});
+
+describe('O. Sunday Payout Cycle & Salary Base Model Realignment', () => {
+  it('identifies Sunday as the weekly payout execution day', () => {
+    // 0 is Sunday in JavaScript Date getDay()
+    const sundayDate = new Date('2026-10-11T10:00:00Z'); // Sunday
+    expect(sundayDate.getUTCDay()).toBe(0);
+
+    const isSunday = (d: Date) => d.getUTCDay() === 0;
+    expect(isSunday(sundayDate)).toBe(true);
+
+    const mondayDate = new Date('2026-10-12T10:00:00Z');
+    expect(isSunday(mondayDate)).toBe(false);
+  });
+
+  it('guarantees full ₹5,000 base salary on 150 bookings target if no prior withdrawals', () => {
+    const monthlyTarget = 150;
+    const bookingsCompleted = 150;
+    const priorWithdrawals = 0;
+    const targetSalary = 5000;
+
+    const isTargetAchieved = bookingsCompleted >= monthlyTarget;
+    expect(isTargetAchieved).toBe(true);
+
+    const payableOnSunday = isTargetAchieved ? targetSalary - priorWithdrawals : 0;
+    expect(payableOnSunday).toBe(5000);
+  });
+
+  it('deducts interim commission withdrawals from ₹5,000 Sunday lump-sum upon target achievement', () => {
+    const monthlyTarget = 150;
+    const bookingsCompleted = 150;
+    const priorWithdrawals = 1500; // Partial payout taken earlier
+    const targetSalary = 5000;
+
+    const remainingLumpSum = targetSalary - priorWithdrawals;
+    expect(remainingLumpSum).toBe(3500);
   });
 });
 

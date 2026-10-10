@@ -23,7 +23,11 @@ export const BookingSuccessModal: React.FC<BookingSuccessModalProps> = ({ bookin
     timeZone: 'Asia/Kolkata',
   });
 
-  // Exactly formatted WhatsApp Message as specified in prompt section 8
+  // Exactly formatted WhatsApp Message with advance payment details
+  const paymentModeLabel = booking.payment_mode === 'agent_wallet'
+    ? 'AGENT WALLET DEDUCTION (PAID)'
+    : 'SAFARGO QR / ONLINE ADVANCE';
+
   const whatsappMessage = `SAFARGO MANUAL BOOKING REQUEST
 Booking ID: ${booking.booking_code}
 Agent Name: ${booking.agent_name || 'SafarGo Agent'}
@@ -37,9 +41,12 @@ Preferred Bus: ${booking.operator_preference || 'Standard/Any'}
 Seat Type: ${booking.seat_category.toUpperCase().replace(/_/g, ' ')}
 Passengers: ${booking.passenger_count}
 Estimated Fare: ₹${booking.total_estimated_amount}
+Payment Mode: ${paymentModeLabel}${booking.payment_utr ? `\nPayment UTR: ${booking.payment_utr}` : ''}
 Request Time: ${requestTimeFormatted}
 Confirmation Deadline: ${deadlineTimeFormatted}
-Status: PENDING ADMIN CONFIRMATION`;
+Status: PENDING ADMIN CONFIRMATION
+*Note: कृपया 15 मिनट की विंडो में पेमेंट स्क्रीनशॉट भी इसी WhatsApp चैट पर भेजें!*`;
+
 
   const cleanPhone = settings.support_whatsapp.replace(/\D/g, '');
   const encodedText = encodeURIComponent(whatsappMessage);

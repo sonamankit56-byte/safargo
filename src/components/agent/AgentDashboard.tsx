@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { CountdownTimer } from '../common/CountdownTimer';
@@ -23,6 +23,8 @@ import {
   Megaphone
 } from 'lucide-react';
 import { NewFeaturesSection } from './NewFeaturesSection';
+import { SafarGoLogo } from '../common/SafarGoLogo';
+import { WalletRechargeModal } from './WalletRechargeModal';
 
 interface AgentDashboardProps {
   onNavigate: (tab: string) => void;
@@ -30,7 +32,8 @@ interface AgentDashboardProps {
 
 export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) => {
   const { currentUser, isApprovedAgent } = useAuth();
-  const { agentBookings, agentCommissions, agentSalaryRecord, settings } = useData();
+  const { agentBookings, agentCommissions, agentSalaryRecord, settings, agentWalletBalance } = useData();
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
 
   // Current calendar month in Asia/Kolkata
   const now = new Date();
@@ -183,28 +186,75 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
         </button>
       </div>
 
+      {/* Weekly Sunday Payout Schedule & Salary Base Notice */}
+      <div className="bg-gradient-to-r from-blue-950 via-indigo-950 to-slate-900 text-white border-2 border-indigo-500/40 rounded-3xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/30">
+              <Calendar className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full bg-indigo-500 text-white tracking-wider">
+                  साप्ताहिक पेआउट दिवस: हर रविवार (Weekly Payout: Every Sunday)
+                </span>
+                <span className="text-xs font-bold text-amber-300">
+                  ⚡ स्वतः बैंक / UPI ट्रांसफर
+                </span>
+              </div>
+              <h2 className="text-base sm:text-lg font-black text-white">
+                हर रविवार को कमीशन व वेतन भुगतान • 150 बुकिंग पर पूरा ₹5,000 फिक्स्ड वेतन!
+              </h2>
+              <p className="text-xs text-slate-300 leading-relaxed max-w-3xl">
+                <strong>सैलरी बेस मॉडल (Salary Base Model):</strong> यदि आप महीने के दौरान कमीशन विथड्रॉ नहीं करते हैं, तो 150 कन्फर्म बुकिंग का लक्ष्य पूरा होने पर आपको आगामी रविवार को पूरा <strong>₹5,000 एकमुश्त वेतन</strong> मिलेगा! यदि आप बीच में आंशिक विथड्रॉल करते हैं, तो 150 पूरा होने पर शेष राशि रविवार को मिलेगी।
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onNavigate('commission')}
+            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs rounded-xl transition flex items-center gap-2 shrink-0 self-start md:self-center shadow-md active:scale-95"
+          >
+            <Wallet className="w-4 h-4" />
+            <span>कमीशन व पेआउट खाता</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
       {/* Hero Welcome & Quick Action */}
       <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden border border-slate-800">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase font-bold tracking-widest text-orange-400">
-                SafarGo Agent Portal
-              </span>
-              <span className="text-slate-500">•</span>
-              <span className="text-xs text-slate-300 font-medium">
-                {currentUser?.shop_name || 'Partner Outlet'}
-              </span>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <SafarGoLogo size="lg" variant="light" showTagline={false} />
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xs uppercase font-bold tracking-widest text-orange-400">
+                  SafarGo Agent Portal
+                </span>
+                <span className="text-slate-500">•</span>
+                <span className="text-xs text-slate-300 font-medium">
+                  {currentUser?.shop_name || 'Partner Outlet'}
+                </span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black">
+                नमस्ते, {currentUser?.full_name}
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
+                "अब हर सफर होगा आसान" • प्रत्येक कन्फर्म बस टिकट पर ₹{settings.commission_rate.toFixed(2)} सुरक्षित कमीशन • साप्ताहिक रविवार पेआउट।
+              </p>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black">
-              नमस्ते, {currentUser?.full_name}
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
-              "अब हर सफर होगा आसान" • प्रत्येक कन्फर्म बस टिकट पर ₹{settings.commission_rate.toFixed(2)} सुरक्षित कमीशन कमाएं।
-            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setShowRechargeModal(true)}
+              className="px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm flex items-center gap-1.5 shadow-lg shadow-blue-600/25 transition active:scale-95"
+            >
+              <Wallet className="w-4 h-4" />
+              <span>+ वॉलेट रिचार्ज (Min ₹{settings.min_wallet_recharge.toLocaleString('en-IN')})</span>
+            </button>
             <button
               onClick={() => onNavigate('new-booking')}
               className="px-5 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm flex items-center gap-2 shadow-lg shadow-orange-500/25 transition active:scale-95"
@@ -239,14 +289,14 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
                 </span>
               </div>
               <p className="text-xs text-slate-500">
-                150 पात्र कन्फर्म बुकिंग पूरा करने पर निश्चित ₹{settings.monthly_salary.toLocaleString('en-IN')} मासिक मानदेय प्राप्त करें।
+                150 पात्र कन्फर्म बुकिंग पूरा करने पर <strong>₹{settings.monthly_salary.toLocaleString('en-IN')} का निश्चित मानदेय</strong> अनलॉक होता है।
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <span className="text-xs text-slate-400 block font-medium">Proposed Monthly Salary</span>
+              <span className="text-xs text-slate-400 block font-medium">Guaranteed Salary Base</span>
               <span className="text-xl font-black text-slate-900">
                 ₹{settings.monthly_salary.toLocaleString('en-IN')}
               </span>
@@ -261,6 +311,19 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
           </div>
         </div>
 
+        {/* Salary Base Model Explanation Banner inside card */}
+        <div className="mb-5 p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 flex items-start gap-3">
+          <Award className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="text-xs text-amber-900 space-y-1">
+            <p className="font-bold">
+              💡 सैलरी बेस मॉडल नियम (Salary Base Benefit):
+            </p>
+            <p className="text-amber-800 leading-relaxed">
+              150 टिकट का सामान्य कमीशन ₹{((stats.monthlyTarget) * settings.commission_rate).toFixed(2)} बनता है, परन्तु SafarGo सैलरी बेस मॉडल के तहत 150 बुकिंग पूरी करने पर आपको <strong>पूरा ₹{settings.monthly_salary.toLocaleString('en-IN')}</strong> मिलता है! यदि आप बीच में विथड्रॉल नहीं करते हैं, तो 150 पूरा होने पर आगामी रविवार को पूरे ₹5,000 एकमुश्त आपके बैंक खाते में ट्रांसफर किए जाएंगे।
+            </p>
+          </div>
+        </div>
+
         {/* Target Progress Bar */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs font-bold">
@@ -268,7 +331,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
               प्रगति (Target Progress): {stats.monthConfirmed} / {stats.monthlyTarget} Confirmed Bookings
             </span>
             <span className="text-orange-600 font-mono">
-              {stats.progressPercent}% ({stats.remainingToTarget > 0 ? `${stats.remainingToTarget} शेष` : 'Target Achieved! 🎉'})
+              {stats.progressPercent}% ({stats.remainingToTarget > 0 ? `${stats.remainingToTarget} शेष` : 'Target Achieved! 🎉 Sunday Payout Eligible!'})
             </span>
           </div>
           <div className="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200">
@@ -280,20 +343,47 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
           <div className="flex items-center justify-between text-[11px] text-slate-500">
             <span>0 Bookings</span>
             <span>75 (Halfway)</span>
-            <span>150 Goal (₹5,000 Base Salary)</span>
+            <span className="font-bold text-orange-700">150 Goal (₹5,000 Full Salary Base)</span>
           </div>
         </div>
       </div>
 
+
       {/* Main Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5">
         
+        {/* Agent Prepaid Wallet Balance */}
+        <div className="bg-gradient-to-br from-blue-900 to-indigo-950 text-white p-5 sm:p-6 rounded-2xl border border-blue-800 shadow-md flex flex-col justify-between col-span-2 sm:col-span-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-blue-200 uppercase tracking-wider">प्रीपेड वॉलेट</span>
+            <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-300 flex items-center justify-center font-bold">
+              <Wallet className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-4">
+            <span className="text-2xl sm:text-3xl font-black text-white">
+              ₹{agentWalletBalance.toLocaleString('en-IN')}
+            </span>
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-blue-800/80">
+              <span className="text-[10px] text-blue-300">
+                Min ₹{settings.min_wallet_recharge.toLocaleString('en-IN')}
+              </span>
+              <button
+                onClick={() => setShowRechargeModal(true)}
+                className="text-[11px] font-black text-yellow-300 hover:text-yellow-200 underline"
+              >
+                + जोड़ें
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Total Commission Earned */}
         <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">कुल कमीशन</span>
             <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
-              <Wallet className="w-4 h-4" />
+              <DollarSign className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-4">
@@ -458,6 +548,11 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
           </div>
         )}
       </div>
+
+      {/* Wallet Recharge Modal */}
+      {showRechargeModal && (
+        <WalletRechargeModal onClose={() => setShowRechargeModal(false)} />
+      )}
 
     </div>
   );

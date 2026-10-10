@@ -4,6 +4,7 @@ import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { SeatCategory, Passenger, Booking } from '../../types';
 import { BookingSuccessModal } from './BookingSuccessModal';
+import { WalletRechargeModal } from './WalletRechargeModal';
 import {
   Bus,
   User,
@@ -15,13 +16,22 @@ import {
   Send,
   AlertTriangle,
   Info,
-  DollarSign
+  DollarSign,
+  QrCode,
+  Wallet,
+  Smartphone,
+  Upload,
+  Check,
+  Copy,
+  ShieldCheck,
+  ArrowRight
 } from 'lucide-react';
+
 
 export const ManualBookingForm: React.FC = () => {
   const { isApprovedAgent, isAdmin } = useAuth();
-  const { createBooking } = useData();
-  const { error, warning } = useToast();
+  const { createBooking, agentWalletBalance, settings } = useData();
+  const { error, warning, success } = useToast();
 
   const [customerName, setCustomerName] = useState('');
   const [customerMobile, setCustomerMobile] = useState('');
@@ -46,6 +56,14 @@ export const ManualBookingForm: React.FC = () => {
   const [agentNotes, setAgentNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdBooking, setCreatedBooking] = useState<Booking | null>(null);
+
+  // Advance Payment Mode States (SafarGo QR vs Agent Wallet Min ₹2,000)
+  const [paymentMode, setPaymentMode] = useState<'safargo_qr' | 'agent_wallet'>('safargo_qr');
+  const [paymentUtr, setPaymentUtr] = useState('');
+  const [paymentScreenshot, setPaymentScreenshot] = useState('');
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [copiedUpi, setCopiedUpi] = useState(false);
+
 
   // Generate an idempotency key per form session to prevent double submits
   const [idempotencyKey, setIdempotencyKey] = useState<string>(() => `idemp-${Date.now()}`);
@@ -113,6 +131,25 @@ export const ManualBookingForm: React.FC = () => {
       return;
     }
 
+    // Payment method validation
+    if (paymentMode === 'safargo_qr') {
+      if (!paymentUtr.trim() || paymentUtr.trim().length < 8) {
+        error(
+          'Payment UTR Required',
+          'कृपया SafarGo QR Code / UPI ID पर भुगतान करने के बाद 12-अंकों का बैंक UTR / UPI Ref Number दर्ज करें।'
+        );
+        return;
+      }
+    } else {
+      if (agentWalletBalance < totalAmount) {
+        error(
+          'अपर्याप्त वॉलेट बैलेंस (Insufficient Wallet Balance)',
+          `टिकट बुक करने हेतु ₹${totalAmount.toLocaleString('en-IN')} चाहिए, आपके वॉलेट में ₹${agentWalletBalance.toLocaleString('en-IN')} हैं। कृपया वॉलेट में न्यूनतम ₹2,000 जोड़ें।`
+        );
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -135,6 +172,9 @@ export const ManualBookingForm: React.FC = () => {
         total_estimated_amount: totalAmount,
         agent_notes: agentNotes.trim(),
         idempotency_key: idempotencyKey,
+        payment_mode: paymentMode,
+        payment_utr: paymentMode === 'safargo_qr' ? paymentUtr.trim() : undefined,
+        payment_screenshot_url: paymentScreenshot || undefined,
       });
 
       if (saved) {
@@ -149,6 +189,8 @@ export const ManualBookingForm: React.FC = () => {
         setBoardingPoint('');
         setDropPoint('');
         setAgentNotes('');
+        setPaymentUtr('');
+        setPaymentScreenshot('');
         setPassengerCount(1);
         setPassengers([{ id: 'p-1', name: '', age: 28, gender: 'male' }]);
       }
@@ -156,6 +198,7 @@ export const ManualBookingForm: React.FC = () => {
       setIsSubmitting(false);
     }
   };
+
 
   return (
     <div className="max-w-4xl mx-auto py-6 px-4">
@@ -513,15 +556,243 @@ export const ManualBookingForm: React.FC = () => {
             </div>
           </div>
 
+          {/* Section 5: Advance Online Payment (Mandatory Online Payment) */}
+          <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-7 border-2 border-orange-500/40 shadow-xl space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-orange-500 text-white flex items-center justify-center font-bold shadow-md">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                    <span>5. अग्रिम ऑनलाइन भुगतान (Advance Payment)</span>
+                    <span className="text-[10px] uppercase font-bold bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded border border-orange-500/30">
+                      अनिवार्य
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-300">
+                    SafarGo में टिकट बुक करने से पहले भुगतान होना अनिवार्य है (QR कोड या एजेंट वॉलेट)
+                  </p>
+                </div>
+              </div>
+
+              {/* Payment Mode Selector Tabs */}
+              <div className="inline-flex p-1 bg-slate-800 rounded-2xl border border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMode('safargo_qr')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                    paymentMode === 'safargo_qr'
+                      ? 'bg-orange-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <QrCode className="w-4 h-4" />
+                  <span>SafarGo QR / UPI</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMode('agent_wallet')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                    paymentMode === 'agent_wallet'
+                      ? 'bg-orange-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Wallet className="w-4 h-4" />
+                  <span>एजेंट वॉलेट (₹{agentWalletBalance.toFixed(2)})</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Mode 1: SafarGo QR Code / UPI ID */}
+            {paymentMode === 'safargo_qr' && (
+              <div className="space-y-5 animate-in fade-in">
+                <div className="bg-slate-800/80 p-5 rounded-2xl border border-slate-700 flex flex-col md:flex-row items-center gap-6">
+                  {/* Dynamic QR Code based on totalAmount */}
+                  <div className="bg-white p-3 rounded-2xl shrink-0 flex flex-col items-center border-2 border-orange-400 shadow-md">
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                        `upi://pay?pa=${encodeURIComponent(
+                          settings.safargo_upi_id || 'safargo.booking@icici'
+                        )}&pn=SafarGo%20Bus&am=${totalAmount}&cu=INR&tn=Booking%20Fare`
+                      )}`}
+                      alt="SafarGo Booking Fare QR"
+                      className="w-36 h-36 rounded-lg object-contain"
+                    />
+                    <span className="text-[11px] font-black text-slate-900 mt-1">
+                      Scan to Pay ₹{totalAmount.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+
+                  {/* Instructions & UPI Copy */}
+                  <div className="space-y-3.5 w-full text-xs">
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-bold text-orange-400 uppercase tracking-wider block">
+                        कस्टमर या एजेंट SafarGo UPI पर भुगतान करें:
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-sm text-white bg-slate-900 px-3 py-2 rounded-xl border border-slate-700 select-all block w-full truncate">
+                          {settings.safargo_upi_id || 'safargo.booking@icici'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(settings.safargo_upi_id || 'safargo.booking@icici');
+                            setCopiedUpi(true);
+                            success('UPI ID Copied', 'पेमेंट ऐप में पेस्ट करें');
+                            setTimeout(() => setCopiedUpi(false), 3000);
+                          }}
+                          className="px-3.5 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl font-bold flex items-center gap-1 transition shrink-0"
+                        >
+                          {copiedUpi ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{copiedUpi ? 'Copied' : 'Copy'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* WhatsApp 15-Minute Mandate */}
+                    <div className="bg-emerald-950/80 border border-emerald-500/60 rounded-xl p-3 flex items-start gap-2.5 text-[11px] text-emerald-200">
+                      <Phone className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5 animate-pulse" />
+                      <div>
+                        <strong className="text-white block">जरूरी नियम: 15 मिनट टाइमर में WhatsApp पर स्क्रीनशॉट भेजें!</strong>
+                        <span>
+                          भुगतान करने के बाद नीचे UTR दर्ज करें और <strong>15 मिनट के अंदर SafarGo WhatsApp (+91 {settings.support_whatsapp}) पर भी पेमेंट स्क्रीनशॉट अवश्य भेजें</strong> ताकि सीट तुरंत कन्फर्म की जा सके।
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* UTR Input & File Upload */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-200 block">
+                      12-अंकों का बैंक UTR / UPI Reference No. <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required={paymentMode === 'safargo_qr'}
+                      value={paymentUtr}
+                      onChange={(e) => setPaymentUtr(e.target.value.trim())}
+                      placeholder="उदा. 429381029384 या UTR-123456"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-800 text-white font-mono text-sm font-bold outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                    <p className="text-[10px] text-slate-400">Google Pay / PhonePe / Paytm रसीद पर लिखा 12 अंकों का UTR</p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-200 block">
+                      पेमेंट स्क्रीनशॉट अपलोड करें (Optional Proof)
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <label className="cursor-pointer px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 flex items-center gap-1.5 transition">
+                        <Upload className="w-4 h-4 text-orange-400" />
+                        <span>फोटो चुनें</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = () => setPaymentScreenshot(reader.result as string);
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                      {paymentScreenshot && (
+                        <span className="text-[11px] text-emerald-400 font-bold flex items-center gap-1">
+                          <Check className="w-3.5 h-3.5" /> स्क्रीनशॉट संलग्न!
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Mode 2: Agent Prepaid Wallet Deduction (Min ₹2,000 Model) */}
+            {paymentMode === 'agent_wallet' && (
+              <div className="space-y-4 animate-in fade-in">
+                <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <span className="text-xs text-slate-400 block font-medium">आपका वर्तमान एजेंट वॉलेट बैलेंस</span>
+                    <span className="text-3xl font-black text-emerald-400">
+                      ₹{agentWalletBalance.toFixed(2)}
+                    </span>
+                    <p className="text-[11px] text-slate-300">
+                      टिकट किराया: <strong className="text-white">₹{totalAmount.toLocaleString('en-IN')}</strong>
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col sm:items-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsWalletModalOpen(true)}
+                      className="px-4 py-2.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-2 active:scale-95"
+                    >
+                      <Wallet className="w-4 h-4" />
+                      <span>वॉलेट रिचार्ज करें (+₹2,000 न्यूनतम)</span>
+                    </button>
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      (एजेंट न्यूनतम ₹2,000 जोड़कर कभी भी तुरंत टिकट बुक कर सकते हैं)
+                    </span>
+                  </div>
+                </div>
+
+                {/* Balance validation alert */}
+                {agentWalletBalance >= totalAmount ? (
+                  <div className="p-3.5 bg-emerald-950/70 border border-emerald-500/50 rounded-2xl flex items-center justify-between text-xs text-emerald-200">
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>
+                        पर्याप्त बैलेंस उपलब्ध! बुकिंग सबमिट करते ही ₹{totalAmount.toLocaleString('en-IN')} सीधे वॉलेट से कट जाएंगे।
+                      </span>
+                    </div>
+                    <span className="font-mono font-bold text-emerald-300">
+                      बचेगा: ₹{(agentWalletBalance - totalAmount).toFixed(2)}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-amber-950/80 border border-amber-500/50 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-200">
+                    <div className="flex items-start gap-2.5">
+                      <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="text-amber-100 block">अपर्याप्त वॉलेट बैलेंस!</strong>
+                        <span>
+                          इस टिकट के लिए ₹{totalAmount.toLocaleString('en-IN')} चाहिए, परन्तु वॉलेट में केवल ₹{agentWalletBalance.toFixed(2)} हैं।
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsWalletModalOpen(true)}
+                      className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition shrink-0"
+                    >
+                      अभी ₹2,000+ जोड़ें
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Submit Button */}
           <div className="pt-2">
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || (paymentMode === 'agent_wallet' && agentWalletBalance < totalAmount)}
               className="w-full py-4 px-6 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white font-extrabold text-base rounded-2xl shadow-xl shadow-orange-500/25 flex items-center justify-center gap-3 transition active:scale-98 disabled:opacity-50 cursor-pointer"
             >
               <Send className="w-5 h-5" />
-              {isSubmitting ? 'Saving Booking Request...' : 'Submit Request & Open WhatsApp (+ ₹19.34 Commission)'}
+              {isSubmitting
+                ? 'Saving Booking Request...'
+                : paymentMode === 'agent_wallet'
+                ? `वॉलेट से ₹${totalAmount.toLocaleString('en-IN')} भुगतान करें एवं सबमिट करें (+ ₹19.34 कमीशन)`
+                : 'रिक्वेस्ट सबमिट करें और WhatsApp पर स्क्रीनशॉट भेजें (+ ₹19.34 कमीशन)'}
             </button>
             <p className="text-[11px] text-center text-slate-400 mt-2">
               Protected by idempotency control. Submitting begins your 15-minute response window.
@@ -537,6 +808,14 @@ export const ManualBookingForm: React.FC = () => {
           onClose={() => setCreatedBooking(null)}
         />
       )}
+
+      {/* Agent Wallet Recharge Modal */}
+      {isWalletModalOpen && (
+        <WalletRechargeModal
+          onClose={() => setIsWalletModalOpen(false)}
+        />
+      )}
     </div>
   );
 };
+

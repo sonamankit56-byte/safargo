@@ -10,7 +10,9 @@ import {
   RefundStatus,
   AdminAnnouncement,
   CustomFeature,
-  PayoutRequest
+  PayoutRequest,
+  WalletRechargeRequest,
+  WalletTransaction
 } from '../types';
 import {
   INITIAL_BOOKINGS,
@@ -19,7 +21,9 @@ import {
   INITIAL_SALARY_RECORDS,
   INITIAL_SETTINGS,
   INITIAL_AUDIT_LOGS,
-  INITIAL_PAYOUT_REQUESTS
+  INITIAL_PAYOUT_REQUESTS,
+  INITIAL_WALLET_RECHARGES,
+  INITIAL_WALLET_TRANSACTIONS
 } from '../lib/mockData';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
@@ -79,6 +83,16 @@ interface DataContextType {
   // Audit Logs
   auditLogs: AuditLog[];
 
+  // Prepaid Wallet System (Min ₹2,000 Recharge)
+  walletRecharges: WalletRechargeRequest[];
+  agentWalletRecharges: WalletRechargeRequest[];
+  walletTransactions: WalletTransaction[];
+  agentWalletTransactions: WalletTransaction[];
+  agentWalletBalance: number;
+  requestWalletRecharge: (amount: number, utr: string, screenshotUrl?: string, paymentMethod?: 'upi_qr' | 'bank_transfer') => Promise<boolean>;
+  approveWalletRecharge: (rechargeId: string, adminNotes?: string) => Promise<boolean>;
+  rejectWalletRecharge: (rechargeId: string, reason: string) => Promise<boolean>;
+
   // Commission Celebration Modal Trigger
   celebrationBooking: Booking | null;
   dismissCelebration: () => void;
@@ -92,12 +106,15 @@ const STORAGE_KEY_SETTINGS = 'safargo_settings_v1';
 const STORAGE_KEY_LOGS = 'safargo_audit_logs_v1';
 const STORAGE_KEY_SEEN_CONFIRMATIONS = 'safargo_seen_confirmations_v1';
 const STORAGE_KEY_PAYOUTS = 'safargo_payouts_v1';
+const STORAGE_KEY_WALLET_RECHARGES = 'safargo_wallet_recharges_v1';
+const STORAGE_KEY_WALLET_TX = 'safargo_wallet_tx_v1';
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, isAdmin, isApprovedAgent, allProfiles } = useAuth();
+  const { currentUser, isAdmin, isApprovedAgent, allProfiles, updateProfile } = useAuth();
   const { success, error, info, warning } = useToast();
+
 
   // Load state from localStorage or mock defaults
   const [bookings, setBookings] = useState<Booking[]>(() => {
@@ -181,6 +198,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return INITIAL_PAYOUT_REQUESTS;
   });
 
+  const [walletRecharges, setWalletRecharges] = useState<WalletRechargeRequest[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_WALLET_RECHARGES);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return INITIAL_WALLET_RECHARGES;
+  });
+
+  const [walletTransactions, setWalletTransactions] = useState<WalletTransaction[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_WALLET_TX);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return INITIAL_WALLET_TRANSACTIONS;
+  });
+
   // Track seen confirmation IDs so animation only plays once per confirmed booking
   const [seenConfirmations, setSeenConfirmations] = useState<string[]>(() => {
     try {
@@ -227,18 +264,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(STORAGE_KEY_PAYOUTS, JSON.stringify(payoutRequests));
   }, [payoutRequests]);
 
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_WALLET_RECHARGES, JSON.stringify(walletRecharges));
+  }, [walletRecharges]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_WALLET_TX, JSON.stringify(walletTransactions));
+  }, [walletTransactions]);
+
   // Real Database Sync: Load initial live data from Supabase when configured
   useEffect(() => {
     if (!isSupabaseConfigured) return;
 
     const loadLiveSupabaseData = async () => {
       try {
-        const [liveBookings, liveTrips, liveCommissions, liveSalaries, livePayouts] = await Promise.all([
+        const [liveBookings, liveTrips, liveCommissions, liveSalaries, livePayouts, liveRecharges, liveTxs] = await Promise.all([
           db.getBookings(),
           db.getBusTrips(),
           db.getCommissions(),
           db.getSalaryRecords(),
           db.getPayoutRequests(),
+          db.getWalletRecharges(),
+          db.getWalletTransactions(),
         ]);
 
         if (liveBookings && liveBookings.length > 0) setBookings(liveBookings);
@@ -246,6 +293,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (liveCommissions && liveCommissions.length > 0) setCommissions(liveCommissions);
         if (liveSalaries && liveSalaries.length > 0) setSalaryRecords(liveSalaries);
         if (livePayouts && livePayouts.length > 0) setPayoutRequests(livePayouts);
+        if (liveRecharges && liveRecharges.length > 0) setWalletRecharges(liveRecharges);
+        if (liveTxs && liveTxs.length > 0) setWalletTransactions(liveTxs);
       } catch (err) {
         console.error('Error fetching live Supabase data:', err);
       }
@@ -253,6 +302,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     loadLiveSupabaseData();
   }, []);
+
 
   // Log helper
   const addAuditLog = useCallback(
@@ -347,6 +397,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return payoutRequests.filter((p) => p.agent_id === currentUser.id);
   }, [payoutRequests, currentUser]);
 
+  // Agent's Wallet Recharges Filter
+  const agentWalletRecharges = useMemo(() => {
+    if (!currentUser) return [];
+    if (currentUser.role === 'admin') return walletRecharges;
+    return walletRecharges.filter((r) => r.agent_id === currentUser.id);
+  }, [walletRecharges, currentUser]);
+
+  // Agent's Wallet Transactions Filter
+  const agentWalletTransactions = useMemo(() => {
+    if (!currentUser) return [];
+    if (currentUser.role === 'admin') return walletTransactions;
+    return walletTransactions.filter((t) => t.agent_id === currentUser.id);
+  }, [walletTransactions, currentUser]);
+
+  // Agent's live wallet balance
+  const agentWalletBalance = useMemo(() => {
+    return currentUser?.wallet_balance ?? 0;
+  }, [currentUser?.wallet_balance]);
+
+
   // Current month's salary record for current agent
   const currentMonthYear = useMemo(() => {
     const d = new Date();
@@ -379,9 +449,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       );
 
       const targetMet = confirmedThisMonth >= settings.monthly_target;
+      const agentWithdrawnThisMonth = payoutRequests
+        .filter(
+          (p) =>
+            p.agent_id === currentUser.id &&
+            p.created_at.startsWith(currentMonthYear) &&
+            p.status !== 'rejected'
+        )
+        .reduce((sum, p) => sum + p.amount, 0);
+
+      // 150 Target Salary Model: If agent did not withdraw, they get the full ₹5,000 on Sunday.
+      // If agent withdrew commission during the month, the remaining balance up to ₹5,000 is payable.
+      const payableSalary = targetMet
+        ? Math.max(0, settings.monthly_salary - agentWithdrawnThisMonth)
+        : 0;
 
       if (existing) {
-        if (existing.confirmed_bookings !== confirmedThisMonth) {
+        if (
+          existing.confirmed_bookings !== confirmedThisMonth ||
+          existing.payable_salary !== payableSalary
+        ) {
           return prev.map((s) =>
             s.id === existing.id
               ? {
@@ -390,7 +477,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   target_met: targetMet,
                   target_bookings: settings.monthly_target,
                   base_salary: settings.monthly_salary,
-                  payable_salary: settings.monthly_salary,
+                  payable_salary: payableSalary,
                   updated_at: new Date().toISOString(),
                 }
               : s
@@ -409,16 +496,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           confirmed_bookings: confirmedThisMonth,
           target_met: targetMet,
           base_salary: settings.monthly_salary,
-          payable_salary: settings.monthly_salary,
+          payable_salary: payableSalary,
           status: 'unpaid',
-          notes: 'Automatic monthly target tracking',
+          notes: 'Automatic monthly target tracking (₹5,000 full salary on 150 target without early withdrawal; weekly Sunday payout)',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
         return [...prev, newRecord];
       }
     });
-  }, [bookings, currentUser, currentMonthYear, settings.monthly_target, settings.monthly_salary]);
+  }, [bookings, currentUser, currentMonthYear, settings.monthly_target, settings.monthly_salary, payoutRequests]);
 
   // CREATE BOOKING (Agents only)
   const createBooking = async (
@@ -454,6 +541,52 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const bookingCode = `SFG-${dateCode}-${randomSuffix}`;
     const deadline = new Date(now.getTime() + 15 * 60 * 1000).toISOString();
 
+    // Advance Payment Verification (SafarGo QR or Agent Prepaid Wallet)
+    const paymentMode = bookingData.payment_mode || 'safargo_qr';
+    let paymentStatus: 'paid' | 'pending_verification' = 'pending_verification';
+
+    if (paymentMode === 'agent_wallet') {
+      const currentWalletBal = currentUser.wallet_balance || 0;
+      if (currentWalletBal < bookingData.total_estimated_amount) {
+        error(
+          'अपर्याप्त वॉलेट बैलेंस (Insufficient Wallet Balance)',
+          `टिकट बुक करने के लिए ₹${bookingData.total_estimated_amount.toLocaleString('en-IN')} चाहिए, परन्तु आपके वॉलेट में केवल ₹${currentWalletBal.toLocaleString('en-IN')} हैं। कृपया वॉलेट में न्यूनतम ₹2,000 जोड़ें या SafarGo QR Code से भुगतान करें।`
+        );
+        return null;
+      }
+
+      // Deduct from wallet
+      const newWalletBal = currentWalletBal - bookingData.total_estimated_amount;
+      await updateProfile({ wallet_balance: newWalletBal });
+      paymentStatus = 'paid';
+
+      // Record wallet debit transaction
+      const debitTx: WalletTransaction = {
+        id: `wtx-${Date.now()}`,
+        agent_id: currentUser.id,
+        amount: -bookingData.total_estimated_amount,
+        type: 'ticket_booking',
+        booking_code: bookingCode,
+        description: `टिकट बुकिंग कटौती: ${bookingData.from_city} → ${bookingData.to_city}`,
+        balance_after: newWalletBal,
+        created_at: now.toISOString(),
+      };
+      setWalletTransactions((prev) => [debitTx, ...prev]);
+      if (isSupabaseConfigured) {
+        db.createWalletTransaction(debitTx).catch(console.error);
+      }
+    } else {
+      // SafarGo QR Code payment
+      if (!bookingData.payment_utr || !bookingData.payment_utr.trim()) {
+        error(
+          'Payment UTR Required',
+          'कृपया SafarGo QR Code / UPI पर भुगतान करने के बाद 12-अंकों का बैंक UTR / Transaction ID दर्ज करें।'
+        );
+        return null;
+      }
+      paymentStatus = 'pending_verification';
+    }
+
     const newBooking: Booking = {
       ...bookingData,
       id: `bkg-${Date.now()}`,
@@ -461,11 +594,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       agent_id: currentUser.id,
       agent_name: currentUser.full_name,
       agent_mobile: currentUser.mobile,
+      payment_mode: paymentMode,
+      payment_status: paymentStatus,
+      payment_utr: bookingData.payment_utr,
+      payment_screenshot_url: bookingData.payment_screenshot_url,
       created_at: now.toISOString(),
       deadline_at: deadline,
       status: 'booking_request',
       updated_at: now.toISOString(),
     };
+
 
     setBookings((prev) => [newBooking, ...prev]);
 
@@ -691,6 +829,34 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updated_at: nowIso,
       }).catch((e) => console.error('Supabase reject booking error:', e));
     }
+
+    // Refund wallet balance if paid from agent_wallet
+    if (target.payment_mode === 'agent_wallet') {
+      const targetAgent = allProfiles.find((p) => p.id === target.agent_id);
+      const refundedBal = (targetAgent?.wallet_balance || 0) + target.total_estimated_amount;
+      if (currentUser?.id === target.agent_id) {
+        await updateProfile({ wallet_balance: refundedBal });
+      } else if (isSupabaseConfigured) {
+        db.updateProfile(target.agent_id, { wallet_balance: refundedBal }).catch(console.error);
+      }
+
+      const refundTx: WalletTransaction = {
+        id: `wtx-${Date.now()}`,
+        agent_id: target.agent_id,
+        amount: target.total_estimated_amount,
+        type: 'refund',
+        booking_id: bookingId,
+        booking_code: target.booking_code,
+        description: `रिफंड: बुकिंग अस्वीकृत होने पर वॉलेट में राशि वापस (${target.booking_code})`,
+        balance_after: refundedBal,
+        created_at: nowIso,
+      };
+      setWalletTransactions((prev) => [refundTx, ...prev]);
+      if (isSupabaseConfigured) {
+        db.createWalletTransaction(refundTx).catch(console.error);
+      }
+    }
+
 
     addAuditLog('reject_booking', 'bookings', bookingId, {
       booking_code: target.booking_code,
@@ -1007,7 +1173,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .filter((p) => p.agent_id === currentUser.id && p.status !== 'rejected')
       .reduce((sum, p) => sum + p.amount, 0);
 
-    const availableBalance = Math.max(0, totalCredited - totalReversed - totalWithdrawnOrPending);
+    const netCommission = Math.max(0, totalCredited - totalReversed);
+
+    // Check if 150 target is met in current calendar month
+    const currentMonthConfirmed = bookings.filter((b) => {
+      if (b.agent_id !== currentUser.id || b.status !== 'confirmed') return false;
+      const bDate = new Date(b.created_at);
+      const bMonthYear = `${bDate.getFullYear()}-${String(bDate.getMonth() + 1).padStart(2, '0')}`;
+      return bMonthYear === currentMonthYear;
+    }).length;
+
+    const isTargetMet = currentMonthConfirmed >= settings.monthly_target;
+    // Salary Base Model: 150 bookings guarantees ₹5,000 base salary!
+    // If agent didn't withdraw early, they get the full ₹5,000.
+    const effectiveTotalEarnings = isTargetMet
+      ? Math.max(netCommission, settings.monthly_salary)
+      : netCommission;
+
+    const availableBalance = Math.max(0, effectiveTotalEarnings - totalWithdrawnOrPending);
 
     if (payoutData.amount > availableBalance) {
       error('Insufficient Balance', `निकासी राशि उपलब्ध शेष (₹${availableBalance.toFixed(2)}) से अधिक नहीं हो सकती।`);
@@ -1205,6 +1388,159 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return updateCustomFeature(id, { is_active: newStatus });
   };
 
+  // WALLET RECHARGE SYSTEM (Agents can deposit, Min ₹2,000)
+  const requestWalletRecharge = async (
+    amount: number,
+    utr: string,
+    screenshotUrl?: string,
+    paymentMethod: 'upi_qr' | 'bank_transfer' = 'upi_qr'
+  ): Promise<boolean> => {
+    if (!currentUser || currentUser.role !== 'agent') {
+      error('Unauthorized', 'केवल पंजीकृत एजेंट ही वॉलेट रिचार्ज कर सकते हैं।');
+      return false;
+    }
+    if (amount < settings.min_wallet_recharge) {
+      error(
+        'न्यूनतम राशि अमान्य (Min ₹2,000)',
+        `वॉलेट में न्यूनतम ₹${settings.min_wallet_recharge.toLocaleString('en-IN')} जोड़ना अनिवार्य है।`
+      );
+      return false;
+    }
+    if (!utr || !utr.trim()) {
+      error('UTR Required', 'कृपया बैंक ट्रांसफर / UPI UTR नंबर दर्ज करें।');
+      return false;
+    }
+
+    const newRecharge: WalletRechargeRequest = {
+      id: `rech-${Date.now()}`,
+      agent_id: currentUser.id,
+      agent_name: currentUser.full_name,
+      agent_mobile: currentUser.mobile,
+      amount,
+      payment_method: paymentMethod,
+      utr_number: utr.trim(),
+      screenshot_url: screenshotUrl,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+    };
+
+    setWalletRecharges((prev) => [newRecharge, ...prev]);
+    if (isSupabaseConfigured) {
+      db.createWalletRecharge(newRecharge).catch(console.error);
+    }
+
+    addAuditLog('request_wallet_recharge', 'wallet_recharge_requests', newRecharge.id, {
+      amount,
+      utr,
+    });
+
+    success(
+      'रिचार्ज अनुरोध सबमिट!',
+      `₹${amount.toLocaleString('en-IN')} का वॉलेट टॉप-अप अनुरोध SafarGo एडमिन को भेज दिया गया है। एडमिन सत्यापन के बाद राशि वॉलेट में जमा होगी।`
+    );
+    return true;
+  };
+
+  const approveWalletRecharge = async (rechargeId: string, adminNotes?: string): Promise<boolean> => {
+    if (!isAdmin) {
+      error('Unauthorized', 'केवल एडमिन ही वॉलेट रिचार्ज स्वीकृत कर सकते हैं।');
+      return false;
+    }
+
+    const recharge = walletRecharges.find((r) => r.id === rechargeId);
+    if (!recharge || recharge.status !== 'pending') return false;
+
+    const nowIso = new Date().toISOString();
+    setWalletRecharges((prev) =>
+      prev.map((r) =>
+        r.id === rechargeId
+          ? {
+              ...r,
+              status: 'approved',
+              admin_notes: adminNotes,
+              approved_by: currentUser?.id,
+              approved_at: nowIso,
+            }
+          : r
+      )
+    );
+
+    const targetProfile = allProfiles.find((p) => p.id === recharge.agent_id);
+    const currentBal = targetProfile?.wallet_balance || 0;
+    const newBal = currentBal + recharge.amount;
+
+    if (currentUser?.id === recharge.agent_id) {
+      await updateProfile({ wallet_balance: newBal });
+    } else if (isSupabaseConfigured) {
+      db.updateProfile(recharge.agent_id, { wallet_balance: newBal }).catch(console.error);
+    }
+
+    const creditTx: WalletTransaction = {
+      id: `wtx-${Date.now()}`,
+      agent_id: recharge.agent_id,
+      amount: recharge.amount,
+      type: 'recharge',
+      recharge_id: recharge.id,
+      description: `वॉलेट रिचार्ज स्वीकृत (UTR: ${recharge.utr_number})`,
+      balance_after: newBal,
+      created_at: nowIso,
+    };
+    setWalletTransactions((prev) => [creditTx, ...prev]);
+    if (isSupabaseConfigured) {
+      db.updateWalletRecharge(rechargeId, {
+        status: 'approved',
+        admin_notes: adminNotes,
+        approved_by: currentUser?.id,
+        approved_at: nowIso,
+      }).catch(console.error);
+      db.createWalletTransaction(creditTx).catch(console.error);
+    }
+
+    addAuditLog('approve_wallet_recharge', 'wallet_recharges', recharge.id, {
+      agent_id: recharge.agent_id,
+      amount: recharge.amount,
+      new_balance: newBal,
+    });
+
+    success(
+      'वॉलेट रिचार्ज स्वीकृत!',
+      `${recharge.agent_name} के वॉलेट में ₹${recharge.amount.toLocaleString('en-IN')} जमा कर दिए गए हैं।`
+    );
+    return true;
+  };
+
+  const rejectWalletRecharge = async (rechargeId: string, reason: string): Promise<boolean> => {
+    if (!isAdmin) return false;
+    const recharge = walletRecharges.find((r) => r.id === rechargeId);
+    if (!recharge || recharge.status !== 'pending') return false;
+
+    setWalletRecharges((prev) =>
+      prev.map((r) =>
+        r.id === rechargeId
+          ? {
+              ...r,
+              status: 'rejected',
+              admin_notes: reason,
+              approved_by: currentUser?.id,
+              approved_at: new Date().toISOString(),
+            }
+          : r
+      )
+    );
+
+    if (isSupabaseConfigured) {
+      db.updateWalletRecharge(rechargeId, {
+        status: 'rejected',
+        admin_notes: reason,
+        approved_by: currentUser?.id,
+        approved_at: new Date().toISOString(),
+      }).catch(console.error);
+    }
+
+    warning('Recharge Rejected', `वॉलेट रिचार्ज अस्वीकृत: ${reason}`);
+    return true;
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -1231,6 +1567,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         requestPayout,
         approvePayout,
         rejectPayout,
+        walletRecharges,
+        agentWalletRecharges,
+        walletTransactions,
+        agentWalletTransactions,
+        agentWalletBalance,
+        requestWalletRecharge,
+        approveWalletRecharge,
+        rejectWalletRecharge,
         settings,
         updateSettings,
         updateAnnouncement,
@@ -1246,6 +1590,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </DataContext.Provider>
   );
+
 };
 
 export const useData = () => {

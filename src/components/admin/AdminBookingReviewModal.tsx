@@ -20,7 +20,11 @@ import {
   DollarSign,
   Copy,
   ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  Wallet,
+  QrCode,
+  Image as ImageIcon,
+  Check
 } from 'lucide-react';
 
 interface AdminBookingReviewModalProps {
@@ -43,6 +47,10 @@ export const AdminBookingReviewModal: React.FC<AdminBookingReviewModalProps> = (
   const [ticketPnr, setTicketPnr] = useState<string>(booking?.ticket_pnr || '');
   const [ticketDocUrl, setTicketDocUrl] = useState<string>(booking?.ticket_doc_url || '');
   const [adminNotes, setAdminNotes] = useState<string>(booking?.admin_notes || '');
+
+  // Payment receipt preview & UTR copy state
+  const [viewingPaymentReceipt, setViewingPaymentReceipt] = useState<string | null>(null);
+  const [copiedPaymentUtr, setCopiedPaymentUtr] = useState(false);
 
   // Reject state
   const [showRejectInput, setShowRejectInput] = useState(false);
@@ -337,6 +345,127 @@ SafarGo Support: +${settings.support_whatsapp}
                 )}
               </div>
 
+              {/* Advance Payment Verification Card */}
+              <div className="p-4 bg-gradient-to-br from-emerald-50/60 to-teal-50/40 rounded-2xl border-2 border-emerald-200/90 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {booking.payment_mode === 'agent_wallet' ? (
+                      <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                        <Wallet className="w-4 h-4" />
+                      </div>
+                    ) : (
+                      <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                        <QrCode className="w-4 h-4" />
+                      </div>
+                    )}
+                    <div>
+                      <h3 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider">
+                        अग्रिम ऑनलाइन भुगतान विवरण (Advance Payment Verification)
+                      </h3>
+                      <span className="text-[10px] text-slate-500 font-medium">
+                        सफ़ारगो नियम: टिकट कन्फर्मेशन से पूर्व अग्रिम भुगतान अनिवार्य
+                      </span>
+                    </div>
+                  </div>
+
+                  <span
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                      booking.payment_status === 'paid'
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        : 'bg-amber-100 text-amber-800 border border-amber-300'
+                    }`}
+                  >
+                    <CheckCircle2 className="w-3 h-3" />
+                    {booking.payment_status === 'paid' ? 'PAID (भुगतान प्राप्त)' : 'VERIFICATION PENDING'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                  <div className="bg-white/80 p-3 rounded-xl border border-emerald-100">
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">भुगतान माध्यम (Mode)</span>
+                    <span className="font-bold text-slate-900 flex items-center gap-1.5 mt-0.5 text-xs">
+                      {booking.payment_mode === 'agent_wallet' ? (
+                        <>
+                          <Wallet className="w-3.5 h-3.5 text-blue-600" />
+                          <span>एजेंट प्रीपेड वॉलेट</span>
+                        </>
+                      ) : (
+                        <>
+                          <QrCode className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>SafarGo QR / UPI</span>
+                        </>
+                      )}
+                    </span>
+                    <span className="text-[10px] text-slate-500 block mt-0.5">
+                      {booking.payment_mode === 'agent_wallet'
+                        ? 'किराया एजेंट वॉलेट से पूर्व-डेबिट'
+                        : `UPI ID: ${settings.safargo_upi_id}`}
+                    </span>
+                  </div>
+
+                  <div className="bg-white/80 p-3 rounded-xl border border-emerald-100">
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">बैंक UTR / ट्रांजैक्शन ID</span>
+                    <div className="flex items-center justify-between mt-0.5">
+                      <span className="font-mono font-bold text-slate-900 text-xs">
+                        {booking.payment_utr || 'N/A'}
+                      </span>
+                      {booking.payment_utr && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(booking.payment_utr || '');
+                            setCopiedPaymentUtr(true);
+                            success('UTR Copied', 'बैंक स्टेटमेंट में चेक करने हेतु कॉपी किया गया।');
+                            setTimeout(() => setCopiedPaymentUtr(false), 2500);
+                          }}
+                          className="text-emerald-700 hover:text-emerald-900 p-1 rounded"
+                          title="Copy UTR"
+                        >
+                          {copiedPaymentUtr ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-slate-500 block mt-0.5">
+                      कुल देय: ₹{booking.actual_fare || booking.total_estimated_amount}
+                    </span>
+                  </div>
+
+                  <div className="bg-white/80 p-3 rounded-xl border border-emerald-100 flex flex-col justify-between">
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">पेमेंट स्क्रीनशॉट</span>
+                    <div className="mt-1">
+                      {booking.payment_screenshot_url ? (
+                        <button
+                          type="button"
+                          onClick={() => setViewingPaymentReceipt(booking.payment_screenshot_url || null)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[11px] shadow-xs transition"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5" />
+                          <span>रसीद देखें (Receipt)</span>
+                        </button>
+                      ) : (
+                        <span className="text-slate-400 text-[11px] font-medium">
+                          {booking.payment_mode === 'agent_wallet' ? 'वॉलेट ऑटो-कट (रसीद अप्रत्यक्ष)' : 'स्क्रीनशॉट संलग्न नहीं'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-emerald-100/60 border border-emerald-200 text-emerald-900 flex items-center justify-between text-[11px]">
+                  <span>
+                    💬 <strong>WhatsApp नियम:</strong> SafarGo QR भुगतान होने पर एजेंट को 15 मिनट विंडो के अंदर WhatsApp पर भी स्क्रीनशॉट भेजना अनिवार्य है।
+                  </span>
+                  <a
+                    href={`https://wa.me/91${booking.customer_mobile.replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold underline text-emerald-800 hover:text-emerald-950 ml-2 shrink-0"
+                  >
+                    चैट देखें
+                  </a>
+                </div>
+              </div>
+
               {/* Operator Verification Inputs (Admin fills this when calling operator) */}
               <div className="p-5 bg-blue-50/50 rounded-2xl border-2 border-blue-200 space-y-4">
                 <div className="flex items-center gap-2">
@@ -609,6 +738,39 @@ SafarGo Support: +${settings.support_whatsapp}
         </div>
 
       </div>
+
+      {/* Payment Receipt Image Preview Modal */}
+      {viewingPaymentReceipt && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="relative max-w-2xl w-full bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-800">
+            <div className="flex items-center justify-between p-4 border-b border-slate-800 text-white">
+              <span className="font-bold text-sm">ग्राहक / एजेंट भुगतान रसीद (Payment Receipt Screenshot)</span>
+              <button
+                onClick={() => setViewingPaymentReceipt(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white bg-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 flex items-center justify-center max-h-[75vh] overflow-auto bg-slate-950">
+              <img
+                src={viewingPaymentReceipt}
+                alt="Payment Receipt Screenshot"
+                className="max-h-[65vh] w-auto object-contain rounded-lg border border-slate-800 shadow-md"
+              />
+            </div>
+            <div className="p-3 bg-slate-900 border-t border-slate-800 flex justify-end">
+              <button
+                onClick={() => setViewingPaymentReceipt(null)}
+                className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold"
+              >
+                बंद करें
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
