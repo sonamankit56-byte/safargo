@@ -13,7 +13,13 @@ import {
   Camera,
   AlertTriangle,
   UserCheck,
-  Lock
+  Lock,
+  Sparkles,
+  Clock,
+  Send,
+  ArrowRight,
+  CheckCircle2,
+  Calendar
 } from 'lucide-react';
 
 interface AgentKycModalProps {
@@ -24,7 +30,7 @@ interface AgentKycModalProps {
 export const AgentKycModal: React.FC<AgentKycModalProps> = ({ isOpen, onClose }) => {
   const { currentUser, submitAgentKyc } = useAuth();
   const { settings } = useData();
-  const { error, success } = useToast();
+  const { error } = useToast();
 
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatar_url || '');
   const [aadhaarNumber, setAadhaarNumber] = useState(currentUser?.aadhaar_number || '');
@@ -41,6 +47,7 @@ export const AgentKycModal: React.FC<AgentKycModalProps> = ({ isOpen, onClose })
   const [bankName, setBankName] = useState(currentUser?.bank_name || '');
   const [bankUpi, setBankUpi] = useState(currentUser?.bank_upi_id || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
 
   if (!isOpen || !currentUser) return null;
 
@@ -61,6 +68,11 @@ export const AgentKycModal: React.FC<AgentKycModalProps> = ({ isOpen, onClose })
       setter(reader.result as string);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleClose = () => {
+    setIsSubmittedSuccess(false);
+    onClose();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -100,7 +112,7 @@ export const AgentKycModal: React.FC<AgentKycModalProps> = ({ isOpen, onClose })
       });
 
       if (ok) {
-        onClose();
+        setIsSubmittedSuccess(true);
       }
     } finally {
       setIsSubmitting(false);
@@ -108,14 +120,142 @@ export const AgentKycModal: React.FC<AgentKycModalProps> = ({ isOpen, onClose })
   };
 
   const whatsappMessage = encodeURIComponent(
-    `नमस्ते SafarGo Admin टीम,\n\nमैं एजेंट [${currentUser.full_name}], दुकान: [${currentUser.shop_name || 'जन सेवा केंद्र'}], मोबाइल: [${currentUser.mobile}]।\n\n` +
-    `मेरी एजेंट ID: ${currentUser.referral_code}\n` +
-    `मैंने अपने आधार व पैन कार्ड KYC विवरण दर्ज कर दिए हैं:\n` +
-    `• आधार नंबर: ${aadhaarNumber || 'N/A'}\n` +
-    `• पैन नंबर: ${panNumber || 'N/A'}\n` +
-    `• बैंक खाता: ${bankAccNumber || 'N/A'} (IFSC: ${bankIfsc || 'N/A'})\n\n` +
-    `कृपया मेरी KYC को सत्यापित करें ताकि मेरा विथड्रॉल और प्रोफाइल पर (✓ Verified) बैज एक्टिव हो सके। धन्यवाद!`
+    `नमस्ते SafarGo Admin टीम,\n\n` +
+    `मैंने अपनी KYC (Aadhaar, PAN & Bank) सबमिट कर दी है।\n\n` +
+    `👤 *एजेंट नाम:* ${currentUser.full_name}\n` +
+    `🏪 *दुकान / केंद्र:* ${currentUser.shop_name || 'जन सेवा केंद्र'}\n` +
+    `📱 *मोबाइल:* ${currentUser.mobile}\n` +
+    `🆔 *एजेंट कोड:* ${currentUser.referral_code || currentUser.id}\n` +
+    `📑 *आधार नंबर:* ${aadhaarNumber || '12-अंक'}\n` +
+    `💳 *PAN कार्ड:* ${panNumber || '10-अक्षर'}\n` +
+    `🏦 *बैंक खाता:* ${bankAccNumber || 'दर्ज'} (IFSC: ${bankIfsc || 'दर्ज'})\n\n` +
+    `कृपया 12 घंटे के अंदर इसे सत्यापित करके मेरी प्रोफ़ाइल पर (✓ Verified Tick) प्रदान करें व विथड्रॉल अनलॉक करें। धन्यवाद!`
   );
+
+  // Cool Success Animation Modal Screen
+  if (isSubmittedSuccess) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-300">
+        <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border-2 border-emerald-500/30 relative text-center p-6 sm:p-8 space-y-6 animate-in zoom-in-95 duration-300">
+          
+          {/* Top Decorative Background Glow */}
+          <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 bg-gradient-to-b from-emerald-400/20 via-orange-400/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+          
+          {/* Close button */}
+          <button
+            onClick={handleClose}
+            className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          {/* Cool Animated Success Badge with Pulsing Waves */}
+          <div className="relative mx-auto w-28 h-28 flex items-center justify-center pt-2">
+            {/* Outer animated ping wave */}
+            <div className="absolute inset-2 rounded-full bg-emerald-400/30 animate-ping duration-1000" />
+            
+            {/* Middle pulsing glow ring */}
+            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 opacity-20 blur-md animate-pulse" />
+
+            {/* Core Badge */}
+            <div className="relative w-24 h-24 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center shadow-xl shadow-emerald-500/30 animate-in zoom-in duration-500 border-4 border-white">
+              <ShieldCheck className="w-12 h-12 stroke-[2.5]" />
+              
+              {/* Floating Sparkles Badge */}
+              <div className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center shadow-md animate-bounce">
+                <Sparkles className="w-4 h-4 fill-slate-950" />
+              </div>
+            </div>
+          </div>
+
+          {/* Heading and 12-Hour SLA Highlight */}
+          <div className="space-y-2 relative z-10">
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black uppercase tracking-wider">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>अनुरोध दर्ज हो गया (KYC Submitted)</span>
+            </span>
+
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 leading-snug">
+              आपकी KYC वेरिफिकेशन 12 घंटे के अंदर हो जाएगी!
+            </h2>
+
+            <p className="text-sm font-extrabold text-emerald-600 flex items-center justify-center gap-1.5">
+              <span>एडमिन को आपकी रिक्वेस्ट भेज दी गई है ✅</span>
+            </p>
+          </div>
+
+          {/* 12-Hour SLA Timeline Box */}
+          <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 border-2 border-emerald-200 rounded-2xl p-4 text-left space-y-3 shadow-xs">
+            <div className="flex items-center justify-between border-b border-emerald-200/60 pb-2">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-emerald-600 animate-spin duration-3000" />
+                <span className="text-xs font-black text-emerald-950 uppercase">
+                  गारंटीड SLA समय: 12 घंटे (Within 12 Hours)
+                </span>
+              </div>
+              <span className="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded-full font-black">
+                प्राथमिकता समीक्षा
+              </span>
+            </div>
+
+            {/* Workflow steps */}
+            <div className="space-y-2 text-xs">
+              <div className="flex items-start gap-2.5">
+                <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5 font-bold text-[10px]">
+                  ✓
+                </div>
+                <div>
+                  <span className="font-bold text-slate-900 block">1. दस्तावेज़ सफलतापूर्वक अपलोड हुए</span>
+                  <span className="text-[11px] text-slate-500">आधार (12 अंक), पैन कार्ड और बैंक विवरण सिस्टम में सुरक्षित हैं।</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <div className="w-5 h-5 rounded-full bg-blue-500 text-white flex items-center justify-center shrink-0 mt-0.5 font-bold text-[10px] animate-pulse">
+                  <Send className="w-3 h-3" />
+                </div>
+                <div>
+                  <span className="font-bold text-slate-900 block">2. एडमिन डेस्क पर समीक्षा जारी है</span>
+                  <span className="text-[11px] text-slate-500">SafarGo वेरिफिकेशन अधिकारी आपके विवरण का मिलान कर रहे हैं।</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <div className="w-5 h-5 rounded-full bg-amber-400 text-slate-900 flex items-center justify-center shrink-0 mt-0.5 font-bold text-[10px]">
+                  ✓
+                </div>
+                <div>
+                  <span className="font-bold text-slate-900 block">3. Verified Tick (✓) व विथड्रॉल अनलॉक होगा</span>
+                  <span className="text-[11px] text-slate-500">12 घंटे में मंज़ूरी मिलते ही प्रोफ़ाइल पर हरा Verified Tick लगेगा और विथड्रॉल चालू हो जाएगा।</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="space-y-2.5 pt-1">
+            <a
+              href={`https://wa.me/${settings.support_whatsapp}?text=${whatsappMessage}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/25 active:scale-98"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>WhatsApp पर एडमिन को तुरंत सूचना भेजें (Fast Track)</span>
+            </a>
+
+            <button
+              onClick={handleClose}
+              className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-extrabold text-xs transition active:scale-98 shadow"
+            >
+              ठीक है, डैशबोर्ड पर जाएं (Done)
+            </button>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
@@ -160,70 +300,96 @@ export const AgentKycModal: React.FC<AgentKycModalProps> = ({ isOpen, onClose })
                   className="w-20 h-20 rounded-2xl object-cover border-2 border-orange-500 shadow-md"
                 />
               ) : (
-                <div className="w-20 h-20 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center font-black text-2xl border-2 border-dashed border-orange-300">
-                  <Camera className="w-8 h-8 text-orange-400" />
+                <div className="w-20 h-20 rounded-2xl bg-orange-500 text-white font-black text-2xl flex items-center justify-center border-2 border-orange-400 shadow-md">
+                  {currentUser.full_name.charAt(0)}
+                </div>
+              )}
+
+              {currentUser.photo_verified && (
+                <div
+                  className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center border-2 border-white shadow-xs"
+                  title="Verified Agent Photo"
+                >
+                  <CheckCircle className="w-4 h-4" />
                 </div>
               )}
             </div>
 
-            <div className="space-y-1 text-center sm:text-left flex-1">
-              <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5 justify-center sm:justify-start">
-                <span>एजेंट प्रोफाइल फोटो (Profile Photo / Selfie)</span>
-                <span className="text-[10px] text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded font-black">
-                  ✓ Verified Tick के साथ दिखेगा
-                </span>
+            <div className="flex-1 text-center sm:text-left space-y-1">
+              <div className="flex items-center justify-center sm:justify-start gap-2">
+                <h3 className="font-black text-sm text-slate-900">
+                  आपकी प्रोफ़ाइल फ़ोटो / सेल्फी (Agent Photo)
+                </h3>
+                {currentUser.photo_verified ? (
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-black px-2 py-0.5 rounded-full">
+                    ✓ Verified
+                  </span>
+                ) : (
+                  <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
+                    Pending Verification
+                  </span>
+                )}
               </div>
-              <p className="text-[11px] text-slate-500">
-                अपनी पासपोर्ट साइज फोटो या दुकान की सेल्फी अपलोड करें। यह फोटो आपके सर्टिफिकेट और दुकान के पोस्टर पर छपेगी।
+              <p className="text-xs text-slate-500">
+                अपनी साफ फ़ोटो अपलोड करें। KYC अप्रूव होने पर इस फ़ोटो पर आधिकारिक <strong>Verified Tick (✓)</strong> आ जाएगा।
               </p>
-              <div className="pt-1">
-                <label className="cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition shadow-xs">
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>फोटो चुनें</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleFileUpload(e, setAvatarUrl)}
-                    className="hidden"
-                  />
-                </label>
-              </div>
+
+              <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold cursor-pointer transition shadow-xs mt-1">
+                <Camera className="w-3.5 h-3.5 text-orange-500" />
+                <span>फ़ोटो चुनें / बदलें</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleFileUpload(e, setAvatarUrl)}
+                  className="hidden"
+                />
+              </label>
             </div>
           </div>
 
           {/* Step 2: Aadhaar Details */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
-              <ShieldCheck className="w-4 h-4 text-orange-600" />
-              <h3 className="font-black text-xs text-slate-900 uppercase tracking-wide">
-                1. आधार कार्ड विवरण (12 Digits Aadhaar Card) *
+              <CreditCard className="w-4 h-4 text-orange-600" />
+              <h3 className="font-black text-sm text-slate-900">
+                1. आधार कार्ड सत्यापन (Aadhaar Card - 12 Digits)
               </h3>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  आधार कार्ड नंबर (12 अंक) *
-                </label>
-                <input
-                  type="text"
-                  maxLength={12}
-                  value={aadhaarNumber}
-                  onChange={(e) => setAadhaarNumber(e.target.value.replace(/\D/g, ''))}
-                  placeholder="उदा. 9845 1234 9012"
-                  required
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono text-sm font-bold focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                आधार कार्ड संख्या (12 अंक) <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                maxLength={12}
+                value={aadhaarNumber}
+                onChange={(e) => setAadhaarNumber(e.target.value.replace(/\D/g, ''))}
+                placeholder="उदा. 123456789012"
+                required
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono text-sm tracking-wider focus:ring-2 focus:ring-orange-500 outline-none"
+              />
+            </div>
 
-              <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  आधार कार्ड फोटो (Front & Back)
-                </label>
-                <div className="flex items-center gap-2">
-                  <label className="cursor-pointer px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 flex items-center gap-1 transition">
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>{aadhaarFrontUrl ? 'Front ✓' : 'Front फोटो'}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              {/* Front Photo */}
+              <div className="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+                <span className="font-bold text-slate-700 block">आधार कार्ड (सामने की फ़ोटो - Front)</span>
+                {aadhaarFrontUrl ? (
+                  <div className="relative group rounded-lg overflow-hidden border border-slate-300 aspect-16/9 bg-white">
+                    <img src={aadhaarFrontUrl} alt="Aadhaar Front" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setAadhaarFrontUrl('')}
+                      className="absolute top-1 right-1 p-1 bg-black/60 text-white rounded-full hover:bg-black/80 transition"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-orange-500 cursor-pointer bg-white transition">
+                    <Upload className="w-5 h-5 text-slate-400 mb-1" />
+                    <span className="font-bold text-slate-600">Front फ़ोटो अपलोड करें</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -231,9 +397,27 @@ export const AgentKycModal: React.FC<AgentKycModalProps> = ({ isOpen, onClose })
                       className="hidden"
                     />
                   </label>
-                  <label className="cursor-pointer px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 flex items-center gap-1 transition">
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>{aadhaarBackUrl ? 'Back ✓' : 'Back फोटो'}</span>
+                )}
+              </div>
+
+              {/* Back Photo */}
+              <div className="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+                <span className="font-bold text-slate-700 block">आधार कार्ड (पीछे की फ़ोटो - Back)</span>
+                {aadhaarBackUrl ? (
+                  <div className="relative group rounded-lg overflow-hidden border border-slate-300 aspect-16/9 bg-white">
+                    <img src={aadhaarBackUrl} alt="Aadhaar Back" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setAadhaarBackUrl('')}
+                      className="absolute top-1 right-1 p-1 bg-black/60 text-white rounded-full hover:bg-black/80 transition"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-orange-500 cursor-pointer bg-white transition">
+                    <Upload className="w-5 h-5 text-slate-400 mb-1" />
+                    <span className="font-bold text-slate-600">Back फ़ोटो अपलोड करें</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -241,7 +425,7 @@ export const AgentKycModal: React.FC<AgentKycModalProps> = ({ isOpen, onClose })
                       className="hidden"
                     />
                   </label>
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -250,15 +434,15 @@ export const AgentKycModal: React.FC<AgentKycModalProps> = ({ isOpen, onClose })
           <div className="space-y-3">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
               <CreditCard className="w-4 h-4 text-blue-600" />
-              <h3 className="font-black text-xs text-slate-900 uppercase tracking-wide">
-                2. पैन कार्ड विवरण (10 Characters PAN Card) *
+              <h3 className="font-black text-sm text-slate-900">
+                2. पैन कार्ड सत्यापन (PAN Card - 10 Characters)
               </h3>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  पैन कार्ड नंबर (10 अंक/अक्षर) *
+                  PAN नंबर (10 अक्षर) <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -267,41 +451,54 @@ export const AgentKycModal: React.FC<AgentKycModalProps> = ({ isOpen, onClose })
                   onChange={(e) => setPanNumber(e.target.value.toUpperCase())}
                   placeholder="उदा. ABCDE1234F"
                   required
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono text-sm font-bold focus:ring-2 focus:ring-blue-500 uppercase"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono text-sm uppercase tracking-wider focus:ring-2 focus:ring-blue-500 outline-none"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  पैन कार्ड फोटो (PAN Card Photo)
+                  PAN कार्ड की फ़ोटो
                 </label>
-                <label className="cursor-pointer px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 flex items-center gap-1.5 transition inline-block">
-                  <Upload className="w-3.5 h-3.5 inline mr-1" />
-                  <span>{panCardUrl ? 'पैन कार्ड फोटो अपलोड हो गई ✓' : 'पैन फोटो चुनें'}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleFileUpload(e, setPanCardUrl)}
-                    className="hidden"
-                  />
-                </label>
+                {panCardUrl ? (
+                  <div className="relative group rounded-xl overflow-hidden border border-slate-300 aspect-16/9 bg-white">
+                    <img src={panCardUrl} alt="PAN Card" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setPanCardUrl('')}
+                      className="absolute top-1 right-1 p-1 bg-black/60 text-white rounded-full hover:bg-black/80 transition"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center justify-center p-3 border-2 border-dashed border-slate-300 rounded-xl hover:border-blue-500 cursor-pointer bg-slate-50 transition text-xs">
+                    <Upload className="w-4 h-4 text-slate-400 mr-2" />
+                    <span className="font-bold text-slate-600">PAN फ़ोटो अपलोड करें</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileUpload(e, setPanCardUrl)}
+                      className="hidden"
+                    />
+                  </label>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Step 4: Bank Account Details for Payouts */}
+          {/* Step 4: Bank Account for Withdrawals */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
               <Building className="w-4 h-4 text-emerald-600" />
-              <h3 className="font-black text-xs text-slate-900 uppercase tracking-wide">
-                3. बैंक खाता विवरण (जिसमें विथड्रॉल व रविवार वेतन जाएगा) *
+              <h3 className="font-black text-sm text-slate-900">
+                3. कमीशन निकासी बैंक खाता (Payout Bank Account)
               </h3>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div>
                 <label className="block font-bold text-slate-700 mb-1">
-                  खाताधारक का नाम (PAN कार्ड से मिलना चाहिए) *
+                  खाताधारक का नाम (As in Bank Passbook) <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -309,33 +506,33 @@ export const AgentKycModal: React.FC<AgentKycModalProps> = ({ isOpen, onClose })
                   onChange={(e) => setBankHolder(e.target.value)}
                   placeholder="उदा. पवन कुमार वर्मा"
                   required
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-medium focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">
-                  बैंक का नाम (Bank Name) *
+                  बैंक का नाम <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={bankName}
                   onChange={(e) => setBankName(e.target.value)}
-                  placeholder="उदा. HDFC Bank, SBI, PNB"
+                  placeholder="उदा. State Bank of India / HDFC"
                   required
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-medium focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">
-                  बैंक खाता संख्या (A/C Number) *
+                  बैंक खाता संख्या <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={bankAccNumber}
                   onChange={(e) => setBankAccNumber(e.target.value)}
-                  placeholder="Account Number"
+                  placeholder="उदा. 123456789012"
                   required
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono font-bold focus:ring-2 focus:ring-emerald-500"
                 />
@@ -343,7 +540,7 @@ export const AgentKycModal: React.FC<AgentKycModalProps> = ({ isOpen, onClose })
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">
-                  IFSC कोड (11 अक्षर) *
+                  IFSC कोड <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"

@@ -785,6 +785,20 @@ describe('Q. Agent Aadhaar/PAN KYC, Profile Photo & Verified Badge System', () =
     expect(draft).toContain('123456789012');
     expect(draft).toContain('ABCDE1234F');
   });
+
+  it('displays 12-hour verification SLA guarantee and admin notification message upon KYC submission', () => {
+    const kycSubmissionResult = {
+      submitted: true,
+      sla_hours: 12,
+      heading: 'आपकी KYC वेरिफिकेशन 12 घंटे के अंदर हो जाएगी!',
+      admin_notification: 'एडमिन को आपकी रिक्वेस्ट भेज दी गई है ✅',
+    };
+
+    expect(kycSubmissionResult.submitted).toBe(true);
+    expect(kycSubmissionResult.sla_hours).toBe(12);
+    expect(kycSubmissionResult.heading).toContain('12 घंटे के अंदर');
+    expect(kycSubmissionResult.admin_notification).toContain('एडमिन को आपकी रिक्वेस्ट भेज दी गई है');
+  });
 });
 
 

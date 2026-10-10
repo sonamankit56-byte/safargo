@@ -289,8 +289,8 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
               </h3>
               <p className="text-xs text-amber-900/80 leading-relaxed max-w-2xl">
                 {currentUser?.kyc_status === 'pending'
-                  ? 'आपके दस्तावेज प्राप्त हो गए हैं। एडमिन सत्यापन के बाद प्रोफाइल पर Verified Tick (✓) सक्रिय हो जाएगा।'
-                  : 'आधार कार्ड (12 अंक) व पैन कार्ड सबमिट करें। 24 घंटे में अप्रूवल के बाद प्रोफाइल पर Verified Tick मिलेगा!'}
+                  ? 'आपके दस्तावेज प्राप्त हो गए हैं। 12 घंटे के अंदर एडमिन सत्यापन के बाद प्रोफाइल पर Verified Tick (✓) सक्रिय हो जाएगा।'
+                  : 'आधार कार्ड (12 अंक) व पैन कार्ड सबमिट करें। 12 घंटे में अप्रूवल के बाद प्रोफाइल पर Verified Tick मिलेगा!'}
               </p>
             </div>
           </div>
