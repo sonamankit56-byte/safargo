@@ -106,7 +106,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
   }, [allProfiles]);
 
   const pendingKycAgents = useMemo(() => {
-    return allProfiles.filter((p) => p.role === 'agent' && p.kyc_status === 'pending');
+    return allProfiles.filter(
+      (p) =>
+        (p.role === 'agent' || (!p.role && p.agent_status)) &&
+        p.kyc_status?.toLowerCase().trim() === 'pending'
+    );
   }, [allProfiles]);
 
   const pendingKycCount = pendingKycAgents.length;

@@ -61,9 +61,11 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ init
   const [rejectingAgentId, setRejectingAgentId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  const agents = allProfiles.filter((p) => p.role === 'agent');
+  const agents = allProfiles.filter((p) => p.role === 'agent' || (!p.role && p.agent_status));
 
-  const pendingKycCount = agents.filter((a) => a.kyc_status === 'pending').length;
+  const pendingKycCount = agents.filter(
+    (a) => a.kyc_status && a.kyc_status.toLowerCase().trim() === 'pending'
+  ).length;
 
   const filteredAgents = agents.filter((a) => {
     return (
@@ -75,10 +77,19 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ init
     );
   });
 
-  const kycAgents = agents.filter((a) => {
-    if (kycFilter === 'all') return a.kyc_status && a.kyc_status !== 'not_submitted';
-    return a.kyc_status === kycFilter;
-  });
+  const kycAgents = agents
+    .filter((a) => {
+      const status = a.kyc_status ? a.kyc_status.toLowerCase().trim() : 'not_submitted';
+      if (kycFilter === 'all') return status !== 'not_submitted';
+      return status === kycFilter;
+    })
+    .sort((a, b) => {
+      const aPending = a.kyc_status?.toLowerCase().trim() === 'pending';
+      const bPending = b.kyc_status?.toLowerCase().trim() === 'pending';
+      if (aPending && !bPending) return -1;
+      if (!aPending && bPending) return 1;
+      return 0;
+    });
 
   const handleApproveKyc = async (agentId: string) => {
     await approveAgentKyc(agentId);

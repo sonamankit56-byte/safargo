@@ -70,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     db.getProfiles().then((liveProfiles) => {
       if (liveProfiles && liveProfiles.length > 0) {
         setProfiles((prev) => {
-          return liveProfiles.map((remote) => {
+          const mergedRemote = liveProfiles.map((remote) => {
             const local = prev.find((p) => p.id === remote.id);
             if (!local) return remote;
             const hasLocalActiveKyc = local.kyc_status === 'pending' || local.kyc_status === 'verified';
@@ -93,9 +93,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               kyc_submitted_at: local.kyc_submitted_at || remote.kyc_submitted_at,
             };
           });
+
+          // Retain any profiles created locally that are not yet in Supabase
+          const remoteIds = new Set(liveProfiles.map((r) => r.id));
+          const localOnly = prev.filter((p) => !remoteIds.has(p.id));
+          const combined = [...mergedRemote, ...localOnly];
+          try {
+            localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(combined));
+          } catch (e) {
+            console.error('Error saving hydrated profiles to localStorage:', e);
+          }
+          return combined;
         });
       }
     }).catch((err) => console.error('Error fetching Supabase profiles:', err));
+  }, []);
+
+  // Multi-tab sync: instantly catch KYC submissions from other tabs/windows
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY_PROFILES && e.newValue) {
+        try {
+          const updated = JSON.parse(e.newValue);
+          if (Array.isArray(updated) && updated.length > 0) {
+            setProfiles(updated);
+          }
+        } catch (err) {
+          console.error('Storage sync error:', err);
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(() => {

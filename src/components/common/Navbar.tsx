@@ -42,7 +42,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
 
-  const pendingKycCount = allProfiles ? allProfiles.filter((p) => p.role === 'agent' && p.kyc_status === 'pending').length : 0;
+  const pendingKycCount = allProfiles
+    ? allProfiles.filter(
+        (p) =>
+          (p.role === 'agent' || (!p.role && p.agent_status)) &&
+          p.kyc_status?.toLowerCase().trim() === 'pending'
+      ).length
+    : 0;
 
 
   const handleTabChange = (tab: string) => {

@@ -149,10 +149,10 @@ export const AgentKycModal: React.FC<AgentKycModalProps> = ({ isOpen, onClose })
   if (currentUser.kyc_status === 'pending' || isSubmittedSuccess) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-300">
-        <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border-2 border-amber-500/30 relative text-center p-6 sm:p-8 space-y-6 animate-in zoom-in-95 duration-300">
+        <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border-2 border-emerald-500/30 relative text-center p-6 sm:p-8 space-y-6 animate-in zoom-in-95 duration-300">
           
           {/* Top Decorative Background Glow */}
-          <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 bg-gradient-to-b from-amber-400/20 via-orange-400/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 bg-gradient-to-b from-emerald-400/25 via-teal-400/15 to-transparent rounded-full blur-3xl pointer-events-none" />
           
           {/* Close button */}
           <button
@@ -162,30 +162,30 @@ export const AgentKycModal: React.FC<AgentKycModalProps> = ({ isOpen, onClose })
             <X className="w-5 h-5" />
           </button>
 
-          {/* Cool Animated Success Badge with Pulsing Waves */}
+          {/* Cool Animated Success Badge with Pulsing Waves & Floating Sparkles */}
           <div className="relative mx-auto w-28 h-28 flex items-center justify-center pt-2">
             {/* Outer animated ping wave */}
-            <div className="absolute inset-2 rounded-full bg-amber-400/30 animate-ping duration-1000" />
+            <div className="absolute inset-2 rounded-full bg-emerald-400/35 animate-ping duration-1000" />
             
             {/* Middle pulsing glow ring */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-amber-500 to-orange-400 opacity-20 blur-md animate-pulse" />
+            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 opacity-25 blur-md animate-pulse" />
 
             {/* Core Badge */}
-            <div className="relative w-24 h-24 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-xl shadow-amber-500/30 animate-in zoom-in duration-500 border-4 border-white">
-              <Clock className="w-12 h-12 stroke-[2.5]" />
+            <div className="relative w-24 h-24 rounded-full bg-gradient-to-tr from-emerald-500 via-teal-500 to-emerald-600 text-white flex items-center justify-center shadow-xl shadow-emerald-500/35 animate-in zoom-in duration-500 border-4 border-white">
+              <ShieldCheck className="w-12 h-12 stroke-[2.5]" />
               
-              {/* Floating Sparkles Badge */}
-              <div className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md animate-bounce">
-                <CheckCircle className="w-4 h-4" />
+              {/* Floating Bouncing Sparkles Badge */}
+              <div className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center shadow-md animate-bounce">
+                <Sparkles className="w-4 h-4 fill-slate-950" />
               </div>
             </div>
           </div>
 
-          {/* Heading and 1 to 12 Hour SLA Highlight */}
+          {/* Heading and 12-Hour SLA Highlight */}
           <div className="space-y-2 relative z-10">
-            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">
-              <Clock className="w-3.5 h-3.5 text-amber-600" />
-              <span>समीक्षाधीन (KYC Under Review)</span>
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black uppercase tracking-wider">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>अनुरोध दर्ज हो गया (KYC Submitted)</span>
             </span>
 
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 leading-snug">
@@ -197,37 +197,76 @@ export const AgentKycModal: React.FC<AgentKycModalProps> = ({ isOpen, onClose })
             </p>
           </div>
 
-          {/* 1 to 12 Hour SLA Timeline Box */}
-          <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-2 border-amber-200 rounded-2xl p-4 text-left space-y-3 shadow-xs">
-            <div className="flex items-center justify-between border-b border-amber-200/80 pb-2">
+          {/* 12-Hour SLA Timeline Box & Workflow */}
+          <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-2 border-emerald-200 rounded-3xl p-5 text-left space-y-4 shadow-sm">
+            <div className="flex items-center justify-between border-b border-emerald-200/80 pb-2.5">
               <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-amber-600 animate-spin duration-3000" />
-                <span className="text-xs font-black text-amber-950 uppercase">
-                  सत्यापन अवधि: आमतौर पर 1 से 12 घंटे
+                <Clock className="w-4 h-4 text-emerald-700 animate-spin duration-3000" />
+                <span className="text-xs font-black text-emerald-950 uppercase tracking-wide">
+                  गारंटीड SLA समय: 12 घंटे (Within 12 Hours)
                 </span>
               </div>
-              <span className="text-[10px] bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full font-black">
+              <span className="text-[10px] bg-emerald-600 text-white px-2.5 py-0.5 rounded-full font-black">
                 1-12 Hour SLA
               </span>
             </div>
 
-            <p className="text-xs text-amber-950 font-bold leading-relaxed">
-              Our team verifies your documents usually within 1 to 12 hours. (हमारी टीम आमतौर पर 1 घंटे से 12 घंटे के अंदर आपके दस्तावेज़ों का सत्यापन कर देती है।)
-            </p>
+            {/* Official Prominent Verification Notice in English and Hindi */}
+            <div className="p-3 bg-white/95 rounded-2xl border border-emerald-300 shadow-xs space-y-1">
+              <p className="text-xs text-emerald-950 font-black leading-relaxed">
+                Our team verifies your documents usually within 1 to 12 hours.
+              </p>
+              <p className="text-[11px] text-slate-600 font-semibold leading-relaxed">
+                हमारी टीम आमतौर पर 1 घंटे से 12 घंटे के अंदर आपके दस्तावेज़ों का सत्यापन कर देती है।
+              </p>
+            </div>
+
+            {/* Workflow steps with live pulse animation */}
+            <div className="space-y-2.5 text-xs">
+              <div className="flex items-start gap-2.5">
+                <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5 font-bold text-[10px] shadow">
+                  ✓
+                </div>
+                <div>
+                  <span className="font-bold text-slate-900 block">1. दस्तावेज़ सफलतापूर्वक अपलोड हुए</span>
+                  <span className="text-[11px] text-slate-500">आधार (12 अंक), पैन कार्ड और बैंक विवरण सुरक्षित रूप से दर्ज हैं।</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 mt-0.5 font-bold text-[10px] shadow animate-pulse">
+                  <Send className="w-3 h-3" />
+                </div>
+                <div>
+                  <span className="font-bold text-slate-900 block">2. एडमिन डेस्क पर समीक्षा जारी है</span>
+                  <span className="text-[11px] text-slate-500">SafarGo वेरिफिकेशन अधिकारी आपके विवरण और बैंक पासबुक का मिलान कर रहे हैं।</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <div className="w-5 h-5 rounded-full bg-amber-400 text-slate-900 flex items-center justify-center shrink-0 mt-0.5 font-bold text-[10px] shadow">
+                  ✓
+                </div>
+                <div>
+                  <span className="font-bold text-slate-900 block">3. Verified Tick (✓) व विथड्रॉल अनलॉक होगा</span>
+                  <span className="text-[11px] text-slate-500">सत्यापन होते ही प्रोफ़ाइल पर हरा Verified Tick लगेगा और कमीशन निकासी अनलॉक हो जाएगी।</span>
+                </div>
+              </div>
+            </div>
 
             {/* Read-only Submitted Details Preview */}
-            <div className="grid grid-cols-2 gap-2 text-xs pt-1">
-              <div className="p-2.5 rounded-xl bg-white border border-amber-200">
+            <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-emerald-200/80">
+              <div className="p-2.5 rounded-xl bg-white/95 border border-emerald-200">
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">आधार कार्ड (Locked)</span>
                 <span className="font-mono font-bold text-slate-800 text-xs mt-0.5 block">{maskedAadhaarDisplay}</span>
               </div>
 
-              <div className="p-2.5 rounded-xl bg-white border border-amber-200">
+              <div className="p-2.5 rounded-xl bg-white/95 border border-emerald-200">
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">PAN कार्ड (Locked)</span>
                 <span className="font-mono font-bold text-slate-800 text-xs mt-0.5 block">{maskedPanDisplay}</span>
               </div>
 
-              <div className="p-2.5 rounded-xl bg-white border border-amber-200 col-span-2">
+              <div className="p-2.5 rounded-xl bg-white/95 border border-emerald-200 col-span-2">
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">बैंक खाता (Locked)</span>
                 <span className="font-bold text-slate-800 text-xs mt-0.5 block truncate">
                   {currentUser.bank_name || bankName || 'Bank Account'} • A/C: ••••{(currentUser.bank_account_number || bankAccNumber)?.slice(-4) || 'XXXX'} (IFSC: {currentUser.bank_ifsc || bankIfsc || 'N/A'})
@@ -236,10 +275,10 @@ export const AgentKycModal: React.FC<AgentKycModalProps> = ({ isOpen, onClose })
             </div>
 
             {/* Lock Security Notice */}
-            <div className="flex items-center gap-2 text-[11px] text-slate-600 bg-amber-100/60 p-2.5 rounded-xl">
-              <Lock className="w-4 h-4 text-amber-700 shrink-0" />
+            <div className="flex items-center gap-2 text-[11px] text-slate-600 bg-emerald-100/70 p-2.5 rounded-xl border border-emerald-200">
+              <Lock className="w-4 h-4 text-emerald-800 shrink-0" />
               <span>
-                सुरक्षा कारणों से समीक्षा के दौरान संपादन (Edit) लॉक है। सत्यापन पूरा होते ही प्रोफ़ाइल पर <strong>Verified Tick (✓)</strong> लग जाएगा।
+                सुरक्षा कारणों से समीक्षा के दौरान संपादन (Edit) पूरी तरह लॉक है। अनुमोदन के बाद Verified Tick (✓) सक्रिय हो जाएगा।
               </span>
             </div>
           </div>
@@ -253,7 +292,7 @@ export const AgentKycModal: React.FC<AgentKycModalProps> = ({ isOpen, onClose })
               className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/25 active:scale-98"
             >
               <MessageSquare className="w-4 h-4" />
-              <span>WhatsApp पर एडमिन से संपर्क करें (Fast Track)</span>
+              <span>WhatsApp पर एडमिन को तुरंत सूचना भेजें (Fast Track)</span>
             </a>
 
             <button
