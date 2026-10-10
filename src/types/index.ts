@@ -1,0 +1,254 @@
+export type UserRole = 'admin' | 'agent' | 'customer';
+
+export type AgentStatus = 'pending_approval' | 'approved' | 'rejected' | 'suspended';
+
+export type BookingStatus =
+  | 'booking_request'
+  | 'awaiting_operator_confirmation'
+  | 'confirmed'
+  | 'rejected'
+  | 'expired'
+  | 'cancellation_requested'
+  | 'cancelled';
+
+export type SeatCategory =
+  | 'seater'
+  | 'sleeper'
+  | 'semi_sleeper'
+  | 'ac_seater'
+  | 'non_ac_seater'
+  | 'ac_sleeper'
+  | 'non_ac_sleeper';
+
+export type RefundStatus =
+  | 'none'
+  | 'requested'
+  | 'under_review'
+  | 'approved'
+  | 'processing'
+  | 'completed'
+  | 'rejected';
+
+export type SalaryStatus = 'unpaid' | 'approved' | 'paid';
+
+export interface Passenger {
+  id: string;
+  name: string;
+  age: number;
+  gender: 'male' | 'female' | 'other';
+}
+
+export interface Profile {
+  id: string;
+  role: UserRole;
+  full_name: string;
+  mobile: string;
+  email: string;
+  city: string;
+  district: string;
+  address: string;
+  shop_name?: string;
+  agent_status: AgentStatus;
+  approved_by?: string;
+  approved_at?: string;
+  referral_code: string;
+  referred_by_code?: string;
+  referred_by_id?: string;
+  password?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Booking {
+  id: string;
+  booking_code: string;
+  agent_id: string;
+  agent_name?: string;
+  agent_mobile?: string;
+  idempotency_key?: string;
+  customer_name: string;
+  customer_mobile: string;
+  passenger_count: number;
+  passenger_details: Passenger[];
+  from_city: string;
+  to_city: string;
+  journey_date: string;
+  departure_time_pref: string;
+  operator_preference: string;
+  seat_category: SeatCategory;
+  seat_count: number;
+  boarding_point: string;
+  drop_point: string;
+  estimated_fare: number;
+  total_estimated_amount: number;
+  agent_notes?: string;
+  created_at: string;
+  deadline_at: string;
+  status: BookingStatus;
+  
+  // Admin verification fields
+  actual_fare?: number;
+  confirmed_seats?: string;
+  actual_operator?: string;
+  actual_boarding_point?: string;
+  actual_drop_point?: string;
+  ticket_pnr?: string;
+  ticket_doc_url?: string;
+  admin_notes?: string;
+  rejection_reason?: string;
+  cancellation_reason?: string;
+  refund_status?: RefundStatus;
+  refund_amount?: number;
+  confirmed_by?: string;
+  confirmed_at?: string;
+  updated_at: string;
+}
+
+export interface CommissionEntry {
+  id: string;
+  booking_id?: string;
+  booking_code?: string;
+  agent_id: string;
+  agent_name?: string;
+  amount: number;
+  status: 'credited' | 'reversed' | 'paid';
+  entry_type?: 'booking_commission' | 'referral_bonus' | 'reversal';
+  referred_agent_id?: string;
+  referred_agent_name?: string;
+  reversal_ref_id?: string;
+  notes?: string;
+  created_at: string;
+}
+
+export interface SalaryRecord {
+  id: string;
+  agent_id: string;
+  agent_name?: string;
+  agent_mobile?: string;
+  month_year: string; // e.g. "2026-10"
+  target_bookings: number;
+  confirmed_bookings: number;
+  target_met: boolean;
+  base_salary: number;
+  payable_salary: number;
+  status: SalaryStatus;
+  approved_by?: string;
+  approved_at?: string;
+  paid_by?: string;
+  paid_at?: string;
+  payment_reference?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type PayoutStatus = 'pending' | 'approved' | 'rejected';
+
+export interface PayoutRequest {
+  id: string;
+  agent_id: string;
+  agent_name: string;
+  agent_mobile: string;
+  amount: number;
+  payout_method: 'upi' | 'bank_transfer';
+  upi_id?: string;
+  account_number?: string;
+  ifsc_code?: string;
+  bank_name?: string;
+  account_holder_name?: string;
+  status: PayoutStatus;
+  admin_reference?: string; // UTR or Bank Txn ID
+  admin_notes?: string;
+  created_at: string;
+  processed_at?: string;
+}
+
+export interface BusTrip {
+  id: string;
+  operator_name: string;
+  source: string;
+  destination: string;
+  journey_date: string;
+  departure_time: string;
+  arrival_time: string;
+  bus_type: string;
+  seater_fare: number;
+  sleeper_fare: number;
+  available_seater: number;
+  available_sleeper: number;
+  boarding_points: string[];
+  drop_points: string[];
+  notes?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type FeatureIconName =
+  | 'Zap'
+  | 'Package'
+  | 'Train'
+  | 'MapPin'
+  | 'CreditCard'
+  | 'Sparkles'
+  | 'PhoneCall'
+  | 'Shield'
+  | 'HelpCircle'
+  | 'Printer';
+
+export interface CustomFeature {
+  id: string;
+  title: string;
+  description: string;
+  badge?: string;
+  icon_name: FeatureIconName;
+  action_type: 'whatsapp' | 'external_url' | 'notice_modal';
+  action_value: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface AdminAnnouncement {
+  is_active: boolean;
+  title: string;
+  message: string;
+  type: 'info' | 'urgent' | 'warning' | 'success';
+  target: 'all' | 'agents' | 'customers';
+  updated_at: string;
+}
+
+export interface AdminSettings {
+  commission_rate: number;
+  monthly_target: number;
+  monthly_salary: number;
+  referral_bonus: number;
+  referral_required_bookings: number;
+  support_whatsapp: string;
+  cancellation_reversal_policy: 'reverse_commission' | 'keep_commission';
+  
+  // Announcement broadcast
+  announcement: AdminAnnouncement;
+
+  // Built-in feature toggles
+  feature_refer_earn: boolean;
+  feature_tatkal_service: boolean;
+  feature_parcel_service: boolean;
+  feature_train_enquiry: boolean;
+  feature_hotel_service: boolean;
+  feature_print_service: boolean;
+
+  // Dynamic custom features added by Admin
+  custom_features: CustomFeature[];
+}
+
+export interface AuditLog {
+  id: string;
+  actor_id?: string;
+  actor_email?: string;
+  actor_role?: string;
+  action: string;
+  record_type: string;
+  record_id?: string;
+  metadata?: Record<string, any>;
+  created_at: string;
+}

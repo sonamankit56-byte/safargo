@@ -1,0 +1,347 @@
+import React, { useMemo } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { useData } from '../../context/DataContext';
+import { StatusBadge } from '../common/StatusBadge';
+import { CountdownTimer } from '../common/CountdownTimer';
+import {
+  Users,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Calendar,
+  DollarSign,
+  TrendingUp,
+  Shield,
+  ArrowRight,
+  Eye,
+  Bus,
+  FileCheck
+} from 'lucide-react';
+
+interface AdminDashboardProps {
+  onNavigate: (tab: string) => void;
+  onOpenBooking: (bookingId: string) => void;
+}
+
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOpenBooking }) => {
+  const { allProfiles, approveAgent } = useAuth();
+  const { bookings, commissions, salaryRecords, settings } = useData();
+
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  const metrics = useMemo(() => {
+    const agents = allProfiles.filter((p) => p.role === 'agent');
+    const totalAgents = agents.length;
+    const pendingAgentApprovals = agents.filter((a) => a.agent_status === 'pending_approval').length;
+
+    let todayRequests = 0;
+    let pendingConfirmations = 0;
+    let confirmedBookings = 0;
+    let rejectedBookings = 0;
+    let expiredRequests = 0;
+    let monthlyConfirmed = 0;
+    let totalBookingValue = 0;
+
+    bookings.forEach((b) => {
+      const bDate = b.created_at.split('T')[0];
+      const bMonth = b.created_at.substring(0, 7);
+
+      if (bDate === todayStr) todayRequests++;
+      if (bMonth === currentMonth && b.status === 'confirmed') monthlyConfirmed++;
+
+      if (b.status === 'booking_request' || b.status === 'awaiting_operator_confirmation') {
+        pendingConfirmations++;
+      } else if (b.status === 'confirmed') {
+        confirmedBookings++;
+        totalBookingValue += b.actual_fare || b.total_estimated_amount;
+      } else if (b.status === 'rejected') {
+        rejectedBookings++;
+      } else if (b.status === 'expired') {
+        expiredRequests++;
+      }
+    });
+
+    const totalCommissionCredited = commissions
+      .filter((c) => c.status === 'credited')
+      .reduce((sum, c) => sum + c.amount, 0);
+
+    const totalCommissionReversed = commissions
+      .filter((c) => c.status === 'reversed')
+      .reduce((sum, c) => sum + Math.abs(c.amount), 0);
+
+    const commissionPayable = totalCommissionCredited - totalCommissionReversed;
+
+    const salaryPayable = salaryRecords
+      .filter((s) => s.status === 'unpaid' || s.status === 'approved')
+      .reduce((sum, s) => sum + s.payable_salary, 0);
+
+    return {
+      totalAgents,
+      pendingAgentApprovals,
+      todayRequests,
+      pendingConfirmations,
+      confirmedBookings,
+      rejectedBookings,
+      expiredRequests,
+      monthlyConfirmed,
+      commissionPayable,
+      salaryPayable,
+      totalBookingValue,
+    };
+  }, [allProfiles, bookings, commissions, salaryRecords, todayStr, currentMonth]);
+
+  const urgentBookings = useMemo(() => {
+    return bookings
+      .filter((b) => b.status === 'booking_request' || b.status === 'awaiting_operator_confirmation')
+      .sort((a, b) => new Date(a.deadline_at).getTime() - new Date(b.deadline_at).getTime());
+  }, [bookings]);
+
+  const pendingAgents = useMemo(() => {
+    return allProfiles.filter((p) => p.role === 'agent' && p.agent_status === 'pending_approval');
+  }, [allProfiles]);
+
+  return (
+    <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-8">
+      
+      {/* Header */}
+      <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 border border-slate-800">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-xs uppercase font-bold tracking-widest text-orange-400">
+              SafarGo Admin Operations Center
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black">कंट्रोल डैशबोर्ड (System Overview)</h1>
+          <p className="text-xs sm:text-sm text-slate-400">
+            मैनुअल बस टिकटिंग एवं ग्रामीण एजेंट रोजगार प्रबंधन (Manual Bus Ticketing & Rural CSC Desk)
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => onNavigate('admin-bookings')}
+            className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs flex items-center gap-2 shadow-lg transition"
+          >
+            बुकिंग्स डेस्क ({bookings.length})
+          </button>
+          <button
+            onClick={() => onNavigate('admin-agents')}
+            className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs transition"
+          >
+            एजेंट्स ({metrics.totalAgents})
+          </button>
+          <button
+            onClick={() => onNavigate('admin-settings')}
+            className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs transition"
+          >
+            सेटिंग्स
+          </button>
+        </div>
+      </div>
+
+      {/* Primary Key Metrics Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <span className="text-[11px] font-semibold text-slate-400 block uppercase">Pending Confirmations</span>
+          <span className="text-2xl font-black text-amber-600 mt-1 block">
+            {metrics.pendingConfirmations}
+          </span>
+          <span className="text-[10px] text-slate-500">15m Window Active</span>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <span className="text-[11px] font-semibold text-slate-400 block uppercase">Pending Agents</span>
+          <span className="text-2xl font-black text-orange-600 mt-1 block">
+            {metrics.pendingAgentApprovals}
+          </span>
+          <span className="text-[10px] text-slate-500">Need Approval</span>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <span className="text-[11px] font-semibold text-slate-400 block uppercase">Today's Requests</span>
+          <span className="text-2xl font-black text-blue-600 mt-1 block">
+            {metrics.todayRequests}
+          </span>
+          <span className="text-[10px] text-slate-500">Received Today</span>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <span className="text-[11px] font-semibold text-slate-400 block uppercase">Confirmed (Month)</span>
+          <span className="text-2xl font-black text-emerald-600 mt-1 block">
+            {metrics.monthlyConfirmed}
+          </span>
+          <span className="text-[10px] text-slate-500">{metrics.confirmedBookings} All-Time</span>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <span className="text-[11px] font-semibold text-slate-400 block uppercase">Commission Payable</span>
+          <span className="text-2xl font-black text-emerald-700 mt-1 block">
+            ₹{metrics.commissionPayable.toFixed(2)}
+          </span>
+          <span className="text-[10px] text-slate-500">₹{settings.commission_rate.toFixed(2)} / Booking</span>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <span className="text-[11px] font-semibold text-slate-400 block uppercase">Total Booking Value</span>
+          <span className="text-2xl font-black text-slate-900 mt-1 block">
+            ₹{metrics.totalBookingValue.toLocaleString('en-IN')}
+          </span>
+          <span className="text-[10px] text-slate-500">Verified GTV</span>
+        </div>
+      </div>
+
+      {/* Secondary Metrics */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+        <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex items-center justify-between">
+          <span className="text-slate-600">Total Registered Agents:</span>
+          <span className="font-bold text-slate-900">{metrics.totalAgents}</span>
+        </div>
+        <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex items-center justify-between">
+          <span className="text-slate-600">Rejected Requests:</span>
+          <span className="font-bold text-rose-700">{metrics.rejectedBookings}</span>
+        </div>
+        <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex items-center justify-between">
+          <span className="text-slate-600">Expired Requests:</span>
+          <span className="font-bold text-slate-700">{metrics.expiredRequests}</span>
+        </div>
+        <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex items-center justify-between">
+          <span className="text-slate-600">Estimated Salary Payable:</span>
+          <span className="font-bold text-orange-700">₹{metrics.salaryPayable.toLocaleString('en-IN')}</span>
+        </div>
+      </div>
+
+      {/* Urgent Bookings Section (Action Required within 15 mins) */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+              <Clock className="w-5 h-5 animate-spin" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900">
+                लंबित सत्यापन रिक्वेस्ट (Pending Verification - 15 Minute Window)
+              </h2>
+              <p className="text-xs text-slate-500">
+                तुरंत बस ऑपरेटर से सीट चेक करें और टिकट विवरण भरें
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => onNavigate('admin-bookings')}
+            className="text-xs font-semibold text-orange-600 hover:text-orange-700 flex items-center gap-1"
+          >
+            सभी देखें <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {urgentBookings.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 text-xs">
+            बधाई! कोई भी पेंडिंग रिक्वेस्ट नहीं है। सभी बुकिंग्स सत्यापित हैं।
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {urgentBookings.map((b) => (
+              <div
+                key={b.id}
+                className="p-4 sm:p-5 hover:bg-slate-50 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-xs bg-slate-100 text-slate-800 px-2.5 py-0.5 rounded">
+                      {b.booking_code}
+                    </span>
+                    <StatusBadge status={b.status} size="sm" />
+                    <span className="text-xs text-slate-500">एजेंट: {b.agent_name}</span>
+                  </div>
+                  <p className="text-sm font-bold text-slate-900">
+                    {b.customer_name} (+91 {b.customer_mobile}) • {b.from_city} → {b.to_city}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    यात्रा: {b.journey_date} • {b.passenger_count} Passenger(s) • सीट: {b.seat_category.replace(/_/g, ' ')} • किराया: ₹{b.total_estimated_amount}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 self-end sm:self-center">
+                  <CountdownTimer deadlineAt={b.deadline_at} status={b.status} />
+                  <button
+                    onClick={() => onOpenBooking(b.id)}
+                    className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-orange-600 text-white font-bold text-xs flex items-center gap-1.5 transition shadow"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    सत्यापित करें (Verify)
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Pending Agent Approvals Section */}
+      {pendingAgents.length > 0 && (
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-900">
+                  नए एजेंट पंजीकरण अनुमोदन (New Agent Approvals Pending)
+                </h2>
+                <p className="text-xs text-slate-500">
+                  सत्यापन के बिना नए एजेंट लाइव बुकिंग नहीं कर सकते
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => onNavigate('admin-agents')}
+              className="text-xs font-semibold text-orange-600 hover:text-orange-700 flex items-center gap-1"
+            >
+              एजेंट्स सूची <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="divide-y divide-slate-100">
+            {pendingAgents.map((ag) => (
+              <div
+                key={ag.id}
+                className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition"
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-slate-900 text-sm">{ag.full_name}</h3>
+                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                      Pending Approval
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 mt-0.5">
+                    दुकान / केंद्र: <strong>{ag.shop_name}</strong> • {ag.city}, {ag.district}
+                  </p>
+                  <p className="text-xs text-slate-400 font-mono">
+                    Mobile: +91 {ag.mobile} • Email: {ag.email}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => approveAgent(ag.id)}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow"
+                  >
+                    <FileCheck className="w-3.5 h-3.5" />
+                    Approve Agent
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+};
