@@ -11,5 +11,20 @@ export const isSupabaseConfigured = Boolean(
 );
 
 export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: typeof window !== 'undefined',
+      },
+      ...(typeof window === 'undefined' && !globalThis.WebSocket
+        ? {
+            realtime: {
+              transport: class DummyWS {
+                constructor() {}
+                send() {}
+                close() {}
+              } as any,
+            },
+          }
+        : {}),
+    })
   : null;
