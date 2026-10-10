@@ -236,7 +236,16 @@ export interface AdminSettings {
   
   // Advance Payment & Wallet System Settings
   min_wallet_recharge: number; // default: 2000
-  safargo_upi_id: string; // e.g. "safargo@icici" or "919876543210@paytm"
+  safargo_upi_id: string; // e.g. "safargo.booking@icici" or "919876543210@paytm"
+  safargo_payee_name?: string; // e.g. "SafarGo Travels"
+  safargo_phonepe_number?: string; // e.g. "9876543210@ybl" or mobile number
+  safargo_gpay_number?: string; // e.g. "9876543210@okaxis" or mobile number
+  safargo_paytm_number?: string; // e.g. "9876543210@paytm" or mobile number
+  safargo_qr_image_url?: string; // Custom uploaded official QR image
+  safargo_bank_account_no?: string; // Official Bank A/C No
+  safargo_bank_ifsc?: string; // Official Bank IFSC
+  safargo_bank_name?: string; // Official Bank Name
+  safargo_bank_holder_name?: string; // Official Bank A/C Holder Name
 
   // Announcement broadcast
   announcement: AdminAnnouncement;

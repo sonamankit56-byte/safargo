@@ -609,20 +609,28 @@ export const ManualBookingForm: React.FC = () => {
             {paymentMode === 'safargo_qr' && (
               <div className="space-y-5 animate-in fade-in">
                 <div className="bg-slate-800/80 p-5 rounded-2xl border border-slate-700 flex flex-col md:flex-row items-center gap-6">
-                  {/* Dynamic QR Code based on totalAmount */}
+                  {/* Dynamic or Custom Uploaded QR Code */}
                   <div className="bg-white p-3 rounded-2xl shrink-0 flex flex-col items-center border-2 border-orange-400 shadow-md">
                     <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                        `upi://pay?pa=${encodeURIComponent(
-                          settings.safargo_upi_id || 'safargo.booking@icici'
-                        )}&pn=SafarGo%20Bus&am=${totalAmount}&cu=INR&tn=Booking%20Fare`
-                      )}`}
+                      src={
+                        settings.safargo_qr_image_url ||
+                        `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                          `upi://pay?pa=${encodeURIComponent(
+                            settings.safargo_upi_id || 'safargo.booking@icici'
+                          )}&pn=${encodeURIComponent(settings.safargo_payee_name || 'SafarGo Bus')}&am=${totalAmount}&cu=INR&tn=Booking%20Fare`
+                        )}`
+                      }
                       alt="SafarGo Booking Fare QR"
                       className="w-36 h-36 rounded-lg object-contain"
                     />
                     <span className="text-[11px] font-black text-slate-900 mt-1">
                       Scan to Pay ₹{totalAmount.toLocaleString('en-IN')}
                     </span>
+                    {settings.safargo_payee_name && (
+                      <span className="text-[10px] font-semibold text-slate-500">
+                        {settings.safargo_payee_name}
+                      </span>
+                    )}
                   </div>
 
                   {/* Instructions & UPI Copy */}
@@ -649,6 +657,69 @@ export const ManualBookingForm: React.FC = () => {
                           <span>{copiedUpi ? 'Copied' : 'Copy'}</span>
                         </button>
                       </div>
+                    </div>
+
+                    {/* GPay, PhonePe, Paytm Quick Buttons */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {settings.safargo_phonepe_number && (
+                        <div className="bg-slate-900/90 p-2 rounded-xl border border-slate-700 flex items-center justify-between">
+                          <div className="truncate">
+                            <span className="text-[10px] text-purple-400 font-bold block">PhonePe</span>
+                            <span className="font-mono text-white text-[11px] truncate">{settings.safargo_phonepe_number}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(settings.safargo_phonepe_number || '');
+                              success('PhonePe Copied', 'PhonePe में पेस्ट करें');
+                            }}
+                            className="p-1 text-slate-400 hover:text-white"
+                            title="Copy PhonePe"
+                          >
+                            <Copy className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
+
+                      {settings.safargo_gpay_number && (
+                        <div className="bg-slate-900/90 p-2 rounded-xl border border-slate-700 flex items-center justify-between">
+                          <div className="truncate">
+                            <span className="text-[10px] text-blue-400 font-bold block">Google Pay (GPay)</span>
+                            <span className="font-mono text-white text-[11px] truncate">{settings.safargo_gpay_number}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(settings.safargo_gpay_number || '');
+                              success('GPay Copied', 'GPay में पेस्ट करें');
+                            }}
+                            className="p-1 text-slate-400 hover:text-white"
+                            title="Copy GPay"
+                          >
+                            <Copy className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
+
+                      {settings.safargo_paytm_number && (
+                        <div className="bg-slate-900/90 p-2 rounded-xl border border-slate-700 flex items-center justify-between">
+                          <div className="truncate">
+                            <span className="text-[10px] text-sky-400 font-bold block">Paytm</span>
+                            <span className="font-mono text-white text-[11px] truncate">{settings.safargo_paytm_number}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(settings.safargo_paytm_number || '');
+                              success('Paytm Copied', 'Paytm में पेस्ट करें');
+                            }}
+                            className="p-1 text-slate-400 hover:text-white"
+                            title="Copy Paytm"
+                          >
+                            <Copy className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {/* WhatsApp 15-Minute Mandate */}

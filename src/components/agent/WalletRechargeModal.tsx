@@ -192,16 +192,21 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-5">
-              {/* Dynamic QR Code */}
+              {/* Dynamic or Custom QR Code */}
               <div className="bg-white p-3 rounded-2xl border-2 border-slate-200 shadow-sm shrink-0 flex flex-col items-center">
                 <img
-                  src={qrCodeApiUrl}
+                  src={settings.safargo_qr_image_url || qrCodeApiUrl}
                   alt="SafarGo Payment QR"
                   className="w-36 h-36 rounded-lg object-contain"
                 />
                 <span className="text-[10px] font-bold text-slate-500 mt-1.5">
                   Scan to Pay ₹{parsedAmount > 0 ? parsedAmount.toLocaleString('en-IN') : minAmount}
                 </span>
+                {settings.safargo_payee_name && (
+                  <span className="text-[10px] font-semibold text-slate-400">
+                    {settings.safargo_payee_name}
+                  </span>
+                )}
               </div>
 
               {/* UPI & Bank Details */}
@@ -223,10 +228,79 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
                   </div>
                 </div>
 
+                {/* Quick GPay, PhonePe, Paytm IDs */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                  {settings.safargo_phonepe_number && (
+                    <div className="bg-purple-50 p-2 rounded-xl border border-purple-200 flex items-center justify-between">
+                      <div className="truncate">
+                        <span className="text-[10px] text-purple-700 font-bold block">PhonePe</span>
+                        <span className="font-mono text-purple-900 text-[11px] truncate">{settings.safargo_phonepe_number}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(settings.safargo_phonepe_number || '');
+                          success('PhonePe ID Copied', 'PhonePe में पेस्ट करें');
+                        }}
+                        className="p-1 text-purple-600 hover:text-purple-800"
+                        title="Copy PhonePe"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+
+                  {settings.safargo_gpay_number && (
+                    <div className="bg-blue-50 p-2 rounded-xl border border-blue-200 flex items-center justify-between">
+                      <div className="truncate">
+                        <span className="text-[10px] text-blue-700 font-bold block">Google Pay (GPay)</span>
+                        <span className="font-mono text-blue-900 text-[11px] truncate">{settings.safargo_gpay_number}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(settings.safargo_gpay_number || '');
+                          success('GPay ID Copied', 'GPay में पेस्ट करें');
+                        }}
+                        className="p-1 text-blue-600 hover:text-blue-800"
+                        title="Copy GPay"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+
+                  {settings.safargo_paytm_number && (
+                    <div className="bg-sky-50 p-2 rounded-xl border border-sky-200 flex items-center justify-between">
+                      <div className="truncate">
+                        <span className="text-[10px] text-sky-700 font-bold block">Paytm</span>
+                        <span className="font-mono text-sky-900 text-[11px] truncate">{settings.safargo_paytm_number}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(settings.safargo_paytm_number || '');
+                          success('Paytm ID Copied', 'Paytm में पेस्ट करें');
+                        }}
+                        className="p-1 text-sky-600 hover:text-sky-800"
+                        title="Copy Paytm"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bank Transfer Details */}
                 <div className="bg-white p-2.5 rounded-xl border border-slate-200 text-[11px] text-slate-600 space-y-1">
-                  <div className="font-bold text-slate-800">बैंक ट्रांसफर विवरण (Optional NEFT/IMPS):</div>
-                  <div>खाता: <strong>SafarGo Mobility Services</strong></div>
-                  <div>A/C: <span className="font-mono">001105023912</span> • IFSC: <span className="font-mono">ICIC0000011</span></div>
+                  <div className="font-bold text-slate-800">बैंक ट्रांसफर विवरण (Official Bank Transfer / NEFT / IMPS):</div>
+                  <div>खाताधारक: <strong>{settings.safargo_bank_holder_name || 'SafarGo Travel Services'}</strong></div>
+                  <div>
+                    A/C: <span className="font-mono font-bold text-slate-900">{settings.safargo_bank_account_no || '50200088991122'}</span> • IFSC: <span className="font-mono font-bold text-slate-900">{settings.safargo_bank_ifsc || 'ICIC0001234'}</span>
+                  </div>
+                  {settings.safargo_bank_name && (
+                    <div className="text-[10px] text-slate-500">बैंक: {settings.safargo_bank_name}</div>
+                  )}
                 </div>
               </div>
             </div>

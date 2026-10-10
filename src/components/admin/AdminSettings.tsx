@@ -31,7 +31,13 @@ import {
   X,
   Database,
   Server,
-  Copy
+  Copy,
+  QrCode,
+  Building2,
+  Smartphone,
+  Upload,
+  CreditCard,
+  Image as ImageIcon
 } from 'lucide-react';
 
 export const AdminSettings: React.FC = () => {
@@ -46,7 +52,21 @@ export const AdminSettings: React.FC = () => {
   } = useData();
   const { success, error, info } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'core' | 'announcement' | 'features' | 'database'>('announcement');
+  const [activeTab, setActiveTab] = useState<'payment' | 'core' | 'announcement' | 'features' | 'database'>('payment');
+
+  // PAYMENT & QR CODE GATEWAY STATES
+  const [payUpiId, setPayUpiId] = useState<string>(settings.safargo_upi_id || 'safargo.booking@icici');
+  const [payPayeeName, setPayPayeeName] = useState<string>(settings.safargo_payee_name || 'SafarGo Official');
+  const [payPhonePe, setPayPhonePe] = useState<string>(settings.safargo_phonepe_number || '9876543210@ybl');
+  const [payGPay, setPayGPay] = useState<string>(settings.safargo_gpay_number || '9876543210@okaxis');
+  const [payPaytm, setPayPaytm] = useState<string>(settings.safargo_paytm_number || '9876543210@paytm');
+  const [payQrImageUrl, setPayQrImageUrl] = useState<string>(settings.safargo_qr_image_url || '');
+  const [payBankHolder, setPayBankHolder] = useState<string>(settings.safargo_bank_holder_name || 'SafarGo Travel Services');
+  const [payBankAcc, setPayBankAcc] = useState<string>(settings.safargo_bank_account_no || '50200088991122');
+  const [payBankIfsc, setPayBankIfsc] = useState<string>(settings.safargo_bank_ifsc || 'ICIC0001234');
+  const [payBankName, setPayBankName] = useState<string>(settings.safargo_bank_name || 'ICICI Bank');
+  const [payMinRecharge, setPayMinRecharge] = useState<number>(settings.min_wallet_recharge || 2000);
+  const [isSavingPayment, setIsSavingPayment] = useState<boolean>(false);
 
   // CORE SETTINGS STATE
   const [commRate, setCommRate] = useState<number>(settings.commission_rate);
@@ -115,6 +135,51 @@ export const AdminSettings: React.FC = () => {
       });
     } finally {
       setIsSavingCore(false);
+    }
+  };
+
+  // HANDLE QR IMAGE UPLOAD
+  const handleQrImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        error('File Too Large', 'कृपया 5MB से छोटी QR इमेज चुनें।');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPayQrImageUrl(reader.result as string);
+        success('QR Image Loaded', 'नया QR कोड लोड हो गया है। नीचे सेव बटन दबाएं।');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // HANDLE PAYMENT SETTINGS SAVE
+  const handleSavePayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!payUpiId.trim()) {
+      error('UPI ID Required', 'कृपया मान्य SafarGo UPI ID दर्ज करें।');
+      return;
+    }
+    setIsSavingPayment(true);
+    try {
+      await updateSettings({
+        safargo_upi_id: payUpiId.trim(),
+        safargo_payee_name: payPayeeName.trim(),
+        safargo_phonepe_number: payPhonePe.trim(),
+        safargo_gpay_number: payGPay.trim(),
+        safargo_paytm_number: payPaytm.trim(),
+        safargo_qr_image_url: payQrImageUrl,
+        safargo_bank_holder_name: payBankHolder.trim(),
+        safargo_bank_account_no: payBankAcc.trim(),
+        safargo_bank_ifsc: payBankIfsc.trim().toUpperCase(),
+        safargo_bank_name: payBankName.trim(),
+        min_wallet_recharge: Math.max(2000, Number(payMinRecharge) || 2000),
+      });
+      success('पेमेंट सेटिंग्स सुरक्षित!', 'QR कोड, GPay, PhonePe एवं बैंक विवरण सभी एजेंटों के लिए लाइव अपडेट हो गए हैं।');
+    } finally {
+      setIsSavingPayment(false);
     }
   };
 
@@ -297,6 +362,18 @@ export const AdminSettings: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setActiveTab('payment')}
+            className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
+              activeTab === 'payment'
+                ? 'bg-white text-orange-600 shadow-xs font-bold'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <QrCode className="w-3.5 h-3.5 text-orange-600" />
+            QR व पेमेंट गेटवे (QR / UPI Setup)
+          </button>
+
+          <button
             onClick={() => setActiveTab('core')}
             className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
               activeTab === 'core'
@@ -321,6 +398,289 @@ export const AdminSettings: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* ======================================================== */}
+      {/* TAB: PAYMENT GATEWAY & QR CODE (QR, GPay, PhonePe, Bank) */}
+      {/* ======================================================== */}
+      {activeTab === 'payment' && (
+        <form onSubmit={handleSavePayment} className="space-y-6 animate-fadeIn">
+          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8 space-y-6">
+            
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold shadow-xs">
+                  <QrCode className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base sm:text-lg font-black text-slate-900">
+                    SafarGo आधिकारिक QR कोड एवं ऑनलाइन पेमेंट गेटवे
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    यहाँ आप अपना असली QR कोड, PhonePe, Google Pay, Paytm UPI ID और बैंक खाता सेट कर सकते हैं। यह विवरण बुकिंग फॉर्म और वॉलेट रिचार्ज पर एजेंटों को लाइव दिखेगा।
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSavingPayment}
+                className="px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-xs shadow-md shadow-orange-600/20 transition active:scale-95 flex items-center gap-2 self-start sm:self-auto disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                <span>{isSavingPayment ? 'सेव हो रहा है...' : 'सेटिंग्स सुरक्षित करें'}</span>
+              </button>
+            </div>
+
+            {/* Grid 1: QR Code Image Upload & Preview */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-5 rounded-2xl border border-slate-200">
+              
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-orange-600" />
+                  <span className="font-black text-xs text-slate-900 uppercase tracking-wide">
+                    1. SafarGo आधिकारिक QR कोड (Custom QR Upload)
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  यदि आपके पास PhonePe, Google Pay, Paytm या बैंक का आधिकारिक QR कोड फोटो है, तो उसे यहाँ अपलोड करें। एजेंट और ग्राहक को सीधे आपकी दुकान/कंपनी का असली QR कोड दिखाई देगा।
+                </p>
+
+                <div className="flex items-center gap-3 pt-2">
+                  <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow-sm transition">
+                    <Upload className="w-4 h-4" />
+                    <span>नया QR कोड अपलोड करें</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleQrImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {payQrImageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPayQrImageUrl('');
+                        info('QR हटाया गया', 'अब UPI ID से ऑटोमैटिक डायनामिक QR कोड बनेगा।');
+                      }}
+                      className="px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 border border-rose-200 text-xs font-bold transition"
+                    >
+                      हटाएं (Remove)
+                    </button>
+                  )}
+                </div>
+
+                <p className="text-[11px] text-slate-500">
+                  {payQrImageUrl
+                    ? '✓ कस्टम QR कोड सक्रिय है।'
+                    : 'ℹ️ यदि इमेज अपलोड नहीं करेंगे, तो नीचे दिए गए UPI ID से ऑटोमैटिक डायनामिक QR कोड बन जाएगा।'}
+                </p>
+              </div>
+
+              {/* QR Code Preview Box */}
+              <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border-2 border-dashed border-slate-300 shadow-xs">
+                {payQrImageUrl ? (
+                  <div className="flex flex-col items-center space-y-2">
+                    <img
+                      src={payQrImageUrl}
+                      alt="Uploaded QR Code"
+                      className="w-40 h-40 object-contain rounded-xl border border-slate-200 shadow-sm"
+                    />
+                    <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                      ✓ लाइव कस्टम QR कोड
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center space-y-2">
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                        `upi://pay?pa=${encodeURIComponent(payUpiId || 'safargo.booking@icici')}&pn=${encodeURIComponent(payPayeeName || 'SafarGo')}&cu=INR`
+                      )}`}
+                      alt="Dynamic UPI QR"
+                      className="w-36 h-36 object-contain rounded-xl border border-slate-200 shadow-sm"
+                    />
+                    <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
+                      ⚡ ऑटोमैटिक डायनामिक QR (UPI आधारित)
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Grid 2: UPI Apps Configuration (GPay, PhonePe, Paytm, Official UPI ID) */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Smartphone className="w-4 h-4 text-orange-600" />
+                <h3 className="font-black text-xs text-slate-900 uppercase tracking-wide">
+                  2. UPI ID एवं ऐप्स विवरण (GPay, PhonePe, Paytm, Official VPA)
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    SafarGo मुख्य UPI ID <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={payUpiId}
+                    onChange={(e) => setPayUpiId(e.target.value)}
+                    placeholder="safargo.booking@icici"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono text-xs focus:ring-2 focus:ring-orange-500 outline-none bg-white font-bold text-slate-900"
+                  />
+                  <span className="text-[10px] text-slate-500 mt-0.5 block">मुख्य VPA जिस पर QR आधारित है</span>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    व्यापारिक नाम (Merchant / Payee Name)
+                  </label>
+                  <input
+                    type="text"
+                    value={payPayeeName}
+                    onChange={(e) => setPayPayeeName(e.target.value)}
+                    placeholder="SafarGo Travel Services"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500 outline-none bg-white"
+                  />
+                  <span className="text-[10px] text-slate-500 mt-0.5 block">बैंक या UPI ऐप पर दिखने वाला नाम</span>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    PhonePe UPI ID / नंबर
+                  </label>
+                  <input
+                    type="text"
+                    value={payPhonePe}
+                    onChange={(e) => setPayPhonePe(e.target.value)}
+                    placeholder="9876543210@ybl या 9876543210"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono text-xs focus:ring-2 focus:ring-orange-500 outline-none bg-white"
+                  />
+                  <span className="text-[10px] text-slate-500 mt-0.5 block">एजेंट को PhonePe से पेमेंट के लिए दिखेगा</span>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Google Pay (GPay) UPI ID / नंबर
+                  </label>
+                  <input
+                    type="text"
+                    value={payGPay}
+                    onChange={(e) => setPayGPay(e.target.value)}
+                    placeholder="9876543210@okaxis या 9876543210"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono text-xs focus:ring-2 focus:ring-orange-500 outline-none bg-white"
+                  />
+                  <span className="text-[10px] text-slate-500 mt-0.5 block">एजेंट को GPay से पेमेंट के लिए दिखेगा</span>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Paytm UPI ID / नंबर
+                  </label>
+                  <input
+                    type="text"
+                    value={payPaytm}
+                    onChange={(e) => setPayPaytm(e.target.value)}
+                    placeholder="9876543210@paytm या 9876543210"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono text-xs focus:ring-2 focus:ring-orange-500 outline-none bg-white"
+                  />
+                  <span className="text-[10px] text-slate-500 mt-0.5 block">एजेंट को Paytm से पेमेंट के लिए दिखेगा</span>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    न्यूनतम वॉलेट रिचार्ज (Min Wallet Recharge ₹) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min={2000}
+                    step={100}
+                    required
+                    value={payMinRecharge}
+                    onChange={(e) => setPayMinRecharge(Number(e.target.value))}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-black text-xs focus:ring-2 focus:ring-orange-500 outline-none bg-white"
+                  />
+                  <span className="text-[10px] text-slate-500 mt-0.5 block">नियम: न्यूनतम ₹2,000 होना अनिवार्य है</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Grid 3: Bank Transfer Details (NEFT/RTGS/IMPS) */}
+            <div className="space-y-4 pt-2 border-t border-slate-100">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-blue-600" />
+                <h3 className="font-black text-xs text-slate-900 uppercase tracking-wide">
+                  3. आधिकारिक बैंक खाता विवरण (Official Bank Transfer / NEFT / IMPS)
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">खाताधारक का नाम (A/C Holder Name)</label>
+                  <input
+                    type="text"
+                    value={payBankHolder}
+                    onChange={(e) => setPayBankHolder(e.target.value)}
+                    placeholder="SafarGo Travel Services"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">बैंक खाता संख्या (Account Number)</label>
+                  <input
+                    type="text"
+                    value={payBankAcc}
+                    onChange={(e) => setPayBankAcc(e.target.value)}
+                    placeholder="50200088991122"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono text-xs focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">बैंक IFSC कोड</label>
+                  <input
+                    type="text"
+                    value={payBankIfsc}
+                    onChange={(e) => setPayBankIfsc(e.target.value)}
+                    placeholder="ICIC0001234"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono uppercase text-xs focus:ring-2 focus:ring-blue-500 outline-none bg-white font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">बैंक का नाम (Bank Name)</label>
+                  <input
+                    type="text"
+                    value={payBankName}
+                    onChange={(e) => setPayBankName(e.target.value)}
+                    placeholder="ICICI Bank"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Save Bar */}
+            <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <span className="text-xs text-slate-500">
+                💾 सेव करने पर यह जानकारी तुरंत सभी एजेंटों के बुकिंग फॉर्म व वॉलेट रिचार्ज मॉडल पर लाइव दिखेगी।
+              </span>
+              <button
+                type="submit"
+                disabled={isSavingPayment}
+                className="px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-xs shadow-md shadow-orange-600/20 transition active:scale-95 flex items-center gap-2 disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                <span>{isSavingPayment ? 'सेव हो रहा है...' : 'सेटिंग्स सुरक्षित करें'}</span>
+              </button>
+            </div>
+
+          </div>
+        </form>
+      )}
 
       {/* ======================================================== */}
       {/* TAB 1: ANNOUNCEMENTS (घोषणा / ब्रॉडकास्ट सिस्टम)          */}

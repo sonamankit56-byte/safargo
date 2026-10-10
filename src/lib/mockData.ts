@@ -23,6 +23,15 @@ export const INITIAL_SETTINGS: AdminSettings = {
   // Advance Online Payment & Agent Prepaid Wallet Settings
   min_wallet_recharge: 2000,
   safargo_upi_id: 'safargo.booking@icici',
+  safargo_payee_name: 'SafarGo Official',
+  safargo_phonepe_number: '9876543210@ybl',
+  safargo_gpay_number: '9876543210@okaxis',
+  safargo_paytm_number: '9876543210@paytm',
+  safargo_qr_image_url: '',
+  safargo_bank_account_no: '50200088991122',
+  safargo_bank_ifsc: 'ICIC0001234',
+  safargo_bank_name: 'ICICI Bank',
+  safargo_bank_holder_name: 'SafarGo Travel Services',
 
   announcement: {
     is_active: true,
