@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import {
@@ -9,35 +10,138 @@ import {
   AlertCircle,
   CheckCircle2,
   ArrowRight,
-  ShieldCheck
+  ShieldCheck,
+  Lock,
+  CreditCard
 } from 'lucide-react';
 
 interface PayoutRequestModalProps {
   availableBalance: number;
   onClose: () => void;
+  onOpenKyc?: () => void;
 }
 
 export const PayoutRequestModal: React.FC<PayoutRequestModalProps> = ({
   availableBalance,
-  onClose
+  onClose,
+  onOpenKyc
 }) => {
+  const { currentUser } = useAuth();
   const { requestPayout } = useData();
   const { error } = useToast();
 
-  const [payoutMethod, setPayoutMethod] = useState<'upi' | 'bank_transfer'>('upi');
+  const [payoutMethod, setPayoutMethod] = useState<'upi' | 'bank_transfer'>(
+    currentUser?.bank_upi_id ? 'upi' : 'bank_transfer'
+  );
   const [amount, setAmount] = useState<string>(availableBalance > 0 ? availableBalance.toFixed(2) : '50');
   
-  // UPI fields
-  const [upiId, setUpiId] = useState('');
+  // UPI fields (prefilled from verified KYC if available)
+  const [upiId, setUpiId] = useState(currentUser?.bank_upi_id || '');
 
-  // Bank fields
-  const [accountNumber, setAccountNumber] = useState('');
-  const [confirmAccountNumber, setConfirmAccountNumber] = useState('');
-  const [ifscCode, setIfscCode] = useState('');
-  const [accountHolderName, setAccountHolderName] = useState('');
-  const [bankName, setBankName] = useState('');
+  // Bank fields (prefilled from verified KYC if available)
+  const [accountNumber, setAccountNumber] = useState(currentUser?.bank_account_number || '');
+  const [confirmAccountNumber, setConfirmAccountNumber] = useState(currentUser?.bank_account_number || '');
+  const [ifscCode, setIfscCode] = useState(currentUser?.bank_ifsc || '');
+  const [accountHolderName, setAccountHolderName] = useState(
+    currentUser?.bank_account_holder || currentUser?.full_name || ''
+  );
+  const [bankName, setBankName] = useState(currentUser?.bank_name || '');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // KYC Guard: If agent has not been verified by admin, lock the withdrawal form
+  if (currentUser?.kyc_status !== 'verified') {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+        <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
+          <div className="p-5 sm:p-6 bg-slate-900 text-white flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-extrabold text-base">
+                  KYC सत्यापन अनिवार्य है
+                </h2>
+                <p className="text-xs text-slate-300">
+                  Withdrawal Locked • KYC Pending
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="p-6 space-y-5 text-center">
+            <div className="w-16 h-16 rounded-3xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border-2 border-amber-200">
+              <CreditCard className="w-8 h-8" />
+            </div>
+
+            <div>
+              <h3 className="text-lg font-black text-slate-900">
+                आधार व पैन KYC के बिना निकासी संभव नहीं है
+              </h3>
+              <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+                सफ़ारगो सुरक्षा व RBI दिशानिर्देशों के अनुसार, कमीशन निकासी और रविवार के स्वतः भुगतान हेतु <strong>आधार कार्ड (12 अंक) और पैन कार्ड का सत्यापन अनिवार्य</strong> है।
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-left text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-semibold">वर्तमान KYC स्थिति:</span>
+                <span
+                  className={`font-black text-[11px] uppercase px-2.5 py-0.5 rounded-full ${
+                    currentUser?.kyc_status === 'pending'
+                      ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                      : currentUser?.kyc_status === 'rejected'
+                      ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                      : 'bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  {currentUser?.kyc_status === 'pending'
+                    ? 'जांच प्रगति पर (Under Review)'
+                    : currentUser?.kyc_status === 'rejected'
+                    ? 'अस्वीकृत (Rejected)'
+                    : 'अधूरा (Not Submitted)'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                {currentUser?.kyc_status === 'pending'
+                  ? 'आपके दस्तावेज एडमिन के पास समीक्षाधीन हैं। सत्यापन होते ही तत्काल विथड्रॉल सक्रिय हो जाएगा।'
+                  : 'कृपया 2 मिनट में अपने आधार व पैन कार्ड का विवरण अपलोड करें व WhatsApp पर एडमिन को भेजें।'}
+              </p>
+            </div>
+
+            <div className="space-y-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenKyc?.();
+                }}
+                className="w-full py-3 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs shadow-lg shadow-orange-500/30 transition flex items-center justify-center gap-2"
+              >
+                <CreditCard className="w-4 h-4" />
+                <span>अभी आधार व पैन KYC पूरा करें (Complete KYC Now)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition"
+              >
+                बाद में करेंगे (Close)
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,6 +224,17 @@ export const PayoutRequestModal: React.FC<PayoutRequestModalProps> = ({
           </button>
         </div>
 
+        {/* KYC Verified Confirmation Badge */}
+        <div className="px-5 py-2.5 bg-emerald-50 border-b border-emerald-100 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2 text-emerald-800 font-bold">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>सत्यापित KYC पार्टनर (Aadhaar & PAN Verified ✓)</span>
+          </div>
+          <span className="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded-full font-black uppercase">
+            Instant Unlocked
+          </span>
+        </div>
+
         {/* Balance Highlight Banner */}
         <div className="p-4 bg-orange-50 border-b border-orange-100 flex items-center justify-between">
           <div>
@@ -147,7 +262,7 @@ export const PayoutRequestModal: React.FC<PayoutRequestModalProps> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-5 max-h-[70vh] overflow-y-auto">
           
           {/* Amount input & quick pills */}
           <div className="space-y-2">

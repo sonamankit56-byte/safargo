@@ -38,6 +38,8 @@ export interface Passenger {
   gender: 'male' | 'female' | 'other';
 }
 
+export type KycStatus = 'not_submitted' | 'pending' | 'verified' | 'rejected';
+
 export interface Profile {
   id: string;
   role: UserRole;
@@ -56,6 +58,26 @@ export interface Profile {
   referred_by_code?: string;
   referred_by_id?: string;
   password?: string;
+  avatar_url?: string; // Agent profile photo
+  photo_verified?: boolean; // Verified tick badge
+  
+  // Aadhaar & PAN Card KYC for Withdrawals & Payouts
+  kyc_status?: KycStatus;
+  aadhaar_number?: string;
+  aadhaar_front_url?: string;
+  aadhaar_back_url?: string;
+  pan_number?: string;
+  pan_card_url?: string;
+  bank_account_holder?: string;
+  bank_account_number?: string;
+  bank_ifsc?: string;
+  bank_name?: string;
+  bank_upi_id?: string;
+  kyc_submitted_at?: string;
+  kyc_verified_at?: string;
+  kyc_verified_by?: string;
+  kyc_rejection_reason?: string;
+
   created_at: string;
   updated_at: string;
 }

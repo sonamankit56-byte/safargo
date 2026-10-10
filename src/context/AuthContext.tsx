@@ -28,6 +28,21 @@ interface AuthContextType {
   approveAgent: (agentId: string) => Promise<boolean>;
   rejectAgent: (agentId: string) => Promise<boolean>;
   suspendAgent: (agentId: string) => Promise<boolean>;
+  approveAgentKyc: (agentId: string) => Promise<boolean>;
+  rejectAgentKyc: (agentId: string, reason: string) => Promise<boolean>;
+  submitAgentKyc: (kycData: {
+    aadhaar_number: string;
+    pan_number: string;
+    aadhaar_front_url?: string;
+    aadhaar_back_url?: string;
+    pan_card_url?: string;
+    bank_account_holder: string;
+    bank_account_number: string;
+    bank_ifsc: string;
+    bank_name: string;
+    bank_upi_id?: string;
+    avatar_url?: string;
+  }) => Promise<boolean>;
   resetPassword: (emailOrMobile: string, newPassword: string) => Promise<boolean>;
 }
 
@@ -355,6 +370,116 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
+  const submitAgentKyc = async (kycData: {
+    aadhaar_number: string;
+    pan_number: string;
+    aadhaar_front_url?: string;
+    aadhaar_back_url?: string;
+    pan_card_url?: string;
+    bank_account_holder: string;
+    bank_account_number: string;
+    bank_ifsc: string;
+    bank_name: string;
+    bank_upi_id?: string;
+    avatar_url?: string;
+  }): Promise<boolean> => {
+    if (!currentUser) return false;
+
+    const nowIso = new Date().toISOString();
+    const updates: Partial<Profile> = {
+      kyc_status: 'pending',
+      aadhaar_number: kycData.aadhaar_number.trim(),
+      pan_number: kycData.pan_number.trim().toUpperCase(),
+      aadhaar_front_url: kycData.aadhaar_front_url,
+      aadhaar_back_url: kycData.aadhaar_back_url,
+      pan_card_url: kycData.pan_card_url,
+      bank_account_holder: kycData.bank_account_holder.trim(),
+      bank_account_number: kycData.bank_account_number.trim(),
+      bank_ifsc: kycData.bank_ifsc.trim().toUpperCase(),
+      bank_name: kycData.bank_name.trim(),
+      bank_upi_id: kycData.bank_upi_id?.trim(),
+      avatar_url: kycData.avatar_url || currentUser.avatar_url,
+      kyc_submitted_at: nowIso,
+      updated_at: nowIso,
+    };
+
+    setProfiles((prev) =>
+      prev.map((p) => (p.id === currentUser.id ? { ...p, ...updates } : p))
+    );
+
+    if (isSupabaseConfigured) {
+      db.updateProfile(currentUser.id, updates).catch((e) =>
+        console.error('Supabase submitAgentKyc error:', e)
+      );
+    }
+
+    success(
+      'KYC दस्तावेज जमा हुए! 📑',
+      'आपके आधार, पैन व बैंक विवरण सत्यापन हेतु एडमिन को भेज दिए गए हैं। 24 घंटे में सत्यापन के बाद विथड्रॉल अनलॉक हो जाएगा।'
+    );
+    return true;
+  };
+
+  const approveAgentKyc = async (agentId: string): Promise<boolean> => {
+    if (!isAdmin) {
+      error('Permission Denied', 'केवल एडमिन ही एजेंट KYC स्वीकृत कर सकते हैं।');
+      return false;
+    }
+
+    const nowIso = new Date().toISOString();
+    const updates: Partial<Profile> = {
+      kyc_status: 'verified',
+      photo_verified: true, // Verified tick badge appears!
+      kyc_verified_at: nowIso,
+      kyc_verified_by: currentUser?.id,
+      updated_at: nowIso,
+    };
+
+    setProfiles((prev) =>
+      prev.map((p) => (p.id === agentId ? { ...p, ...updates } : p))
+    );
+
+    if (isSupabaseConfigured) {
+      db.updateProfile(agentId, updates).catch((e) =>
+        console.error('Supabase approveAgentKyc error:', e)
+      );
+    }
+
+    success(
+      'एजेंट KYC स्वीकृत! ✅',
+      'एजेंट के प्रोफाइल पर सत्यापित (✓ Verified) बैज एक्टिव हो गया है और विथड्रॉल अनलॉक कर दिया गया है।'
+    );
+    return true;
+  };
+
+  const rejectAgentKyc = async (agentId: string, reason: string): Promise<boolean> => {
+    if (!isAdmin) {
+      error('Permission Denied', 'केवल एडमिन ही एजेंट KYC अस्वीकृत कर सकते हैं।');
+      return false;
+    }
+
+    const nowIso = new Date().toISOString();
+    const updates: Partial<Profile> = {
+      kyc_status: 'rejected',
+      photo_verified: false,
+      kyc_rejection_reason: reason,
+      updated_at: nowIso,
+    };
+
+    setProfiles((prev) =>
+      prev.map((p) => (p.id === agentId ? { ...p, ...updates } : p))
+    );
+
+    if (isSupabaseConfigured) {
+      db.updateProfile(agentId, updates).catch((e) =>
+        console.error('Supabase rejectAgentKyc error:', e)
+      );
+    }
+
+    warning('KYC Rejected', `एजेंट KYC अस्वीकृत: ${reason}`);
+    return true;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -370,6 +495,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         approveAgent,
         rejectAgent,
         suspendAgent,
+        approveAgentKyc,
+        rejectAgentKyc,
+        submitAgentKyc,
         resetPassword,
       }}
     >

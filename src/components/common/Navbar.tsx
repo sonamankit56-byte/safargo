@@ -24,7 +24,8 @@ import {
   UserPlus,
   User,
   Wallet,
-  Sparkles
+  Sparkles,
+  CheckCircle
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -319,11 +320,30 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                     onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                     className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700/80 px-3 py-1.5 rounded-xl border border-slate-700 text-left transition"
                   >
-                    <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-orange-400 border border-slate-600">
-                      {currentUser?.full_name?.charAt(0) || 'U'}
+                    <div className="relative shrink-0">
+                      <div className="w-7 h-7 rounded-full bg-slate-700 overflow-hidden flex items-center justify-center text-xs font-bold text-orange-400 border border-slate-600">
+                        {currentUser?.avatar_url ? (
+                          <img src={currentUser.avatar_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          currentUser?.full_name?.charAt(0) || 'U'
+                        )}
+                      </div>
+                      {currentUser?.photo_verified && (
+                        <div
+                          className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full flex items-center justify-center text-white border border-slate-900"
+                          title="Verified Partner ✓"
+                        >
+                          <CheckCircle className="w-2.5 h-2.5" />
+                        </div>
+                      )}
                     </div>
                     <div className="hidden lg:block text-xs">
-                      <div className="font-semibold text-white leading-tight">{currentUser?.full_name}</div>
+                      <div className="font-semibold text-white leading-tight flex items-center gap-1">
+                        <span>{currentUser?.full_name}</span>
+                        {currentUser?.photo_verified && (
+                          <span className="text-[10px] text-emerald-400">✓</span>
+                        )}
+                      </div>
                       <div className="text-[10px] text-slate-400 uppercase tracking-wider">
                         {isAdmin ? 'SUPER ADMIN' : currentUser?.shop_name || 'AGENT'}
                       </div>
@@ -333,10 +353,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                   {userDropdownOpen && (
                     <div className="absolute right-0 mt-2 w-64 bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 py-2 z-50 text-xs">
                       <div className="px-4 py-3 border-b border-slate-700">
-                        <p className="font-bold text-white text-sm">{currentUser?.full_name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-white text-sm">{currentUser?.full_name}</p>
+                          {currentUser?.photo_verified && (
+                            <span className="text-[9px] bg-emerald-500/20 text-emerald-400 font-black px-1.5 py-0.2 rounded-full border border-emerald-500/40">
+                              Verified ✓
+                            </span>
+                          )}
+                        </div>
                         <p className="text-slate-400 text-xs truncate mt-0.5">{currentUser?.email || currentUser?.mobile}</p>
                         <p className="text-orange-400 text-[11px] font-semibold mt-1">
-                          रोल: {isAdmin ? 'सुपर एडमिन' : 'अधिकृत एजेंट'} • स्टेटस: {currentUser?.agent_status || 'सक्रिय'}
+                          रोल: {isAdmin ? 'सुपर एडमिन' : 'अधिकृत एजेंट'} • KYC: {currentUser?.kyc_status === 'verified' ? 'सत्यापित ✓' : currentUser?.kyc_status === 'pending' ? 'प्रक्रियाधीन ⏳' : 'अधूरा ⚠️'}
                         </p>
                       </div>
 
@@ -349,7 +376,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                           className="w-full text-left px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700/60 rounded-xl flex items-center gap-2 transition"
                         >
                           <User className="w-4 h-4 text-slate-400" />
-                          <span>प्रोफाइल देखें / एडिट करें</span>
+                          <span>प्रोफ़ाइल एवं KYC सत्यापन</span>
                         </button>
 
                         <button

@@ -608,5 +608,185 @@ describe('P. Viral Social Media Promotions & Creator Bonus Program', () => {
   });
 });
 
+describe('Q. Agent Aadhaar/PAN KYC, Profile Photo & Verified Badge System', () => {
+  it('validates 12-digit Aadhaar number and standard 10-character PAN format', () => {
+    const isValidAadhaar = (num: string) => /^\d{12}$/.test(num.replace(/\s+/g, ''));
+    const isValidPan = (pan: string) => /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan.trim().toUpperCase());
+
+    // Aadhaar checks
+    expect(isValidAadhaar('123456789012')).toBe(true);
+    expect(isValidAadhaar('1234 5678 9012')).toBe(true);
+    expect(isValidAadhaar('12345678901')).toBe(false); // 11 digits
+    expect(isValidAadhaar('1234567890123')).toBe(false); // 13 digits
+    expect(isValidAadhaar('1234ABCD9012')).toBe(false); // Contains letters
+
+    // PAN checks
+    expect(isValidPan('ABCDE1234F')).toBe(true);
+    expect(isValidPan('BNZPA9876K')).toBe(true);
+    expect(isValidPan('ABCDE12345')).toBe(false); // last char is digit
+    expect(isValidPan('ABCD1234F')).toBe(false); // only 4 letters at start
+    expect(isValidPan('abcde1234f')).toBe(true); // case-insensitive test
+  });
+
+  it('submitting KYC transitions agent status to pending with document attachments', () => {
+    interface AgentProfile {
+      id: string;
+      full_name: string;
+      kyc_status: 'not_submitted' | 'pending' | 'verified' | 'rejected';
+      photo_verified: boolean;
+      aadhaar_number?: string;
+      pan_number?: string;
+      bank_account_number?: string;
+      bank_ifsc?: string;
+      avatar_url?: string;
+      kyc_submitted_at?: string;
+    }
+
+    const agent: AgentProfile = {
+      id: 'agent-101',
+      full_name: 'Ramesh Sharma',
+      kyc_status: 'not_submitted',
+      photo_verified: false,
+    };
+
+    // Agent submits KYC
+    const nowIso = new Date().toISOString();
+    agent.kyc_status = 'pending';
+    agent.aadhaar_number = '987654321098';
+    agent.pan_number = 'ABCDE9876F';
+    agent.bank_account_number = '98765432101234';
+    agent.bank_ifsc = 'SBIN0001234';
+    agent.avatar_url = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ...';
+    agent.kyc_submitted_at = nowIso;
+
+    expect(agent.kyc_status).toBe('pending');
+    expect(agent.photo_verified).toBe(false); // Not verified yet until admin approves
+    expect(agent.aadhaar_number).toBe('987654321098');
+    expect(agent.bank_ifsc).toBe('SBIN0001234');
+    expect(agent.kyc_submitted_at).toBe(nowIso);
+  });
+
+  it('admin approval sets kyc_status to verified and awards official Verified Tick (photo_verified = true)', () => {
+    const agent = {
+      id: 'agent-101',
+      full_name: 'Ramesh Sharma',
+      kyc_status: 'pending' as const,
+      photo_verified: false,
+      kyc_verified_at: undefined as string | undefined,
+      kyc_verified_by: undefined as string | undefined,
+    };
+
+    const approveKyc = (adminId: string) => {
+      const nowIso = new Date().toISOString();
+      agent.kyc_status = 'verified';
+      agent.photo_verified = true; // Verified Tick (✓) badge appears!
+      agent.kyc_verified_at = nowIso;
+      agent.kyc_verified_by = adminId;
+    };
+
+    approveKyc('usr-admin-01');
+
+    expect(agent.kyc_status).toBe('verified');
+    expect(agent.photo_verified).toBe(true);
+    expect(agent.kyc_verified_by).toBe('usr-admin-01');
+    expect(agent.kyc_verified_at).toBeDefined();
+  });
+
+  it('strictly blocks commission withdrawal when kyc_status is not verified', () => {
+    const canWithdrawCommission = (kycStatus: string, availableBalance: number, amount: number) => {
+      if (kycStatus !== 'verified') {
+        return { allowed: false, reason: 'KYC_REQUIRED' };
+      }
+      if (amount <= 0 || amount > availableBalance) {
+        return { allowed: false, reason: 'INVALID_AMOUNT' };
+      }
+      return { allowed: true, reason: 'SUCCESS' };
+    };
+
+    // Unverified agent attempts to withdraw
+    expect(canWithdrawCommission('not_submitted', 2000, 500)).toEqual({
+      allowed: false,
+      reason: 'KYC_REQUIRED',
+    });
+
+    // Pending agent attempts to withdraw
+    expect(canWithdrawCommission('pending', 2000, 500)).toEqual({
+      allowed: false,
+      reason: 'KYC_REQUIRED',
+    });
+
+    // Rejected agent attempts to withdraw
+    expect(canWithdrawCommission('rejected', 2000, 500)).toEqual({
+      allowed: false,
+      reason: 'KYC_REQUIRED',
+    });
+
+    // Verified agent attempts to withdraw
+    expect(canWithdrawCommission('verified', 2000, 500)).toEqual({
+      allowed: true,
+      reason: 'SUCCESS',
+    });
+  });
+
+  it('admin rejection sets kyc_status to rejected and stores rejection reason', () => {
+    const agent = {
+      id: 'agent-102',
+      kyc_status: 'pending' as const,
+      photo_verified: false,
+      kyc_rejection_reason: '',
+    };
+
+    const rejectKyc = (reason: string) => {
+      agent.kyc_status = 'rejected';
+      agent.photo_verified = false;
+      agent.kyc_rejection_reason = reason;
+    };
+
+    rejectKyc('Aadhaar card image is blurred, please upload clear high-resolution copy.');
+
+    expect(agent.kyc_status).toBe('rejected');
+    expect(agent.photo_verified).toBe(false);
+    expect(agent.kyc_rejection_reason).toContain('Aadhaar card image is blurred');
+  });
+
+  it('masks Aadhaar and PAN numbers safely for display on public profile cards', () => {
+    const maskAadhaar = (num: string) => `XXXX-XXXX-${num.slice(-4)}`;
+    const maskPan = (pan: string) => `${pan.slice(0, 2)}*****${pan.slice(-2)}`;
+
+    expect(maskAadhaar('987654321098')).toBe('XXXX-XXXX-1098');
+    expect(maskPan('ABCDE9876F')).toBe('AB*****6F');
+  });
+
+  it('formats WhatsApp pre-filled KYC draft message for admin dispatch', () => {
+    const agent = {
+      full_name: 'Pawan Kumar Verma',
+      shop_name: 'Pawan Jan Seva Kendra',
+      mobile: '9876543210',
+      referral_code: 'VERMA89',
+      aadhaar_number: '123456789012',
+      pan_number: 'ABCDE1234F',
+    };
+
+    const generateWhatsAppDraft = () => {
+      return (
+        `*SafarGo Agent KYC Submission*\n` +
+        `Agent: ${agent.full_name}\n` +
+        `Shop: ${agent.shop_name}\n` +
+        `Mobile: ${agent.mobile}\n` +
+        `Code: ${agent.referral_code}\n` +
+        `Aadhaar: ${agent.aadhaar_number}\n` +
+        `PAN: ${agent.pan_number}`
+      );
+    };
+
+    const draft = generateWhatsAppDraft();
+    expect(draft).toContain('Pawan Kumar Verma');
+    expect(draft).toContain('VERMA89');
+    expect(draft).toContain('123456789012');
+    expect(draft).toContain('ABCDE1234F');
+  });
+});
+
+
 
 

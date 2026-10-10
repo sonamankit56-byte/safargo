@@ -23,11 +23,16 @@ import {
   Megaphone,
   Instagram,
   Youtube,
-  Sparkles
+  Sparkles,
+  CheckCircle,
+  CreditCard,
+  Printer
 } from 'lucide-react';
 import { NewFeaturesSection } from './NewFeaturesSection';
 import { SafarGoLogo } from '../common/SafarGoLogo';
 import { WalletRechargeModal } from './WalletRechargeModal';
+import { AgentKycModal } from './AgentKycModal';
+import { AgentPosterModal } from './AgentPosterModal';
 
 interface AgentDashboardProps {
   onNavigate: (tab: string) => void;
@@ -37,6 +42,8 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
   const { currentUser, isApprovedAgent } = useAuth();
   const { agentBookings, agentCommissions, agentSalaryRecord, settings, agentWalletBalance } = useData();
   const [showRechargeModal, setShowRechargeModal] = useState(false);
+  const [isKycModalOpen, setIsKycModalOpen] = useState(false);
+  const [isPosterModalOpen, setIsPosterModalOpen] = useState(false);
 
   // Current calendar month in Asia/Kolkata
   const now = new Date();
@@ -259,13 +266,84 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
         </div>
       </div>
 
+      {/* Aadhaar & PAN KYC Action Banner (if not verified) */}
+      {currentUser?.kyc_status !== 'verified' && (
+        <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-amber-500/15 border-2 border-amber-500/40 rounded-3xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-900 flex items-center justify-center shrink-0 font-black shadow">
+              <CreditCard className="w-5 h-5 text-slate-900" />
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded bg-amber-500 text-slate-900">
+                  विथड्रॉल लॉक
+                </span>
+                <span className="text-xs font-bold text-amber-900">
+                  {currentUser?.kyc_status === 'pending'
+                    ? 'KYC समीक्षाधीन (Under Admin Review)'
+                    : 'आधार व पैन KYC आवश्यक है'}
+                </span>
+              </div>
+              <h3 className="text-sm sm:text-base font-black text-amber-950">
+                कमीशन निकासी और रविवार स्वतः पेआउट अनलॉक करने हेतु KYC पूरा करें
+              </h3>
+              <p className="text-xs text-amber-900/80 leading-relaxed max-w-2xl">
+                {currentUser?.kyc_status === 'pending'
+                  ? 'आपके दस्तावेज प्राप्त हो गए हैं। एडमिन सत्यापन के बाद प्रोफाइल पर Verified Tick (✓) सक्रिय हो जाएगा।'
+                  : 'आधार कार्ड (12 अंक) व पैन कार्ड सबमिट करें। 24 घंटे में अप्रूवल के बाद प्रोफाइल पर Verified Tick मिलेगा!'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setIsKycModalOpen(true)}
+            className="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-xs rounded-xl transition flex items-center gap-1.5 shrink-0 self-start sm:self-auto shadow-md active:scale-95"
+          >
+            <CreditCard className="w-4 h-4" />
+            <span>{currentUser?.kyc_status === 'pending' ? 'KYC स्टेटस देखें' : 'अभी KYC पूरा करें'}</span>
+          </button>
+        </div>
+      )}
+
       {/* Hero Welcome & Quick Action */}
       <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden border border-slate-800">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <SafarGoLogo size="lg" variant="light" showTagline={false} />
+            {/* Agent Avatar with Verified Tick Badge */}
+            <div className="relative shrink-0">
+              <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-orange-500 shadow-md bg-slate-800 flex items-center justify-center">
+                {currentUser?.avatar_url ? (
+                  <img
+                    src={currentUser.avatar_url}
+                    alt={currentUser.full_name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-2xl font-black text-orange-400">
+                    {currentUser?.full_name?.charAt(0) || 'A'}
+                  </span>
+                )}
+              </div>
+
+              {currentUser?.photo_verified ? (
+                <div
+                  className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center border-2 border-slate-900 shadow-md"
+                  title="SafarGo Verified Partner"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                </div>
+              ) : (
+                <div
+                  className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full bg-amber-500 text-slate-900 flex items-center justify-center border-2 border-slate-900 shadow-md font-bold text-[10px]"
+                  title="KYC Pending"
+                >
+                  !
+                </div>
+              )}
+            </div>
+
             <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs uppercase font-bold tracking-widest text-orange-400">
                   SafarGo Agent Portal
                 </span>
@@ -273,6 +351,19 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
                 <span className="text-xs text-slate-300 font-medium">
                   {currentUser?.shop_name || 'Partner Outlet'}
                 </span>
+                {currentUser?.photo_verified ? (
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-black px-2 py-0.5 rounded-full border border-emerald-500/40 flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3 text-emerald-400" />
+                    <span>Verified Partner ✓</span>
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => setIsKycModalOpen(true)}
+                    className="text-[10px] bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/40 flex items-center gap-1 transition"
+                  >
+                    <span>KYC अधूरा (पूरा करें)</span>
+                  </button>
+                )}
               </div>
               <h1 className="text-2xl sm:text-3xl font-black">
                 नमस्ते, {currentUser?.full_name}
@@ -284,6 +375,13 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setIsPosterModalOpen(true)}
+              className="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-sm transition flex items-center gap-1.5 border border-amber-400/30 shadow"
+            >
+              <Printer className="w-4 h-4" />
+              <span>दुकान पोस्टर (Print A4)</span>
+            </button>
             <button
               onClick={() => setShowRechargeModal(true)}
               className="px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm flex items-center gap-1.5 shadow-lg shadow-blue-600/25 transition active:scale-95"
@@ -589,6 +687,18 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
       {showRechargeModal && (
         <WalletRechargeModal onClose={() => setShowRechargeModal(false)} />
       )}
+
+      {/* KYC Modal */}
+      <AgentKycModal
+        isOpen={isKycModalOpen}
+        onClose={() => setIsKycModalOpen(false)}
+      />
+
+      {/* Shop Poster Modal */}
+      <AgentPosterModal
+        isOpen={isPosterModalOpen}
+        onClose={() => setIsPosterModalOpen(false)}
+      />
 
     </div>
   );

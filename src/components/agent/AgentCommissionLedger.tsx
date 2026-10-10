@@ -22,6 +22,7 @@ import {
   XCircle
 } from 'lucide-react';
 import { PayoutRequestModal } from './PayoutRequestModal';
+import { AgentKycModal } from './AgentKycModal';
 
 export const AgentCommissionLedger: React.FC = () => {
   const { currentUser } = useAuth();
@@ -34,6 +35,7 @@ export const AgentCommissionLedger: React.FC = () => {
   } = useData();
 
   const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
+  const [isKycModalOpen, setIsKycModalOpen] = useState(false);
 
   // Current month confirmed count
   const currentMonth = new Date().toISOString().substring(0, 7);
@@ -122,6 +124,21 @@ export const AgentCommissionLedger: React.FC = () => {
             >
               <Download className="w-3.5 h-3.5" />
               <span>CSV स्टेटमेंट डाउनलोड</span>
+            </button>
+          )}
+
+          {currentUser?.kyc_status === 'verified' ? (
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-300 text-xs font-bold shadow-xs">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>KYC Verified ✓</span>
+            </span>
+          ) : (
+            <button
+              onClick={() => setIsKycModalOpen(true)}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold transition shadow-xs"
+            >
+              <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+              <span>KYC पूरा करें</span>
             </button>
           )}
 
@@ -518,8 +535,15 @@ export const AgentCommissionLedger: React.FC = () => {
         <PayoutRequestModal
           availableBalance={availableBalance}
           onClose={() => setIsPayoutModalOpen(false)}
+          onOpenKyc={() => setIsKycModalOpen(true)}
         />
       )}
+
+      {/* KYC Modal */}
+      <AgentKycModal
+        isOpen={isKycModalOpen}
+        onClose={() => setIsKycModalOpen(false)}
+      />
 
     </div>
   );
