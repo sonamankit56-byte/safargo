@@ -29,7 +29,11 @@ import {
   Smartphone
 } from 'lucide-react';
 
-export const AdminAgentManagement: React.FC = () => {
+export interface AdminAgentManagementProps {
+  initialTab?: 'agents' | 'kyc_desk';
+}
+
+export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ initialTab = 'agents' }) => {
   const {
     allProfiles,
     approveAgent,
@@ -40,7 +44,13 @@ export const AdminAgentManagement: React.FC = () => {
   } = useAuth();
   const { bookings, commissions, settings } = useData();
 
-  const [activeTab, setActiveTab] = useState<'agents' | 'kyc_desk'>('agents');
+  const [activeTab, setActiveTab] = useState<'agents' | 'kyc_desk'>(initialTab);
+
+  React.useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   const [searchTerm, setSearchTerm] = useState('');
   const [kycFilter, setKycFilter] = useState<'all' | 'pending' | 'verified' | 'rejected'>('all');
   

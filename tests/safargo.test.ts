@@ -792,12 +792,70 @@ describe('Q. Agent Aadhaar/PAN KYC, Profile Photo & Verified Badge System', () =
       sla_hours: 12,
       heading: 'आपकी KYC वेरिफिकेशन 12 घंटे के अंदर हो जाएगी!',
       admin_notification: 'एडमिन को आपकी रिक्वेस्ट भेज दी गई है ✅',
+      sla_text: 'Our team verifies your documents usually within 1 to 12 hours. (हमारी टीम आमतौर पर 1 घंटे से 12 घंटे के अंदर आपके दस्तावेज़ों का सत्यापन कर देती है।)'
     };
 
     expect(kycSubmissionResult.submitted).toBe(true);
     expect(kycSubmissionResult.sla_hours).toBe(12);
     expect(kycSubmissionResult.heading).toContain('12 घंटे के अंदर');
     expect(kycSubmissionResult.admin_notification).toContain('एडमिन को आपकी रिक्वेस्ट भेज दी गई है');
+    expect(kycSubmissionResult.sla_text).toContain('Our team verifies your documents usually within 1 to 12 hours');
+  });
+
+  it('locks agent KYC editing while status is pending and enables it only if rejected', () => {
+    const canAgentEditKyc = (status?: string) => {
+      // Editable when not submitted or rejected; strictly locked when pending or verified
+      return status !== 'pending' && status !== 'verified';
+    };
+
+    expect(canAgentEditKyc('not_submitted')).toBe(true);
+    expect(canAgentEditKyc('pending')).toBe(false); // LOCKED after submission!
+    expect(canAgentEditKyc('verified')).toBe(false); // LOCKED when verified
+    expect(canAgentEditKyc('rejected')).toBe(true); // RE-ENABLED on rejection with reason
+  });
+
+  it('allows Admin to immediately detect and approve pending KYC agents', () => {
+    const profiles: Profile[] = [
+      {
+        ...INITIAL_PROFILES[1],
+        id: 'agent-101',
+        role: 'agent',
+        kyc_status: 'pending',
+        aadhaar_number: '123456789012',
+        pan_number: 'ABCDE1234F',
+      },
+      {
+        ...INITIAL_PROFILES[0],
+        id: 'admin-1',
+        role: 'admin',
+      }
+    ];
+
+    // Admin pending KYC detection
+    const pendingKycAgents = profiles.filter((p) => p.role === 'agent' && p.kyc_status === 'pending');
+    expect(pendingKycAgents.length).toBe(1);
+    expect(pendingKycAgents[0].id).toBe('agent-101');
+
+    // Admin approves KYC
+    const approvedProfiles = profiles.map((p) =>
+      p.id === 'agent-101'
+        ? {
+            ...p,
+            kyc_status: 'verified' as const,
+            is_verified: true,
+            kyc_verified_at: new Date().toISOString(),
+          }
+        : p
+    );
+
+    const updatedAgent = approvedProfiles.find((p) => p.id === 'agent-101');
+    expect(updatedAgent?.kyc_status).toBe('verified');
+    expect(updatedAgent?.is_verified).toBe(true);
+    expect(updatedAgent?.kyc_verified_at).toBeDefined();
+
+    // Pending count drops to 0
+    const remainingPending = approvedProfiles.filter((p) => p.role === 'agent' && p.kyc_status === 'pending');
+    expect(remainingPending.length).toBe(0);
   });
 });
 

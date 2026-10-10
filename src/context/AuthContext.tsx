@@ -64,12 +64,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return INITIAL_PROFILES;
   });
 
-  // Real Database Sync: Hydrate profiles from Supabase if configured
+  // Real Database Sync: Hydrate profiles from Supabase if configured without overwriting local KYC submissions
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     db.getProfiles().then((liveProfiles) => {
       if (liveProfiles && liveProfiles.length > 0) {
-        setProfiles(liveProfiles);
+        setProfiles((prev) => {
+          return liveProfiles.map((remote) => {
+            const local = prev.find((p) => p.id === remote.id);
+            if (!local) return remote;
+            const hasLocalActiveKyc = local.kyc_status === 'pending' || local.kyc_status === 'verified';
+            return {
+              ...remote,
+              ...local,
+              kyc_status: hasLocalActiveKyc ? local.kyc_status : (remote.kyc_status || local.kyc_status || 'not_submitted'),
+              photo_verified: local.photo_verified ?? remote.photo_verified ?? false,
+              aadhaar_number: local.aadhaar_number || remote.aadhaar_number,
+              pan_number: local.pan_number || remote.pan_number,
+              aadhaar_front_url: local.aadhaar_front_url || remote.aadhaar_front_url,
+              aadhaar_back_url: local.aadhaar_back_url || remote.aadhaar_back_url,
+              pan_card_url: local.pan_card_url || remote.pan_card_url,
+              bank_account_holder: local.bank_account_holder || remote.bank_account_holder,
+              bank_account_number: local.bank_account_number || remote.bank_account_number,
+              bank_ifsc: local.bank_ifsc || remote.bank_ifsc,
+              bank_name: local.bank_name || remote.bank_name,
+              bank_upi_id: local.bank_upi_id || remote.bank_upi_id,
+              avatar_url: local.avatar_url || remote.avatar_url,
+              kyc_submitted_at: local.kyc_submitted_at || remote.kyc_submitted_at,
+            };
+          });
+        });
       }
     }).catch((err) => console.error('Error fetching Supabase profiles:', err));
   }, []);
@@ -403,9 +427,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updated_at: nowIso,
     };
 
-    setProfiles((prev) =>
-      prev.map((p) => (p.id === currentUser.id ? { ...p, ...updates } : p))
-    );
+    setProfiles((prev) => {
+      const next = prev.map((p) => (p.id === currentUser.id ? { ...p, ...updates } : p));
+      try {
+        localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(next));
+      } catch (err) {
+        console.error('Error saving profiles to localStorage:', err);
+      }
+      return next;
+    });
 
     if (isSupabaseConfigured) {
       db.updateProfile(currentUser.id, updates).catch((e) =>
@@ -435,9 +465,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updated_at: nowIso,
     };
 
-    setProfiles((prev) =>
-      prev.map((p) => (p.id === agentId ? { ...p, ...updates } : p))
-    );
+    setProfiles((prev) => {
+      const next = prev.map((p) => (p.id === agentId ? { ...p, ...updates } : p));
+      try {
+        localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(next));
+      } catch (err) {
+        console.error('Error saving profiles to localStorage:', err);
+      }
+      return next;
+    });
 
     if (isSupabaseConfigured) {
       db.updateProfile(agentId, updates).catch((e) =>
@@ -466,9 +502,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updated_at: nowIso,
     };
 
-    setProfiles((prev) =>
-      prev.map((p) => (p.id === agentId ? { ...p, ...updates } : p))
-    );
+    setProfiles((prev) => {
+      const next = prev.map((p) => (p.id === agentId ? { ...p, ...updates } : p));
+      try {
+        localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(next));
+      } catch (err) {
+        console.error('Error saving profiles to localStorage:', err);
+      }
+      return next;
+    });
 
     if (isSupabaseConfigured) {
       db.updateProfile(agentId, updates).catch((e) =>

@@ -25,7 +25,8 @@ import {
   User,
   Wallet,
   Sparkles,
-  CheckCircle
+  CheckCircle,
+  CreditCard
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -35,11 +36,13 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpenAuth }) => {
-  const { currentUser, role, isApprovedAgent, isAdmin, logout } = useAuth();
+  const { currentUser, role, isApprovedAgent, isAdmin, logout, allProfiles } = useAuth();
   const { agentWalletBalance } = useData();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+
+  const pendingKycCount = allProfiles ? allProfiles.filter((p) => p.role === 'agent' && p.kyc_status === 'pending').length : 0;
 
 
   const handleTabChange = (tab: string) => {
@@ -203,6 +206,23 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                 >
                   <Users className="w-4 h-4" />
                   Agents
+                </button>
+
+                <button
+                  onClick={() => handleTabChange('admin-kyc-desk')}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition ${
+                    currentTab === 'admin-kyc-desk'
+                      ? 'bg-amber-600 text-white shadow-sm'
+                      : 'text-amber-300 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  <CreditCard className="w-4 h-4 text-amber-400" />
+                  <span>KYC Desk</span>
+                  {pendingKycCount > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-900 animate-pulse">
+                      {pendingKycCount}
+                    </span>
+                  )}
                 </button>
 
                 <button
@@ -537,6 +557,21 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                   }`}
                 >
                   <Users className="w-4 h-4" /> Agents
+                </button>
+                <button
+                  onClick={() => handleTabChange('admin-kyc-desk')}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-between ${
+                    currentTab === 'admin-kyc-desk' ? 'bg-amber-600 text-white' : 'text-amber-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-amber-400" /> KYC Desk (सत्यापन)
+                  </span>
+                  {pendingKycCount > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-900 animate-pulse">
+                      {pendingKycCount} Pending
+                    </span>
+                  )}
                 </button>
                 <button
                   onClick={() => handleTabChange('admin-trips')}

@@ -17,7 +17,8 @@ import {
   Eye,
   Bus,
   FileCheck,
-  Sparkles
+  Sparkles,
+  CreditCard
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -26,7 +27,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOpenBooking }) => {
-  const { allProfiles, approveAgent } = useAuth();
+  const { allProfiles, approveAgent, approveAgentKyc } = useAuth();
   const { bookings, commissions, salaryRecords, settings, promotionClaims } = useData();
 
   const now = new Date();
@@ -104,6 +105,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
     return allProfiles.filter((p) => p.role === 'agent' && p.agent_status === 'pending_approval');
   }, [allProfiles]);
 
+  const pendingKycAgents = useMemo(() => {
+    return allProfiles.filter((p) => p.role === 'agent' && p.kyc_status === 'pending');
+  }, [allProfiles]);
+
+  const pendingKycCount = pendingKycAgents.length;
+
   const pendingPromotionsCount = useMemo(() => {
     return promotionClaims.filter((c) => c.status === 'pending').length;
   }, [promotionClaims]);
@@ -126,6 +133,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => onNavigate('admin-kyc-desk')}
+            className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-lg transition ${
+              pendingKycCount > 0
+                ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 animate-pulse'
+                : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+            }`}
+          >
+            <CreditCard className="w-4 h-4" />
+            <span>KYC सत्यापन डेस्क ({pendingKycCount})</span>
+          </button>
           <button
             onClick={() => onNavigate('admin-promotions')}
             className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg transition"
@@ -155,7 +173,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
       </div>
 
       {/* Primary Key Metrics Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4">
+        
+        <button
+          onClick={() => onNavigate('admin-kyc-desk')}
+          className={`p-4 rounded-2xl border text-left transition ${
+            pendingKycCount > 0
+              ? 'bg-amber-50/80 border-amber-300 shadow-sm hover:border-amber-500 hover:bg-amber-100/50'
+              : 'bg-white border-slate-200 shadow-sm hover:border-slate-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-slate-500 block uppercase">Pending KYC</span>
+            {pendingKycCount > 0 && (
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping" />
+            )}
+          </div>
+          <span className="text-2xl font-black text-amber-600 mt-1 block">
+            {pendingKycCount}
+          </span>
+          <span className="text-[10px] text-amber-700 font-semibold flex items-center gap-1">
+            {pendingKycCount > 0 ? 'सत्यापन लंबित →' : 'सभी सत्यापित'}
+          </span>
+        </button>
         
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
           <span className="text-[11px] font-semibold text-slate-400 block uppercase">Pending Confirmations</span>
@@ -292,6 +332,118 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
           </div>
         )}
       </div>
+
+      {/* Pending Agent KYC Verification Section (1-12 Hour SLA) */}
+      {pendingKycAgents.length > 0 && (
+        <div className="bg-gradient-to-br from-amber-50 via-white to-orange-50 rounded-3xl border-2 border-amber-300 shadow-md overflow-hidden">
+          <div className="p-6 bg-amber-500/10 border-b border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold shadow">
+                <CreditCard className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-black text-slate-900">
+                    एजेंट KYC दस्तावेज़ सत्यापन रिक्वेस्ट ({pendingKycAgents.length} पेंडिंग)
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-950 uppercase tracking-wide">
+                    1-12 Hour SLA
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600">
+                  एजेंट ने आधार, पैन व बैंक विवरण सबमिट किया है। कमीशन विथड्रॉल हेतु सत्यापन आवश्यक है।
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => onNavigate('admin-kyc-desk')}
+              className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-orange-600 text-white font-bold text-xs flex items-center gap-1.5 transition shadow"
+            >
+              <span>पूर्ण KYC डेस्क खोलें</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="divide-y divide-amber-100">
+            {pendingKycAgents.map((ag) => (
+              <div
+                key={ag.id}
+                className="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-5 bg-white/70 hover:bg-white transition"
+              >
+                <div className="flex items-start gap-4">
+                  {ag.avatar_url ? (
+                    <img
+                      src={ag.avatar_url}
+                      alt={ag.full_name}
+                      className="w-14 h-14 rounded-2xl object-cover border-2 border-amber-400 shadow-sm flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center font-black text-lg border border-amber-300 flex-shrink-0">
+                      {ag.full_name.charAt(0)}
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-black text-slate-900 text-sm">{ag.full_name}</h3>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                        {ag.shop_name || 'जन सेवा केंद्र'}
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-500">
+                        +91 {ag.mobile}
+                      </span>
+                      {ag.city && (
+                        <span className="text-[10px] text-slate-500">
+                          • {ag.city}, {ag.district}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-slate-700">
+                      <div className="bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
+                        <span className="text-[10px] text-slate-400 block font-semibold">आधार नंबर:</span>
+                        <span className="font-mono font-bold text-slate-900">
+                          {ag.aadhaar_number ? `XXXX-XXXX-${ag.aadhaar_number.slice(-4)}` : 'दर्ज नहीं'}
+                        </span>
+                      </div>
+                      <div className="bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
+                        <span className="text-[10px] text-slate-400 block font-semibold">पैन नंबर:</span>
+                        <span className="font-mono font-bold text-slate-900">
+                          {ag.pan_number || 'दर्ज नहीं'}
+                        </span>
+                      </div>
+                      <div className="bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
+                        <span className="text-[10px] text-slate-400 block font-semibold">बैंक खाता:</span>
+                        <span className="font-mono font-bold text-slate-900 truncate block">
+                          {ag.bank_account_number ? `...${ag.bank_account_number.slice(-4)} (${ag.bank_ifsc || 'IFSC'})` : 'दर्ज नहीं'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-end lg:self-center">
+                  <button
+                    onClick={() => onNavigate('admin-kyc-desk')}
+                    className="px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>दस्तावेज़ देखें (Verify)</span>
+                  </button>
+                  <button
+                    onClick={() => approveAgentKyc(ag.id)}
+                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow"
+                  >
+                    <FileCheck className="w-3.5 h-3.5" />
+                    <span>तुरंत अप्रूव (Quick Approve)</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Pending Agent Approvals Section */}
       {pendingAgents.length > 0 && (

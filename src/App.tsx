@@ -89,6 +89,7 @@ const AppContent: React.FC = () => {
               <AdminBookingsTable onOpenBooking={(id) => setSelectedReviewBookingId(id)} />
             )}
             {currentTab === 'admin-agents' && <AdminAgentManagement />}
+            {currentTab === 'admin-kyc-desk' && <AdminAgentManagement initialTab="kyc_desk" />}
             {currentTab === 'admin-trips' && <AdminBusTripManagement />}
             {currentTab === 'admin-promotions' && <AdminPromotionManagement />}
             {currentTab === 'admin-salary' && <AdminCommissionAndSalary />}

@@ -231,7 +231,9 @@ export const AgentProfile: React.FC = () => {
                 <FileText className="w-3.5 h-3.5" />
                 <span>
                   {currentUser?.kyc_status === 'verified'
-                    ? 'KYC विवरण देखें / अपडेट'
+                    ? 'KYC विवरण देखें (Verified ✓)'
+                    : currentUser?.kyc_status === 'pending'
+                    ? 'KYC स्थिति (1-12 घंटे)'
                     : 'आधार व पैन KYC सबमिट करें'}
                 </span>
               </button>
@@ -284,7 +286,7 @@ export const AgentProfile: React.FC = () => {
                   {currentUser?.kyc_status === 'verified'
                     ? 'Verified ✓'
                     : currentUser?.kyc_status === 'pending'
-                    ? 'Under Review'
+                    ? 'Under Review (1-12h)'
                     : currentUser?.kyc_status === 'rejected'
                     ? 'Rejected'
                     : 'Not Submitted'}
@@ -296,15 +298,31 @@ export const AgentProfile: React.FC = () => {
             </div>
           </div>
 
-          <button
-            onClick={() => setIsKycModalOpen(true)}
-            className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition flex items-center gap-1.5 self-start sm:self-auto shadow-sm"
-          >
-            <CreditCard className="w-3.5 h-3.5 text-orange-400" />
-            <span>
-              {currentUser?.kyc_status === 'verified' ? 'दस्तावेज़ प्रबंधित करें' : 'KYC पूरा करें'}
-            </span>
-          </button>
+          {currentUser?.kyc_status === 'pending' ? (
+            <button
+              onClick={() => setIsKycModalOpen(true)}
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition flex items-center gap-1.5 self-start sm:self-auto shadow-sm"
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>सत्यापन जारी (1-12 घंटे)</span>
+            </button>
+          ) : currentUser?.kyc_status === 'verified' ? (
+            <button
+              onClick={() => setIsKycModalOpen(true)}
+              className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition flex items-center gap-1.5 self-start sm:self-auto shadow-sm"
+            >
+              <CheckCircle className="w-3.5 h-3.5" />
+              <span>KYC सत्यापित ✓</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setIsKycModalOpen(true)}
+              className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition flex items-center gap-1.5 self-start sm:self-auto shadow-sm"
+            >
+              <CreditCard className="w-3.5 h-3.5 text-orange-400" />
+              <span>KYC पूरा करें</span>
+            </button>
+          )}
         </div>
 
         {/* KYC Status Body */}
@@ -353,34 +371,58 @@ export const AgentProfile: React.FC = () => {
             </div>
           </div>
         ) : currentUser?.kyc_status === 'pending' ? (
-          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-3">
+          <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 space-y-4">
             <div className="flex items-start gap-3">
-              <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-              <div className="text-xs text-amber-950 space-y-1">
-                <p className="font-extrabold text-sm">
-                  दस्तावेज समीक्षाधीन हैं (KYC Under Review)
+              <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 animate-spin duration-3000" />
+              <div className="text-xs text-amber-950 space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <p className="font-black text-sm">
+                    दस्तावेज समीक्षाधीन हैं (KYC Under Review)
+                  </p>
+                  <span className="text-[10px] bg-amber-200 text-amber-900 font-black px-2 py-0.5 rounded-full">
+                    SLA: 1-12 घंटे
+                  </span>
+                </div>
+                <p className="text-amber-950 font-bold leading-relaxed text-xs">
+                  Our team verifies your documents usually within 1 to 12 hours. (हमारी टीम आमतौर पर 1 घंटे से 12 घंटे के अंदर आपके दस्तावेज़ों का सत्यापन कर देती है।)
                 </p>
-                <p className="text-amber-800 leading-relaxed">
-                  आपके आधार कार्ड, पैन कार्ड और बैंक विवरण की जांच SafarGo एडमिन टीम द्वारा की जा रही है। सत्यापन होते ही प्रोफाइल पर हरा <strong>Verified Tick (✓)</strong> लग जाएगा।
+                <p className="text-slate-600 leading-relaxed text-[11px]">
+                  एडमिन को आपकी रिक्वेस्ट भेज दी गई है। सत्यापन पूरा होते ही आपकी प्रोफ़ाइल और पोस्टर पर <strong>Official Verified Tick (✓)</strong> सक्रिय हो जाएगा और विथड्रॉल अनलॉक कर दिया जाएगा।
                 </p>
               </div>
             </div>
 
-            <div className="pt-2 flex flex-wrap items-center gap-3">
+            {/* Read-only submitted details */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs pt-1">
+              <div className="p-3 rounded-xl bg-white border border-amber-200/80 shadow-xs">
+                <span className="text-[10px] text-slate-400 font-bold uppercase block">आधार कार्ड (Submitted)</span>
+                <span className="font-mono font-bold text-slate-800 text-xs mt-0.5 block">{maskedAadhaar}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-white border border-amber-200/80 shadow-xs">
+                <span className="text-[10px] text-slate-400 font-bold uppercase block">PAN कार्ड (Submitted)</span>
+                <span className="font-mono font-bold text-slate-800 text-xs mt-0.5 block">{maskedPan}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-white border border-amber-200/80 shadow-xs">
+                <span className="text-[10px] text-slate-400 font-bold uppercase block">बैंक खाता (Submitted)</span>
+                <span className="font-bold text-slate-800 text-xs mt-0.5 block truncate">
+                  {currentUser.bank_name || 'Bank Account'} • A/C: ••••{currentUser.bank_account_number?.slice(-4) || 'XXXX'}
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-amber-200/60">
               <button
                 onClick={sendWhatsAppKycReminder}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition"
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition"
               >
                 <MessageSquare className="w-3.5 h-3.5" />
                 <span>WhatsApp पर एडमिन को याद दिलाएं</span>
               </button>
 
-              <button
-                onClick={() => setIsKycModalOpen(true)}
-                className="px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs rounded-xl transition"
-              >
-                दस्तावेज़ संशोधित करें (Edit KYC)
-              </button>
+              <div className="text-[11px] text-slate-600 flex items-center gap-1 bg-amber-100/70 px-3 py-1.5 rounded-lg">
+                <Lock className="w-3.5 h-3.5 text-amber-700" />
+                <span>सुरक्षा कारणों से समीक्षा के दौरान संपादन (Edit) लॉक है</span>
+              </div>
             </div>
           </div>
         ) : currentUser?.kyc_status === 'rejected' ? (
