@@ -95,13 +95,17 @@ export const AdminPromoterManagement: React.FC = () => {
       (s) => s.subscription_plan_name.includes('गोल्ड') || s.monthly_fee >= 699
     );
 
-    const isMixedAchieved = verifiedAgents.length >= 500 || (promoterShops.length >= 20 && goldSubs.length >= 20);
+    const isModel1Achieved = verifiedAgents.length >= 500;
+    const isModel2Achieved = verifiedAgents.length >= 125 && (goldSubs.length >= 20 || promoterShops.length >= 20);
+    const isMixedAchieved = isModel1Achieved || isModel2Achieved;
 
     return {
       verifiedCount: verifiedAgents.length,
       totalCount: networkAgents.length,
       shopsCount: promoterShops.length,
       goldSubsCount: goldSubs.length,
+      isModel1Achieved,
+      isModel2Achieved,
       isMixedAchieved,
     };
   };
@@ -217,7 +221,15 @@ export const AdminPromoterManagement: React.FC = () => {
           {slots.map(({ slotNo, isFilled, promoter }) => {
             const stats = promoter
               ? getPromoterVerifiedStats(promoter.promoter_code, promoter.id)
-              : { verifiedCount: 0, totalCount: 0 };
+              : {
+                  verifiedCount: 0,
+                  totalCount: 0,
+                  shopsCount: 0,
+                  goldSubsCount: 0,
+                  isModel1Achieved: false,
+                  isModel2Achieved: false,
+                  isMixedAchieved: false,
+                };
             const progressPct = Math.min(100, Math.round((stats.verifiedCount / 500) * 100));
 
             return (
@@ -289,15 +301,19 @@ export const AdminPromoterManagement: React.FC = () => {
                         <Gift className="w-3 h-3" />
                         100% फीस रिफंड (₹648) पेड
                       </div>
-                    ) : stats.verifiedCount >= 500 ? (
+                    ) : stats.isMixedAchieved ? (
                       <button
                         onClick={() => handleProcessRefund(promoter.id)}
-                        className="w-full py-1 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] flex items-center justify-center gap-1 transition"
+                        className="w-full py-1.5 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] flex items-center justify-center gap-1 transition animate-pulse"
                       >
-                        <Gift className="w-3 h-3" />
-                        ₹648 रिफंड जारी करें
+                        <Gift className="w-3.5 h-3.5" />
+                        {stats.isModel1Achieved ? 'मॉडल 1 पूर्ण: ₹648 रिफंड दें' : 'मॉडल 2 पूर्ण: ₹648 रिफंड दें'}
                       </button>
-                    ) : null}
+                    ) : (
+                      <div className="text-[9px] text-slate-400 text-center py-0.5">
+                        प्रगति: {stats.verifiedCount}/500 (M1) या {stats.verifiedCount}/125 + {stats.goldSubsCount}/20 (M2)
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="py-6 text-center">

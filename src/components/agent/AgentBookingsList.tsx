@@ -210,8 +210,15 @@ export const AgentBookingsList: React.FC = () => {
                 </div>
 
                 {/* Right Badges: Timer & Commission */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   <CountdownTimer deadlineAt={b.deadline_at} status={b.status} />
+
+                  {b.boarding_sathi_opted && (
+                    <div className="bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-xl text-right">
+                      <span className="text-[9px] text-amber-800 uppercase font-black block">साथी सेवा</span>
+                      <span className="text-xs font-black text-amber-900">+₹23 कमाई</span>
+                    </div>
+                  )}
 
                   {b.status === 'confirmed' ? (
                     <div className="bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl text-right">

@@ -23,25 +23,46 @@ import {
   Eye,
   Camera,
   Check,
-  ChevronRight
+  ChevronRight,
+  MessageSquare,
+  Search,
+  Sparkles,
+  Award
 } from 'lucide-react';
+import { MP_NETWORK_CITIES } from '../../lib/mockData';
 
 interface CustomerPortalProps {
   onNavigateTab?: (tab: string) => void;
 }
 
 export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onNavigateTab }) => {
-  const { currentUser, updateProfile } = useAuth();
+  const { currentUser, allProfiles, updateProfile } = useAuth();
   const { bookings, quickDeliveryOrders, customerConfirmDeliveryOrder } = useData();
   const { success, error } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'bookings' | 'deliveries' | 'profile'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'nearby_agents' | 'deliveries' | 'profile'>('bookings');
   const [selectedPhotoModal, setSelectedPhotoModal] = useState<string | null>(null);
+
+  // Search & filter state for nearby agents
+  const [agentSearchCity, setAgentSearchCity] = useState<string>('All');
+  const [agentSearchQuery, setAgentSearchQuery] = useState('');
 
   // Profile edit state
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [newAddress, setNewAddress] = useState(currentUser?.address || '');
   const [newCity, setNewCity] = useState(currentUser?.city || 'Indore');
+
+  // Filter approved agents in MP
+  const mpAgents = allProfiles.filter((p) => p.role === 'agent' && p.agent_status === 'approved');
+  const filteredAgents = mpAgents.filter((a) => {
+    const matchCity = agentSearchCity === 'All' || a.city.toLowerCase() === agentSearchCity.toLowerCase();
+    const matchQ = !agentSearchQuery.trim() ||
+      a.full_name.toLowerCase().includes(agentSearchQuery.toLowerCase()) ||
+      (a.shop_name && a.shop_name.toLowerCase().includes(agentSearchQuery.toLowerCase())) ||
+      a.mobile.includes(agentSearchQuery) ||
+      a.city.toLowerCase().includes(agentSearchQuery.toLowerCase());
+    return matchCity && matchQ;
+  });
 
   // Filter bookings for this customer
   const userMobileClean = currentUser?.mobile.replace(/\D/g, '') || '';
@@ -131,11 +152,11 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onNavigateTab })
               <span>15-मिनट सामान मंगवाएं</span>
             </button>
             <button
-              onClick={() => onNavigateTab ? onNavigateTab('home') : undefined}
+              onClick={() => setActiveTab('nearby_agents')}
               className="px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/20 transition flex items-center justify-center gap-2"
             >
               <Bus className="w-4 h-4 text-orange-400" />
-              <span>नई बस टिकट खोजें</span>
+              <span>नजदीकी एजेंट से बस बुक कराएं</span>
             </button>
           </div>
         </div>
@@ -187,10 +208,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onNavigateTab })
       </div>
 
       {/* 3. Section Tabs */}
-      <div className="flex border-b border-slate-200 gap-2">
+      <div className="flex border-b border-slate-200 gap-2 overflow-x-auto pb-px">
         <button
           onClick={() => setActiveTab('bookings')}
-          className={`flex items-center gap-2 px-5 py-3 text-xs sm:text-sm font-bold border-b-2 transition ${
+          className={`flex items-center gap-2 px-5 py-3 text-xs sm:text-sm font-bold border-b-2 transition shrink-0 ${
             activeTab === 'bookings'
               ? 'border-orange-500 text-orange-600'
               : 'border-transparent text-slate-600 hover:text-slate-900'
@@ -201,8 +222,20 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onNavigateTab })
         </button>
 
         <button
+          onClick={() => setActiveTab('nearby_agents')}
+          className={`flex items-center gap-2 px-5 py-3 text-xs sm:text-sm font-bold border-b-2 transition shrink-0 ${
+            activeTab === 'nearby_agents'
+              ? 'border-orange-500 text-orange-600 bg-orange-50/50'
+              : 'border-transparent text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Phone className="w-4 h-4 text-orange-500" />
+          <span>🚌 बस बुक करें (नजदीकी एजेंट - {mpAgents.length})</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('deliveries')}
-          className={`flex items-center gap-2 px-5 py-3 text-xs sm:text-sm font-bold border-b-2 transition ${
+          className={`flex items-center gap-2 px-5 py-3 text-xs sm:text-sm font-bold border-b-2 transition shrink-0 ${
             activeTab === 'deliveries'
               ? 'border-emerald-600 text-emerald-600'
               : 'border-transparent text-slate-600 hover:text-slate-900'
@@ -217,7 +250,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onNavigateTab })
 
         <button
           onClick={() => setActiveTab('profile')}
-          className={`flex items-center gap-2 px-5 py-3 text-xs sm:text-sm font-bold border-b-2 transition ${
+          className={`flex items-center gap-2 px-5 py-3 text-xs sm:text-sm font-bold border-b-2 transition shrink-0 ${
             activeTab === 'profile'
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-slate-600 hover:text-slate-900'
@@ -232,23 +265,70 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onNavigateTab })
       {/* TAB 1: MY BUS BOOKINGS                                      */}
       {/* ========================================================== */}
       {activeTab === 'bookings' && (
-        <div className="space-y-4">
+        <div className="space-y-5">
+          {/* 🚌 Crucial SafarGo Customer Bus Booking Notice Banner */}
+          <div className="bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 rounded-3xl p-6 text-white shadow-xl space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-white text-orange-600 flex items-center justify-center shrink-0 font-black shadow-md">
+                  <Bus className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-white/20 px-2.5 py-0.5 rounded-full border border-white/20">
+                      MP अधिकृत मॉडल (Assisted Bus Booking)
+                    </span>
+                    <span className="text-[10px] font-bold bg-black/20 px-2 py-0.5 rounded-full">
+                      100% कन्फर्म सीट व PNR गारंटी
+                    </span>
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-black leading-snug">
+                    बस बुकिंग के लिए अपने नजदीकी SafarGo एजेंट से संपर्क करें!
+                  </h3>
+                  <p className="text-xs text-orange-100 max-w-2xl leading-relaxed">
+                    SafarGo ग्रामीण मध्य प्रदेश का अधिकृत बस नेटवर्क है। बिना एजेंट के सीधी ऑनलाइन बुकिंग में ग्रामीण यात्रियों को अक्सर सीट छूटने की परेशानी होती है। SafarGo में आपके गांव-शहर के अधिकृत CSC एजेंट सीधे ऑपरेटर से बात करके आपकी सीट कन्फर्म करते हैं।
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setActiveTab('nearby_agents')}
+                className="px-5 py-3 bg-white hover:bg-orange-50 text-orange-600 font-black text-xs rounded-2xl shadow-lg transition shrink-0 flex items-center gap-2 self-start md:self-auto active:scale-95"
+              >
+                <Phone className="w-4 h-4" />
+                <span>नजदीकी एजेंट लिस्ट देखें व WhatsApp करें</span>
+              </button>
+            </div>
+
+            {/* 🛡️ Boarding Sathi Service Highlight Card */}
+            <div className="bg-black/25 backdrop-blur-xs rounded-2xl p-3.5 border border-white/25 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🛡️</span>
+                <span><strong>बोर्डिंग साथी सेवा (+₹33):</strong> जब तक बस नहीं आएगी, एजेंट आपके साथ बस स्टॉप पर उपस्थित रहेगा और आपको बस में सुरक्षित बैठाकर आएगा!</span>
+              </div>
+              <span className="text-[11px] font-bold text-amber-200 bg-black/30 px-2.5 py-1 rounded-full shrink-0">
+                सुरक्षित प्रस्थान सहायता
+              </span>
+            </div>
+          </div>
+
           {myBookings.length === 0 ? (
             <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-sm space-y-4">
               <div className="w-16 h-16 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mx-auto">
                 <Bus className="w-8 h-8" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-lg font-bold text-slate-800">अभी कोई बस टिकट बुक नहीं की गई है</h3>
+                <h3 className="text-lg font-bold text-slate-800">अभी कोई पूर्व बस टिकट नहीं है</h3>
                 <p className="text-xs text-slate-500 max-w-md mx-auto">
-                  मध्य प्रदेश के इंदौर, भोपाल, विदिशा, सिरोंज, गुना, अशोक नगर एवं अन्य सभी शहरों के लिए तत्काल बस टिकट खोजें।
+                  मध्य प्रदेश के इंदौर, भोपाल, विदिशा, सिरोंज, गुना, अशोक नगर, बीना एवं अन्य सभी शहरों के लिए अपने नजदीकी अधिकृत SafarGo एजेंट से तत्काल टिकट बुक करवाएं।
                 </p>
               </div>
               <button
-                onClick={() => onNavigateTab ? onNavigateTab('home') : undefined}
-                className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl shadow-md transition"
+                onClick={() => setActiveTab('nearby_agents')}
+                className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2 mx-auto"
               >
-                बस टिकट खोजें व बुक करें
+                <Phone className="w-4 h-4" />
+                <span>नजदीकी एजेंट से टिकट बुक कराएं</span>
               </button>
             </div>
           ) : (
@@ -299,6 +379,24 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onNavigateTab })
                     </div>
                   </div>
 
+                  {/* Boarding Sathi Service Status */}
+                  {b.boarding_sathi_opted && (
+                    <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2 text-amber-900 font-bold">
+                        <span className="text-base">🛡️</span>
+                        <div>
+                          <span>बोर्डिंग साथी सेवा सक्रिय (+₹33)</span>
+                          <span className="text-[10px] text-amber-700 block font-normal">
+                            एजेंट बस आने तक स्टॉप पर आपके साथ रहेगा और बस में सुरक्षित बैठाकर आएगा।
+                          </span>
+                        </div>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 shrink-0">
+                        सुरक्षित प्रस्थान ✓
+                      </span>
+                    </div>
+                  )}
+
                   {/* PNR and Status Alert */}
                   {b.ticket_pnr && (
                     <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs">
@@ -324,6 +422,142 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onNavigateTab })
                   )}
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================== */}
+      {/* TAB 2: NEARBY SAFARGO AGENTS DIRECTORY                     */}
+      {/* ========================================================== */}
+      {activeTab === 'nearby_agents' && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* Header & Instructions */}
+          <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200">
+                  अधिकृत जन सेवा केंद्र (CSC) बस बुकिंग नेटवर्क
+                </span>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 mt-1">
+                  बस बुकिंग के लिए अपने नजदीकी SafarGo एजेंट से संपर्क करें
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  मध्य प्रदेश के 19 शहरों एवं कस्बों में अधिकृत एजेंट उपलब्ध। सीधे 1-क्लिक WhatsApp से अपनी बस टिकट व बोर्डिंग साथी बुक कराएं।
+                </p>
+              </div>
+
+              {/* 🛡️ Boarding Sathi Pill */}
+              <div className="bg-amber-50 border border-amber-300 p-3 rounded-2xl flex items-center gap-3 shrink-0">
+                <span className="text-2xl">🛡️</span>
+                <div className="text-xs">
+                  <strong className="text-amber-950 block font-black">बोर्डिंग साथी सेवा (+₹33)</strong>
+                  <span className="text-amber-800 text-[11px]">बस आने तक सुरक्षित बैठाने की सेवा</span>
+                </div>
+              </div>
+            </div>
+
+            {/* City Filters & Search Bar */}
+            <div className="space-y-3">
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                <input
+                  type="text"
+                  value={agentSearchQuery}
+                  onChange={(e) => setAgentSearchQuery(e.target.value)}
+                  placeholder="एजेंट का नाम, दुकान/सीएससी का नाम या मोबाइल नंबर खोजें..."
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 font-semibold text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+
+              {/* MP City Quick Filter Chips */}
+              <div>
+                <span className="text-[11px] font-bold text-slate-500 block mb-2">शहर अनुसार फ़िल्टर करें (MP Cities):</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {['All', ...MP_NETWORK_CITIES].map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setAgentSearchCity(c)}
+                      className={`px-3 py-1 rounded-xl text-xs font-bold transition ${
+                        agentSearchCity === c
+                          ? 'bg-orange-600 text-white shadow-xs'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                      }`}
+                    >
+                      {c === 'All' ? 'सभी शहर (All)' : c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Agents Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredAgents.map((agent) => (
+              <div
+                key={agent.id}
+                className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:border-orange-400 hover:shadow-md transition space-y-4 flex flex-col justify-between"
+              >
+                <div className="space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-black text-slate-900 text-sm">{agent.full_name}</span>
+                        <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded-full">
+                          Verified ✓
+                        </span>
+                      </div>
+                      <p className="text-xs font-bold text-orange-600 mt-0.5">{agent.shop_name || 'अधिकृत बस बुकिंग केंद्र'}</p>
+                    </div>
+
+                    <span className="text-[10px] font-black bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full">
+                      {agent.city}
+                    </span>
+                  </div>
+
+                  <div className="text-xs text-slate-600 flex items-start gap-1.5 bg-slate-50 p-2.5 rounded-xl">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                    <span className="leading-relaxed">{agent.address || `${agent.city}, मध्य प्रदेश`}</span>
+                  </div>
+
+                  {/* Boarding Sathi Support Badge */}
+                  <div className="flex items-center justify-between text-[11px] bg-amber-50/70 border border-amber-200/80 px-2.5 py-1.5 rounded-xl text-amber-900">
+                    <span className="flex items-center gap-1 font-bold">
+                      <span>🛡️</span>
+                      <span>बोर्डिंग साथी सेवा उपलब्ध</span>
+                    </span>
+                    <span className="font-extrabold text-amber-950">+₹33</span>
+                  </div>
+                </div>
+
+                {/* Contact Action Buttons */}
+                <div className="pt-3 border-t border-slate-100 flex items-center gap-2">
+                  <a
+                    href={`https://wa.me/91${agent.mobile}?text=${encodeURIComponent(`नमस्ते ${agent.full_name} जी, मैं SafarGo से बस टिकट बुक करवाना चाहता हूँ। कृपया मुझे बस व सीट की जानकारी दें।`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 text-center active:scale-95"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>WhatsApp से बस बुक करें</span>
+                  </a>
+
+                  <a
+                    href={`tel:${agent.mobile}`}
+                    className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition"
+                    title="एजेंट को कॉल करें"
+                  >
+                    <Phone className="w-4 h-4" />
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {filteredAgents.length === 0 && (
+            <div className="bg-white rounded-3xl p-10 text-center border border-slate-200 text-xs text-slate-500">
+              इस शहर में अभी कोई अधिकृत एजेंट नहीं मिला। कृपया 'सभी शहर' चुनें या दूसरा शहर खोजें।
             </div>
           )}
         </div>

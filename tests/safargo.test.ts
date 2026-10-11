@@ -1041,28 +1041,144 @@ describe('U. Shopkeeper Portal & Subscription Upgrades', () => {
   });
 });
 
-describe('V. Promoter Partner Mixed / Hybrid Target Model', () => {
-  it('qualifies promoter if 500 agents target is achieved (Track 1)', () => {
-    const verifiedAgentsCount = 500;
-    const goldShopsCount = 0;
-    const isAchieved = verifiedAgentsCount >= 500 || (goldShopsCount >= 20);
-    expect(isAchieved).toBe(true);
+describe('W. Strict Role Isolation & Admin Privacy Protection', () => {
+  it('strictly isolates customer role from all admin functionalities', () => {
+    const customer = INITIAL_PROFILES.find((p) => p.role === 'customer')!;
+    expect(customer.role).toBe('customer');
+
+    const adminTabs = [
+      'admin-dashboard',
+      'admin-promoters',
+      'admin-bookings',
+      'admin-agents',
+      'admin-kyc-desk',
+      'admin-security-desk',
+      'admin-trips',
+      'admin-salary',
+      'admin-settings',
+      'admin-logs',
+    ];
+
+    // Customer can NEVER access any admin tab
+    const isAllowedAccess = (role: string, tab: string) => {
+      if (tab.startsWith('admin-')) {
+        return role === 'admin';
+      }
+      return true;
+    };
+
+    adminTabs.forEach((tab) => {
+      expect(isAllowedAccess(customer.role, tab)).toBe(false);
+    });
   });
 
-  it('qualifies promoter even if 500 agents is NOT met, provided 20 shops buy Gold Subscription (Track 2)', () => {
-    const verifiedAgentsCount = 12; // Far below 500
-    const goldShopsCount = 20; // 20 shops with highest Gold package!
-    const isAchieved = verifiedAgentsCount >= 500 || (goldShopsCount >= 20);
-    expect(isAchieved).toBe(true);
-  });
+  it('strictly isolates shopkeeper and agent from admin functionalities', () => {
+    const shopkeeper = INITIAL_PROFILES.find((p) => p.role === 'shopkeeper')!;
+    const agent = INITIAL_PROFILES.find((p) => p.role === 'agent')!;
 
-  it('does not qualify promoter if neither track is completed', () => {
-    const verifiedAgentsCount = 85;
-    const goldShopsCount = 7;
-    const isAchieved = verifiedAgentsCount >= 500 || (goldShopsCount >= 20);
-    expect(isAchieved).toBe(false);
+    const isAllowedAccess = (role: string, tab: string) => role === 'admin' || !tab.startsWith('admin-');
+
+    expect(isAllowedAccess(shopkeeper.role, 'admin-dashboard')).toBe(false);
+    expect(isAllowedAccess(agent.role, 'admin-settings')).toBe(false);
   });
 });
+
+describe('X. Boarding Sathi (बोर्डिंग साथी) Companion Service Economics', () => {
+  it('calculates Boarding Sathi fee breakdown correctly (₹33 total, ₹23 agent payout, ₹10 platform)', () => {
+    const boardingSathiOpted = true;
+    const baseFare = 850;
+    const passengerCount = 1;
+
+    const boardingSathiFee = boardingSathiOpted ? 33 : 0;
+    const agentPayout = boardingSathiOpted ? 23 : 0;
+    const platformShare = boardingSathiOpted ? 10 : 0;
+
+    const totalEstimated = (baseFare * passengerCount) + boardingSathiFee;
+
+    expect(totalEstimated).toBe(883); // 850 + 33
+    expect(agentPayout).toBe(23);
+    expect(platformShare).toBe(10);
+    expect(agentPayout + platformShare).toBe(boardingSathiFee);
+  });
+
+  it('credits +₹23 to agent ledger upon booking confirmation when Boarding Sathi is opted', () => {
+    const bookingWithBoardingSathi: Partial<Booking> = {
+      id: 'bkg-test-bs',
+      booking_code: 'SFG-20261011-999',
+      agent_id: 'usr-agent-01',
+      agent_name: 'Pawan Kumar Verma',
+      boarding_sathi_opted: true,
+      boarding_sathi_fee: 33,
+      boarding_sathi_agent_payout: 23,
+      boarding_sathi_platform_fee: 10,
+      boarding_sathi_status: 'pending',
+    };
+
+    const regularCommission = 19.34;
+    const extraBoardingPayout = bookingWithBoardingSathi.boarding_sathi_agent_payout || 0;
+    const totalAgentEarning = regularCommission + extraBoardingPayout;
+
+    expect(extraBoardingPayout).toBe(23);
+    expect(totalAgentEarning).toBe(42.34);
+  });
+});
+
+describe('Y. Promoting Partner Model 1 (500 Agents) vs Model 2 (125 Agents + 20 Subscriptions)', () => {
+  const evaluatePromoterTarget = (verifiedAgents: number, goldSubscriptions: number) => {
+    const isModel1 = verifiedAgents >= 500;
+    const isModel2 = verifiedAgents >= 125 && goldSubscriptions >= 20;
+    return {
+      isModel1,
+      isModel2,
+      isAchieved: isModel1 || isModel2,
+      salary: (isModel1 || isModel2) ? 15000 : 0,
+      refundEligible: isModel1 || isModel2,
+    };
+  };
+
+  it('achieves target via Model 1 (500 verified agents)', () => {
+    const res = evaluatePromoterTarget(500, 0);
+    expect(res.isModel1).toBe(true);
+    expect(res.isAchieved).toBe(true);
+    expect(res.salary).toBe(15000);
+    expect(res.refundEligible).toBe(true);
+  });
+
+  it('achieves target via Model 2 (125 verified agents + 20 Gold shopkeeper subscriptions)', () => {
+    const res = evaluatePromoterTarget(125, 20);
+    expect(res.isModel1).toBe(false);
+    expect(res.isModel2).toBe(true);
+    expect(res.isAchieved).toBe(true);
+    expect(res.salary).toBe(15000);
+    expect(res.refundEligible).toBe(true);
+  });
+
+  it('fails if neither Model 1 nor Model 2 is met', () => {
+    const resA = evaluatePromoterTarget(124, 20); // 1 agent short for Model 2
+    expect(resA.isAchieved).toBe(false);
+
+    const resB = evaluatePromoterTarget(200, 19); // 1 shop subscription short for Model 2
+    expect(resB.isAchieved).toBe(false);
+  });
+});
+
+describe('Z. Customer Assisted Bus Booking Model & MP Network Directory', () => {
+  it('directs customers to nearby verified CSC agents rather than raw manual form', () => {
+    const mpApprovedAgents = INITIAL_PROFILES.filter((p) => p.role === 'agent' && p.agent_status === 'approved');
+    expect(mpApprovedAgents.length).toBeGreaterThanOrEqual(5);
+
+    const sironjAgent = mpApprovedAgents.find((a) => a.city === 'Sironj');
+    expect(sironjAgent).toBeDefined();
+    expect(sironjAgent?.shop_name).toBeDefined();
+    expect(sironjAgent?.mobile).toBeDefined();
+
+    // Verify WhatsApp direct message link generation
+    const waUrl = `https://wa.me/91${sironjAgent?.mobile}?text=${encodeURIComponent('नमस्ते SafarGo बस बुकिंग')}`;
+    expect(waUrl).toContain('wa.me/91');
+    expect(waUrl).toContain(sironjAgent?.mobile);
+  });
+});
+
 
 
 

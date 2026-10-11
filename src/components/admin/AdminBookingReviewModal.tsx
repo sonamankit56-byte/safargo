@@ -343,6 +343,27 @@ SafarGo Support: +${settings.support_whatsapp}
                     <strong>Agent Note: </strong> {booking.agent_notes}
                   </div>
                 )}
+
+                {/* 🛡️ Boarding Sathi Display */}
+                {booking.boarding_sathi_opted && (
+                  <div className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-300 text-xs flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">🛡️</span>
+                      <div>
+                        <strong className="text-slate-900 block font-black">बोर्डिंग साथी सेवा (Boarding Sathi Opted)</strong>
+                        <span className="text-slate-600 text-[11px]">एजेंट बस आने तक स्टेशन पर उपस्थित रहेगा और यात्री को बस में बैठाकर आएगा।</span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-xs font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full block">
+                        +₹23 एजेंट मानदेय
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-semibold block mt-0.5">
+                        ₹33 शुल्क (₹10 SafarGo शेयर)
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Advance Payment Verification Card */}

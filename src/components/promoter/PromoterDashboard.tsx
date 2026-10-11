@@ -111,19 +111,26 @@ export const PromoterDashboard: React.FC = () => {
   });
 
   const verifiedAgentsCount = agentsWithBookingCounts.filter((item) => item.isVerifiedQualityTarget).length;
-  const targetGoal = 500;
-  const progressPct = Math.min(100, Math.round((verifiedAgentsCount / targetGoal) * 100));
+  // Model 1: 500 verified agents (≥3 bookings each)
+  const targetGoalModel1 = 500;
+  const progressPctModel1 = Math.min(100, Math.round((verifiedAgentsCount / targetGoalModel1) * 100));
 
   // Partner shops onboarded by this promoter
   const myShops = partnerShops.filter(
     (s) => s.promoter_id === currentUser?.id || s.promoter_name === currentUser?.full_name || s.city === currentUser?.city
   );
 
-  // Mixed target: 20 Local Shopkeepers with highest Gold Subscription (₹699/mo)
-  const targetShopsGoal = 20;
+  // Model 2: 125 Agents + 20 Shopkeeper Subscriptions (Gold Package ₹699/mo)
+  const targetAgentsModel2 = 125;
+  const targetShopsModel2 = 20;
   const goldShopsCount = myShops.filter((s) => s.subscription_plan_name.includes('गोल्ड') || s.monthly_fee >= 699).length;
-  const goldProgressPct = Math.min(100, Math.round((goldShopsCount / targetShopsGoal) * 100));
-  const isMixedAchieved = verifiedAgentsCount >= 500 || (myShops.length >= 20 && goldShopsCount >= 20);
+  const goldProgressPct = Math.min(100, Math.round((goldShopsCount / targetShopsModel2) * 100));
+  const model2AgentsProgressPct = Math.min(100, Math.round((verifiedAgentsCount / targetAgentsModel2) * 100));
+
+  // Target Evaluation: Model 1 (500 agents) OR Model 2 (125 agents + 20 subscriptions)
+  const isModel1Achieved = verifiedAgentsCount >= targetGoalModel1;
+  const isModel2Achieved = verifiedAgentsCount >= targetAgentsModel2 && (goldShopsCount >= targetShopsModel2 || myShops.length >= targetShopsModel2);
+  const isMixedAchieved = isModel1Achieved || isModel2Achieved;
 
   // Handle Add Partner Shop
   const handleCreateShop = async (e: React.FormEvent) => {
@@ -243,25 +250,25 @@ export const PromoterDashboard: React.FC = () => {
             </div>
 
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3.5 border border-white/10 text-center">
-              <div className="text-[11px] text-slate-300">टारगेट (≥3 बुकिंग)</div>
-              <div className="text-xl sm:text-2xl font-black text-white">{verifiedAgentsCount} / {targetGoal}</div>
-              <div className="text-[10px] text-amber-300 font-semibold">{progressPct}% लक्ष्य पूर्ण</div>
+              <div className="text-[11px] text-slate-300">मॉडल 1 लक्ष्य (500 एजेंट)</div>
+              <div className="text-xl sm:text-2xl font-black text-white">{verifiedAgentsCount} / {targetGoalModel1}</div>
+              <div className="text-[10px] text-amber-300 font-semibold">{progressPctModel1}% लक्ष्य पूर्ण</div>
             </div>
 
             <div className="col-span-2 sm:col-span-1 bg-emerald-500/20 backdrop-blur-md rounded-2xl p-3.5 border border-emerald-500/30 text-center">
               <div className="text-[11px] text-emerald-200">100% फीस रिफंड</div>
               <div className="text-xl sm:text-2xl font-black text-emerald-400">₹648 वापस</div>
               <div className="text-[10px] text-emerald-200">
-                {promoterApp?.fee_refunded_at ? '✓ रिफंड प्राप्त' : '3 माह में लक्ष्य पर'}
+                {promoterApp?.fee_refunded_at ? '✓ रिफंड प्राप्त' : isMixedAchieved ? '🎉 रिफंड योग्य!' : '3 माह में लक्ष्य पर'}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 2. Promoter Mixed / Hybrid Target Rule Banner */}
+      {/* 2. Promoter Dual-Track Target Rule Banner (Model 1: 500 Agents OR Model 2: 125 Agents + 20 Subscriptions) */}
       <div className="bg-gradient-to-r from-amber-50 via-indigo-50 to-emerald-50 border-2 border-indigo-200 rounded-3xl p-5 shadow-sm space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm font-black">
               <Award className="w-5 h-5 text-amber-300" />
@@ -269,7 +276,7 @@ export const PromoterDashboard: React.FC = () => {
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-600 text-white">
-                  मिक्स्ड / हाइब्रिड लक्ष्य मॉडल (Mixed Target Model)
+                  प्रमोटर लक्ष्य नियम (Model 1 & Model 2)
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
                   ₹15,000 फिक्स्ड वेतन + 100% फीस रिफंड (₹648)
@@ -281,29 +288,42 @@ export const PromoterDashboard: React.FC = () => {
                 )}
               </div>
               <h3 className="text-sm sm:text-base font-black text-slate-900">
-                यदि 500 एजेंट नहीं भी हुए, तो भी चलेगा! 20 दुकानदार जोड़कर सबसे महंगा गोल्ड पैकेज बेचें
+                500 एजेंट नहीं भी जुड़े तो भी कोई बात नहीं: मॉडल 2 (125 एजेंट + 20 गोल्ड सब्सक्रिप्शन) से लक्ष्य पूरा करें!
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed max-w-2xl">
-                सफ़ारगो प्रमोटर का लक्ष्य बहुत लचीला है। आप <strong>ट्रैक 1 (500 एजेंट ≥3 बुकिंग्स)</strong> पूरा कर सकते हैं <strong>अथवा</strong> अपने क्षेत्र में <strong>20 स्थानीय दुकानदारों को जोड़कर सबसे महंगा गोल्ड पैकेज (₹699/माह)</strong> बेच सकते हैं। दोनों में से किसी भी एक ट्रैक को पूरा करने पर आपका लक्ष्य 100% मान्य होगा और ₹15,000 वेतन व फीस रिफंड सुरक्षित रहेगा!
+                सफ़ारगो प्रमोटर पार्टनर के लिए 2 आसान रास्ते हैं: <br />
+                • <strong>मॉडल 1</strong>: 500 एजेंट जोड़ना (प्रति एजेंट ≥3 कन्फर्म बस बुकिंग अनिवार्य)। <br />
+                • <strong>मॉडल 2</strong>: केवल <strong>125 एजेंट जोड़ना</strong> + <strong>20 स्थानीय दुकानदारों को सबसे महंगा गोल्ड सब्सक्रिप्शन (₹699/माह)</strong> बेचना। <br />
+                दोनों में से किसी भी एक मॉडल को पूरा करने पर <strong>₹15,000 फिक्स्ड वेतन</strong> व <strong>₹648 फीस रिफंड</strong> 100% सुरक्षित मिलेगा!
               </p>
             </div>
           </div>
 
           {/* Dual Track Status Gauges */}
-          <div className="flex flex-col sm:flex-row gap-3 shrink-0">
-            {/* Track 1: Agents */}
-            <div className="w-full sm:w-44 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
-              <div className="text-[10px] font-bold text-slate-500 uppercase">ट्रैक 1: सत्यापित एजेंट</div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 shrink-0">
+            {/* Model 1: 500 Agents */}
+            <div className="w-full sm:w-36 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
+              <div className="text-[10px] font-bold text-slate-500 uppercase">मॉडल 1: 500 एजेंट</div>
               <div className="text-base font-black text-indigo-700">{verifiedAgentsCount} / 500</div>
               <div className="w-full h-2 bg-slate-100 rounded-full mt-1.5 overflow-hidden">
-                <div className="h-full bg-indigo-600 rounded-full" style={{ width: `${Math.max(4, progressPct)}%` }} />
+                <div className="h-full bg-indigo-600 rounded-full" style={{ width: `${Math.max(4, progressPctModel1)}%` }} />
               </div>
-              <div className="text-[9px] text-slate-400 mt-1">प्रति एजेंट ≥3 बुकिंग</div>
+              <div className="text-[9px] text-slate-400 mt-1">≥3 बुकिंग प्रति एजेंट</div>
             </div>
 
-            {/* Track 2: 20 Shops Gold Package */}
-            <div className="w-full sm:w-44 bg-white p-3 rounded-2xl border border-amber-200 shadow-2xs">
-              <div className="text-[10px] font-bold text-slate-500 uppercase">ट्रैक 2: 20 गोल्ड दुकानदार</div>
+            {/* Model 2 Part A: 125 Agents */}
+            <div className="w-full sm:w-36 bg-white p-3 rounded-2xl border border-indigo-200 shadow-2xs">
+              <div className="text-[10px] font-bold text-slate-500 uppercase">मॉडल 2: 125 एजेंट</div>
+              <div className="text-base font-black text-purple-700">{verifiedAgentsCount} / 125</div>
+              <div className="w-full h-2 bg-slate-100 rounded-full mt-1.5 overflow-hidden">
+                <div className="h-full bg-purple-600 rounded-full" style={{ width: `${Math.max(4, model2AgentsProgressPct)}%` }} />
+              </div>
+              <div className="text-[9px] text-slate-400 mt-1">{model2AgentsProgressPct}% पूर्ण</div>
+            </div>
+
+            {/* Model 2 Part B: 20 Gold Shops */}
+            <div className="w-full sm:w-36 bg-white p-3 rounded-2xl border border-amber-200 shadow-2xs">
+              <div className="text-[10px] font-bold text-slate-500 uppercase">मॉडल 2: 20 सब्सक्रिप्शन</div>
               <div className="text-base font-black text-amber-600">{goldShopsCount} / 20</div>
               <div className="w-full h-2 bg-slate-100 rounded-full mt-1.5 overflow-hidden">
                 <div className="h-full bg-amber-500 rounded-full" style={{ width: `${Math.max(4, goldProgressPct)}%` }} />

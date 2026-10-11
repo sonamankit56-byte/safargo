@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ToastProvider } from './context/ToastContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider, useData } from './context/DataContext';
@@ -48,6 +48,19 @@ const AppContent: React.FC = () => {
     setAuthInitialTab(initialTab);
     setIsAuthModalOpen(true);
   };
+
+  // Strict Role-Based Route Guard: Non-admins can NEVER view admin tabs
+  useEffect(() => {
+    if (currentTab.startsWith('admin-')) {
+      if (!currentUser || role !== 'admin' || !isAdmin) {
+        if (role === 'customer') setCurrentTab('customer-portal');
+        else if (role === 'shopkeeper') setCurrentTab('shopkeeper-portal');
+        else if (role === 'agent') setCurrentTab('dashboard');
+        else if (role === 'promoter') setCurrentTab('promoter-dashboard');
+        else setCurrentTab('home');
+      }
+    }
+  }, [currentTab, currentUser, role, isAdmin]);
 
   const selectedReviewBooking = bookings.find((b) => b.id === selectedReviewBookingId) || null;
 
@@ -150,7 +163,7 @@ const AppContent: React.FC = () => {
             {currentTab === 'viral-promotions' && <AgentViralPromotions />}
             {currentTab === 'agent-profile' && <AgentProfile />}
           </>
-        ) : (
+        ) : (currentUser && role === 'admin' && isAdmin) ? (
           <>
             {currentTab === 'admin-dashboard' && (
               <AdminDashboard
@@ -171,6 +184,19 @@ const AppContent: React.FC = () => {
             {currentTab === 'admin-settings' && <AdminSettings />}
             {currentTab === 'admin-logs' && <AdminAuditLogs />}
           </>
+        ) : (
+          <HomePage
+            onOpenAuth={handleOpenAuth}
+            onNavigateTab={(tab) => {
+              if (tab === 'promoter-modal') {
+                setIsPromoterModalOpen(true);
+              } else if (!currentUser && (tab === 'dashboard' || tab === 'new-booking')) {
+                handleOpenAuth('login');
+              } else {
+                setCurrentTab(tab);
+              }
+            }}
+          />
         )}
       </main>
 

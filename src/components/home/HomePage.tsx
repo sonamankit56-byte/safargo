@@ -504,7 +504,38 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab })
 
               {/* Results Cards Grid */}
               <div className="space-y-3 pt-2">
-                <span className="text-xs font-bold text-slate-500">
+                {/* 🚌 Crucial Customer Bus Booking Notice */}
+                <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
+                  <div className="flex items-start sm:items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-orange-600 text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
+                      <Bus className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <strong className="text-slate-900 block font-black text-sm">
+                        बस बुकिंग के लिए अपने नजदीकी SafarGo एजेंट से संपर्क करें
+                      </strong>
+                      <span className="text-slate-600">
+                        सीट व स्लीपर कन्फर्मेशन एवं 'बोर्डिंग साथी' (+₹33) सेवा आपके नजदीकी अधिकृत जन सेवा केंद्र (CSC) एजेंट द्वारा ही की जाती है।
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      if (currentUser && role === 'customer') {
+                        onNavigateTab('customer-portal');
+                      } else {
+                        onOpenAuth('login');
+                      }
+                    }}
+                    className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-extrabold rounded-xl shadow-xs shrink-0 flex items-center gap-1.5 transition self-start sm:self-auto"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    <span>नजदीकी एजेंट से संपर्क करें</span>
+                  </button>
+                </div>
+
+                <span className="text-xs font-bold text-slate-500 block pt-1">
                   उपलब्ध बसें ({filteredTrips.length}) — <span className="text-orange-600">मैन्युअल ऑपरेटर स्टॉक</span>:
                 </span>
 
@@ -549,15 +580,19 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab })
 
                         <button
                           onClick={() => {
-                            if (currentUser) {
+                            if (currentUser && role === 'agent') {
                               onNavigateTab('new-booking');
+                            } else if (currentUser && role === 'customer') {
+                              onNavigateTab('customer-portal');
+                            } else if (currentUser && role === 'admin') {
+                              onNavigateTab('admin-bookings');
                             } else {
                               onOpenAuth('login');
                             }
                           }}
                           className="px-3.5 py-1.5 bg-slate-900 hover:bg-orange-600 text-white font-bold text-xs rounded-xl transition flex items-center gap-1 shadow-sm"
                         >
-                          <span>टिकट बुक करें</span>
+                          <span>{role === 'customer' ? 'एजेंट से बुक कराएं' : 'टिकट बुक करें'}</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </button>
                       </div>

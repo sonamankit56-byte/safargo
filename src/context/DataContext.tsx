@@ -853,6 +853,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
               ticket_pnr: verificationData.ticket_pnr,
               ticket_doc_url: verificationData.ticket_doc_url,
               admin_notes: verificationData.admin_notes,
+              boarding_sathi_status: b.boarding_sathi_opted ? 'boarded_safely' : b.boarding_sathi_status,
               confirmed_by: currentUser?.id,
               confirmed_at: nowIso,
               updated_at: nowIso,
@@ -921,10 +922,43 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
+    // 2c. Check if Boarding Sathi was opted (extra ₹33 customer charge, agent receives +₹23 payout, SafarGo keeps ₹10)
+    let newBoardingSathiEntry: CommissionEntry | null = null;
+    if (target.boarding_sathi_opted) {
+      const agentPayout = target.boarding_sathi_agent_payout || 23;
+      const entryId = `comm-bs-${Date.now()}`;
+      newBoardingSathiEntry = {
+        id: entryId,
+        booking_id: bookingId,
+        booking_code: target.booking_code,
+        agent_id: target.agent_id,
+        agent_name: target.agent_name,
+        amount: agentPayout,
+        status: 'credited',
+        entry_type: 'bonus',
+        notes: `🛡️ बोर्डिंग साथी सेवा मानदेय (+₹${agentPayout}) - यात्री को बस में सुरक्षित बैठाने की सेवा (${target.booking_code})`,
+        created_at: nowIso,
+      };
+      addAuditLog('award_boarding_sathi_payout', 'commission_ledger', entryId, {
+        booking_code: target.booking_code,
+        agent_name: target.agent_name,
+        agent_payout: agentPayout,
+        customer_fee: target.boarding_sathi_fee || 33,
+        platform_fee: target.boarding_sathi_platform_fee || 10,
+      });
+      info(
+        'बोर्डिंग साथी मानदेय!',
+        `+₹${agentPayout} एजेंट ${target.agent_name} के लेज़र में क्रेडिट (बोर्डिंग साथी सेवा: ₹33 शुल्क, ₹10 SafarGo शेयर)`
+      );
+    }
+
     setCommissions((prev) => {
       const list = [newCommissionEntry, ...prev];
       if (newReferralBonusEntry) {
         list.unshift(newReferralBonusEntry);
+      }
+      if (newBoardingSathiEntry) {
+        list.unshift(newBoardingSathiEntry);
       }
       return list;
     });

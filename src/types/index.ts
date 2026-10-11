@@ -160,6 +160,14 @@ export interface Booking {
   refund_amount?: number;
   confirmed_by?: string;
   confirmed_at?: string;
+
+  // 🛡️ Boarding Sathi (बोर्डिंग साथी) - Station Companion & Bus Seating Service
+  boarding_sathi_opted?: boolean;
+  boarding_sathi_fee?: number; // ₹33 total fee charged to customer
+  boarding_sathi_agent_payout?: number; // ₹23 extra earned by agent
+  boarding_sathi_platform_fee?: number; // ₹10 SafarGo platform share
+  boarding_sathi_status?: 'pending' | 'agent_assigned' | 'at_station' | 'boarded_safely';
+
   updated_at: string;
 }
 
@@ -172,7 +180,7 @@ export interface CommissionEntry {
   agent_name?: string;
   amount: number;
   status: 'credited' | 'reversed' | 'paid';
-  entry_type?: 'booking_commission' | 'referral_bonus' | 'reversal';
+  entry_type?: 'booking_commission' | 'referral_bonus' | 'boarding_sathi_allowance' | 'bonus' | 'reversal';
   referred_agent_id?: string;
   referred_agent_name?: string;
   reversal_ref_id?: string;
@@ -426,13 +434,14 @@ export interface PromoterApplication {
   onboarding_fee_utr?: string;
   assigned_slot?: number; // 1 to 5
   promoter_code?: string; // e.g. "PRM-MP-01"
-  target_verified_agents: number; // Default 500
+  target_verified_agents: number; // Model 1: 500 agents with >= 3 confirmed bus bookings
   current_verified_agents: number; // Count of agents who completed >= 3 confirmed bus bookings
   current_total_agents: number;
-  target_shops_count?: number; // Target 20 local shopkeepers
+  target_model_2_agents?: number; // Model 2: 125 agents
+  target_shops_count?: number; // Target 20 local shopkeeper subscriptions (Gold ₹699/mo)
   current_shops_count?: number; // Current shopkeepers onboarded
   gold_subscriptions_count?: number; // Count of shops with highest Gold package (₹699/mo)
-  is_mixed_target_achieved?: boolean; // Achieved if verified agents >= 500 OR (shops >= 20 && gold >= 20)
+  is_mixed_target_achieved?: boolean; // Achieved if verified agents >= 500 OR (verified agents >= 125 && (gold >= 20 || shops >= 20))
   fee_refund_eligible: boolean;
   fee_refunded_at?: string;
   created_at: string;

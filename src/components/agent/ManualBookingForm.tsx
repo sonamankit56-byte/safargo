@@ -65,6 +65,8 @@ export const ManualBookingForm: React.FC = () => {
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [copiedUpi, setCopiedUpi] = useState(false);
 
+  // Boarding Sathi Assistance Service State (+₹33 customer charge, +₹23 agent payout, ₹10 SafarGo share)
+  const [boardingSathiOpted, setBoardingSathiOpted] = useState(false);
 
   // Generate an idempotency key per form session to prevent double submits
   const [idempotencyKey, setIdempotencyKey] = useState<string>(() => `idemp-${Date.now()}`);
@@ -96,7 +98,8 @@ export const ManualBookingForm: React.FC = () => {
     });
   };
 
-  const totalAmount = estimatedFare * passengerCount;
+  const boardingSathiFee = boardingSathiOpted ? 33 : 0;
+  const totalAmount = (estimatedFare * passengerCount) + boardingSathiFee;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,6 +174,11 @@ export const ManualBookingForm: React.FC = () => {
         drop_point: dropPoint.trim() || `${toCity.trim()} Main Stand`,
         estimated_fare: estimatedFare,
         total_estimated_amount: totalAmount,
+        boarding_sathi_opted: boardingSathiOpted,
+        boarding_sathi_fee: boardingSathiOpted ? 33 : 0,
+        boarding_sathi_agent_payout: boardingSathiOpted ? 23 : 0,
+        boarding_sathi_platform_fee: boardingSathiOpted ? 10 : 0,
+        boarding_sathi_status: boardingSathiOpted ? 'pending' : undefined,
         agent_notes: agentNotes.trim(),
         idempotency_key: idempotencyKey,
         payment_mode: paymentMode,
@@ -194,6 +202,7 @@ export const ManualBookingForm: React.FC = () => {
         setPaymentScreenshot('');
         setPassengerCount(1);
         setPassengers([{ id: 'p-1', name: '', age: 28, gender: 'male' }]);
+        setBoardingSathiOpted(false);
       }
     } finally {
       setIsSubmitting(false);
@@ -599,6 +608,47 @@ export const ManualBookingForm: React.FC = () => {
                   ₹{totalAmount.toLocaleString('en-IN')}
                 </div>
               </div>
+            </div>
+
+            {/* 🛡️ Boarding Sathi (बोर्डिंग साथी) Service Toggle */}
+            <div className={`mt-4 p-4 rounded-2xl border-2 transition-all ${
+              boardingSathiOpted
+                ? 'bg-amber-50/90 border-amber-500 shadow-md ring-2 ring-amber-300'
+                : 'bg-white border-slate-200 hover:border-slate-300'
+            }`}>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={boardingSathiOpted}
+                  onChange={(e) => setBoardingSathiOpted(e.target.checked)}
+                  className="w-5 h-5 mt-1 rounded text-orange-600 focus:ring-orange-500 border-slate-300 cursor-pointer"
+                />
+                <div className="space-y-1 select-none flex-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-black text-slate-900 text-sm flex items-center gap-1.5">
+                        🛡️ बोर्डिंग साथी सेवा (Boarding Sathi Support)
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-200 text-amber-900">
+                        +₹33 मात्र
+                      </span>
+                    </div>
+                    <span className="text-xs font-black text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                      💰 एजेंट की एक्स्ट्रा कमाई: +₹23 नकद
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    <strong>सुरक्षित यात्रा साथी:</strong> जब तक बस नहीं आएगी, एजेंट बस स्टॉप/स्टेशन पर ही यात्री के साथ उपस्थित रहेगा और बस में सुरक्षित बैठाकर आएगा। (महिलाओं, बुजुर्गों, बच्चों व रात के सफर के लिए अत्यंत सुरक्षित सेवा)।
+                  </p>
+                  <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-500 pt-1">
+                    <span>यात्री चार्ज: ₹33</span>
+                    <span>•</span>
+                    <span className="text-emerald-700 font-bold">एजेंट मानदेय: +₹23</span>
+                    <span>•</span>
+                    <span>SafarGo प्लेटफॉर्म शेयर: ₹10</span>
+                  </div>
+                </div>
+              </label>
             </div>
 
             <div className="mt-4">

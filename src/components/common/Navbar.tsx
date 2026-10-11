@@ -746,7 +746,65 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                   <LogOut className="w-4 h-4" /> लॉगआउट (Sign Out)
                 </button>
               </>
-            ) : (
+            ) : role === 'customer' ? (
+              <>
+                <button
+                  onClick={() => handleTabChange('customer-portal')}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
+                    currentTab === 'customer-portal' ? 'bg-orange-500 text-white' : 'text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <User className="w-4 h-4 text-orange-400" /> ग्राहक पोर्टल (मेरी बस टिकटें)
+                </button>
+                <button
+                  onClick={() => handleTabChange('quick-delivery')}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
+                    currentTab === 'quick-delivery' ? 'bg-emerald-600 text-white' : 'text-emerald-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <Bike className="w-4 h-4 text-emerald-400" /> 15-मिनट सामान मंगवाएं (Rural Blinkit)
+                </button>
+                <button
+                  onClick={() => handleTabChange('home')}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
+                    currentTab === 'home' ? 'bg-orange-500 text-white' : 'text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <Bus className="w-4 h-4 text-orange-400" /> नजदीकी SafarGo बस एजेंट खोजें
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left px-3 py-2 rounded-lg text-sm font-bold text-rose-400 hover:bg-rose-950/40 flex items-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" /> लॉगआउट (Sign Out)
+                </button>
+              </>
+            ) : role === 'shopkeeper' ? (
+              <>
+                <button
+                  onClick={() => handleTabChange('shopkeeper-portal')}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
+                    currentTab === 'shopkeeper-portal' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <Store className="w-4 h-4 text-emerald-400" /> दुकानदार पोर्टल व कैटलॉग
+                </button>
+                <button
+                  onClick={() => handleTabChange('quick-delivery')}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
+                    currentTab === 'quick-delivery' ? 'bg-emerald-600 text-white' : 'text-emerald-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <Bike className="w-4 h-4 text-emerald-400" /> 15-मिनट रनर ऑर्डर्स
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left px-3 py-2 rounded-lg text-sm font-bold text-rose-400 hover:bg-rose-950/40 flex items-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" /> लॉगआउट (Sign Out)
+                </button>
+              </>
+            ) : (currentUser && role === 'admin' && isAdmin) ? (
               <>
                 <button
                   onClick={() => handleTabChange('admin-dashboard')}
@@ -857,6 +915,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                   <LogOut className="w-4 h-4" /> लॉगआउट (Sign Out)
                 </button>
               </>
+            ) : (
+              <button
+                onClick={handleLogout}
+                className="w-full text-left px-3 py-2 rounded-lg text-sm font-bold text-rose-400 hover:bg-rose-950/40 flex items-center gap-2"
+              >
+                <LogOut className="w-4 h-4" /> लॉगआउट (Sign Out)
+              </button>
             )}
           </div>
         )}
