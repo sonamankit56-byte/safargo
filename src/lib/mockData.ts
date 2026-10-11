@@ -272,6 +272,38 @@ export const INITIAL_PROFILES: Profile[] = [
     password: 'Agent@123',
     created_at: '2026-10-02T09:00:00Z',
     updated_at: '2026-10-02T10:00:00Z',
+  },
+  {
+    id: 'usr-customer-01',
+    role: 'customer',
+    full_name: 'अजय शर्मा (Customer)',
+    mobile: '9827011223',
+    email: 'ajay.customer@gmail.com',
+    city: 'Sironj',
+    district: 'Vidisha',
+    address: 'मकान नं 42, सिविल लाइन्स, सिरोंज (विदिशा)',
+    agent_status: 'approved',
+    referral_code: 'SFG-CUST-AJAY',
+    password: 'Customer@123',
+    created_at: '2026-10-01T08:00:00Z',
+    updated_at: '2026-10-01T08:00:00Z',
+  },
+  {
+    id: 'usr-shopkeeper-01',
+    role: 'shopkeeper',
+    full_name: 'महेश कुमार गुप्ता',
+    mobile: '9826199881',
+    email: 'mahesh.kirana@safargo.in',
+    city: 'Sironj',
+    district: 'Vidisha',
+    address: 'मेन मार्केट, घंटाघर के पास, सिरोंज',
+    shop_name: 'गुप्ता किराना एवं जनरल स्टोर्स',
+    shop_id: 'shop-01',
+    agent_status: 'approved',
+    referral_code: 'SFG-SHOP-GUPTA',
+    password: 'Shop@123',
+    created_at: '2026-09-05T09:00:00Z',
+    updated_at: '2026-09-05T09:00:00Z',
   }
 ];
 
@@ -937,6 +969,7 @@ export const INITIAL_PROMOTER_APPLICATIONS: PromoterApplication[] = [
 export const INITIAL_PARTNER_SHOPS: PartnerShop[] = [
   {
     id: 'shop-01',
+    user_id: 'usr-shopkeeper-01',
     shop_name: 'श्री राम किराना एवं जनरल स्टोर्स',
     owner_name: 'मोहन लाल गुप्ता',
     mobile: '9826199881',

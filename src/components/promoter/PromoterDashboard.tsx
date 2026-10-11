@@ -119,6 +119,12 @@ export const PromoterDashboard: React.FC = () => {
     (s) => s.promoter_id === currentUser?.id || s.promoter_name === currentUser?.full_name || s.city === currentUser?.city
   );
 
+  // Mixed target: 20 Local Shopkeepers with highest Gold Subscription (₹699/mo)
+  const targetShopsGoal = 20;
+  const goldShopsCount = myShops.filter((s) => s.subscription_plan_name.includes('गोल्ड') || s.monthly_fee >= 699).length;
+  const goldProgressPct = Math.min(100, Math.round((goldShopsCount / targetShopsGoal) * 100));
+  const isMixedAchieved = verifiedAgentsCount >= 500 || (myShops.length >= 20 && goldShopsCount >= 20);
+
   // Handle Add Partner Shop
   const handleCreateShop = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -253,34 +259,57 @@ export const PromoterDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. Target Progress & Quality Rule Banner */}
-      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <h3 className="text-sm font-bold text-amber-900">
-              कम्पलसरी क्वालिटी नियम: प्रति एजेंट 3 कन्फर्म बस बुकिंग्स अनिवार्य!
-            </h3>
-            <p className="text-xs text-amber-800 leading-relaxed">
-              केवल एजेंट का नाम रजिस्टर कराने से टारगेट नहीं गिना जाएगा। एजेंट द्वारा <strong>न्यूनतम 3 कंफर्म बस सीटें बुक करने पर ही</strong> वह आपके 500 लक्ष्य में मान्य व सत्यापित होगा।
-            </p>
+      {/* 2. Promoter Mixed / Hybrid Target Rule Banner */}
+      <div className="bg-gradient-to-r from-amber-50 via-indigo-50 to-emerald-50 border-2 border-indigo-200 rounded-3xl p-5 shadow-sm space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm font-black">
+              <Award className="w-5 h-5 text-amber-300" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-600 text-white">
+                  मिक्स्ड / हाइब्रिड लक्ष्य मॉडल (Mixed Target Model)
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                  ₹15,000 फिक्स्ड वेतन + 100% फीस रिफंड (₹648)
+                </span>
+                {isMixedAchieved && (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white animate-pulse">
+                    🎉 लक्ष्य पूर्ण (Target Achieved)
+                  </span>
+                )}
+              </div>
+              <h3 className="text-sm sm:text-base font-black text-slate-900">
+                यदि 500 एजेंट नहीं भी हुए, तो भी चलेगा! 20 दुकानदार जोड़कर सबसे महंगा गोल्ड पैकेज बेचें
+              </h3>
+              <p className="text-xs text-slate-600 leading-relaxed max-w-2xl">
+                सफ़ारगो प्रमोटर का लक्ष्य बहुत लचीला है। आप <strong>ट्रैक 1 (500 एजेंट ≥3 बुकिंग्स)</strong> पूरा कर सकते हैं <strong>अथवा</strong> अपने क्षेत्र में <strong>20 स्थानीय दुकानदारों को जोड़कर सबसे महंगा गोल्ड पैकेज (₹699/माह)</strong> बेच सकते हैं। दोनों में से किसी भी एक ट्रैक को पूरा करने पर आपका लक्ष्य 100% मान्य होगा और ₹15,000 वेतन व फीस रिफंड सुरक्षित रहेगा!
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div className="shrink-0 w-full md:w-64 bg-white p-3 rounded-xl border border-amber-200 shadow-sm">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-700 mb-1.5">
-            <span>सत्यापित एजेंट प्रगति</span>
-            <span className="text-indigo-600">{verifiedAgentsCount} / 500</span>
-          </div>
-          <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full transition-all duration-500"
-              style={{ width: `${Math.max(4, progressPct)}%` }}
-            />
-          </div>
-          <div className="text-[10px] text-slate-500 mt-1 flex justify-between">
-            <span>कुल एजेंट: {networkAgents.length}</span>
-            <span>शेष: {Math.max(0, 500 - verifiedAgentsCount)}</span>
+          {/* Dual Track Status Gauges */}
+          <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+            {/* Track 1: Agents */}
+            <div className="w-full sm:w-44 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
+              <div className="text-[10px] font-bold text-slate-500 uppercase">ट्रैक 1: सत्यापित एजेंट</div>
+              <div className="text-base font-black text-indigo-700">{verifiedAgentsCount} / 500</div>
+              <div className="w-full h-2 bg-slate-100 rounded-full mt-1.5 overflow-hidden">
+                <div className="h-full bg-indigo-600 rounded-full" style={{ width: `${Math.max(4, progressPct)}%` }} />
+              </div>
+              <div className="text-[9px] text-slate-400 mt-1">प्रति एजेंट ≥3 बुकिंग</div>
+            </div>
+
+            {/* Track 2: 20 Shops Gold Package */}
+            <div className="w-full sm:w-44 bg-white p-3 rounded-2xl border border-amber-200 shadow-2xs">
+              <div className="text-[10px] font-bold text-slate-500 uppercase">ट्रैक 2: 20 गोल्ड दुकानदार</div>
+              <div className="text-base font-black text-amber-600">{goldShopsCount} / 20</div>
+              <div className="w-full h-2 bg-slate-100 rounded-full mt-1.5 overflow-hidden">
+                <div className="h-full bg-amber-500 rounded-full" style={{ width: `${Math.max(4, goldProgressPct)}%` }} />
+              </div>
+              <div className="text-[9px] text-slate-400 mt-1">गोल्ड पैकेज ₹699/माह</div>
+            </div>
           </div>
         </div>
       </div>

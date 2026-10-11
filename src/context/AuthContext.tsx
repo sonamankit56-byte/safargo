@@ -13,6 +13,8 @@ interface AuthContextType {
   isApprovedAgent: boolean;
   isAdmin: boolean;
   isPromoter: boolean;
+  isCustomer: boolean;
+  isShopkeeper: boolean;
   login: (emailOrMobile: string, password?: string) => Promise<boolean>;
   pendingLoginOtps: PendingLoginOtp[];
   initiateAgentLogin: (
@@ -31,6 +33,26 @@ interface AuthContextType {
     address: string;
     shop_name?: string;
     referral_code?: string;
+    password?: string;
+  }) => Promise<boolean>;
+  registerCustomer: (details: {
+    full_name: string;
+    mobile: string;
+    email?: string;
+    city: string;
+    district?: string;
+    address: string;
+    password?: string;
+  }) => Promise<boolean>;
+  registerShopkeeper: (details: {
+    full_name: string;
+    shop_name: string;
+    mobile: string;
+    email?: string;
+    city: string;
+    district?: string;
+    address: string;
+    category?: 'kirana' | 'medical' | 'dairy' | 'bakery' | 'hardware' | 'general_store';
     password?: string;
   }) => Promise<boolean>;
   logout: () => void;
@@ -191,6 +213,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const role: UserRole | null = currentUser ? currentUser.role : null;
   const isAdmin = currentUser?.role === 'admin';
   const isPromoter = currentUser?.role === 'promoter';
+  const isCustomer = currentUser?.role === 'customer';
+  const isShopkeeper = currentUser?.role === 'shopkeeper';
   const isApprovedAgent = currentUser?.role === 'agent' && currentUser?.agent_status === 'approved';
 
   const login = async (emailOrMobile: string, password?: string): Promise<boolean> => {
@@ -230,10 +254,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setProfiles(updated);
 
       setCurrentUserId(found.id);
-      success(`Welcome back, ${found.full_name}!`, `लॉगिन सफल (${found.role === 'admin' ? 'एडमिन' : 'एजेंट'})`);
+      const roleLabel =
+        found.role === 'admin'
+          ? 'सुपर एडमिन'
+          : found.role === 'promoter'
+          ? 'प्रमोटर पार्टनर'
+          : found.role === 'customer'
+          ? 'ग्राहक'
+          : found.role === 'shopkeeper'
+          ? 'दुकानदार / मर्चेंट'
+          : 'सीएससी एजेंट';
+      success(`Welcome back, ${found.full_name}!`, `लॉगिन सफल (${roleLabel})`);
       return true;
     } else {
-      error('User Not Found', 'यह ईमेल या मोबाइल नंबर पंजीकृत नहीं है। कृपया नया एजेंट रजिस्ट्रेशन करें।');
+      error('User Not Found', 'यह ईमेल या मोबाइल नंबर पंजीकृत नहीं है। कृपया रजिस्ट्रेशन करें।');
       return false;
     }
   };
@@ -472,6 +506,117 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     success(
       'पंजीकरण जमा हुआ!',
       'आपकी आईडी SafarGo टीम द्वारा सत्यापन के बाद एक्टिव हो जाएगी।'
+    );
+    return true;
+  };
+
+  const registerCustomer = async (details: {
+    full_name: string;
+    mobile: string;
+    email?: string;
+    city: string;
+    district?: string;
+    address: string;
+    password?: string;
+  }): Promise<boolean> => {
+    const cleanMobile = details.mobile.replace(/\D/g, '');
+    const exists = profiles.some(
+      (p) => p.mobile === cleanMobile || (details.email && p.email === details.email.trim())
+    );
+
+    if (exists) {
+      error('Registration Failed', 'इस मोबाइल नंबर या ईमेल से पहले से खाता पंजीकृत है। कृपया लॉगिन करें।');
+      return false;
+    }
+
+    const newId = `usr-customer-${Date.now()}`;
+    const cleanNameTag = details.full_name.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 5) || 'CUST';
+    const myReferralCode = `SFG-CUST-${cleanNameTag}${Math.floor(10 + Math.random() * 90)}`;
+    const nowIso = new Date().toISOString();
+
+    const newCustomer: Profile = {
+      id: newId,
+      role: 'customer',
+      full_name: details.full_name.trim(),
+      mobile: cleanMobile,
+      email: details.email?.trim() || `${cleanMobile}@safargo.in`,
+      city: details.city.trim(),
+      district: details.district?.trim() || details.city.trim(),
+      address: details.address.trim(),
+      agent_status: 'approved', // Auto-approved! No KYC wait for customers
+      referral_code: myReferralCode,
+      password: details.password?.trim() || 'Customer@123',
+      created_at: nowIso,
+      updated_at: nowIso,
+    };
+
+    setProfiles((prev) => [...prev, newCustomer]);
+    setCurrentUserId(newId);
+
+    if (isSupabaseConfigured) {
+      db.createProfile(newCustomer).catch((e) => console.error('Supabase customer create error:', e));
+    }
+
+    success(
+      `स्वागत है, ${newCustomer.full_name}! 🎉`,
+      'आपका ग्राहक खाता तुरंत सक्रिय हो गया है। अब बस टिकट व 15-मिनट क्विक डिलीवरी का आनंद लें।'
+    );
+    return true;
+  };
+
+  const registerShopkeeper = async (details: {
+    full_name: string;
+    shop_name: string;
+    mobile: string;
+    email?: string;
+    city: string;
+    district?: string;
+    address: string;
+    category?: 'kirana' | 'medical' | 'dairy' | 'bakery' | 'hardware' | 'general_store';
+    password?: string;
+  }): Promise<boolean> => {
+    const cleanMobile = details.mobile.replace(/\D/g, '');
+    const exists = profiles.some(
+      (p) => p.mobile === cleanMobile || (details.email && p.email === details.email.trim())
+    );
+
+    if (exists) {
+      error('Registration Failed', 'इस मोबाइल नंबर से पहले से खाता पंजीकृत है।');
+      return false;
+    }
+
+    const newId = `usr-shopkeeper-${Date.now()}`;
+    const cleanNameTag = details.full_name.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 5) || 'SHOP';
+    const myReferralCode = `SFG-SHOP-${cleanNameTag}${Math.floor(10 + Math.random() * 90)}`;
+    const nowIso = new Date().toISOString();
+
+    const newShopkeeper: Profile = {
+      id: newId,
+      role: 'shopkeeper',
+      full_name: details.full_name.trim(),
+      shop_name: details.shop_name.trim(),
+      mobile: cleanMobile,
+      email: details.email?.trim() || `${cleanMobile}@safargo.in`,
+      city: details.city.trim(),
+      district: details.district?.trim() || details.city.trim(),
+      address: details.address.trim(),
+      agent_status: 'approved',
+      referral_code: myReferralCode,
+      password: details.password?.trim() || 'Shop@123',
+      created_at: nowIso,
+      updated_at: nowIso,
+    };
+
+    setProfiles((prev) => [...prev, newShopkeeper]);
+    setCurrentUserId(newId);
+
+    if (isSupabaseConfigured) {
+      db.createProfile(newShopkeeper).catch((e) => console.error('Supabase shopkeeper create error:', e));
+    }
+
+    success(
+      `नमस्ते, ${newShopkeeper.full_name}! 🏪`,
+      'आपकी दुकान का खाता पंजीकृत हो गया है। अब अपनी दुकान से सामान बेचें व ऑर्डर प्राप्त करें।'
     );
     return true;
   };
@@ -743,6 +888,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isApprovedAgent,
         isAdmin,
         isPromoter,
+        isCustomer,
+        isShopkeeper,
         login,
         pendingLoginOtps,
         initiateAgentLogin,
@@ -750,6 +897,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         adminApproveLoginOtp,
         setSecurityMpin,
         registerAgent,
+        registerCustomer,
+        registerShopkeeper,
         logout,
         updateProfile,
         approveAgent,

@@ -36,6 +36,7 @@ export const AdminPromoterManagement: React.FC = () => {
     onboardPromoterPartner,
     refundPromoterFee,
     bookings,
+    partnerShops,
   } = useData();
   const { allProfiles } = useAuth();
   const { success, error, info } = useToast();
@@ -67,9 +68,11 @@ export const AdminPromoterManagement: React.FC = () => {
 
   const filledCount = slots.filter((s) => s.isFilled).length;
 
-  // Helper to calculate verified agents for a promoter (Compulsory >= 3 confirmed bookings rule!)
+  // Helper to calculate verified agents for a promoter (Compulsory >= 3 confirmed bookings rule OR 20 shops with Gold package!)
   const getPromoterVerifiedStats = (promoterCode?: string, promoterId?: string) => {
-    if (!promoterCode && !promoterId) return { verifiedCount: 0, totalCount: 0 };
+    if (!promoterCode && !promoterId) {
+      return { verifiedCount: 0, totalCount: 0, shopsCount: 0, goldSubsCount: 0, isMixedAchieved: false };
+    }
     const networkAgents = allProfiles.filter(
       (p) =>
         (p.promoter_code && p.promoter_code === promoterCode) ||
@@ -84,9 +87,22 @@ export const AdminPromoterManagement: React.FC = () => {
       return confirmedCount >= 3;
     });
 
+    const promoterShops = partnerShops.filter(
+      (s) => s.promoter_id === promoterId || (promoterCode && s.promoter_name.includes(promoterCode))
+    );
+
+    const goldSubs = promoterShops.filter(
+      (s) => s.subscription_plan_name.includes('गोल्ड') || s.monthly_fee >= 699
+    );
+
+    const isMixedAchieved = verifiedAgents.length >= 500 || (promoterShops.length >= 20 && goldSubs.length >= 20);
+
     return {
       verifiedCount: verifiedAgents.length,
       totalCount: networkAgents.length,
+      shopsCount: promoterShops.length,
+      goldSubsCount: goldSubs.length,
+      isMixedAchieved,
     };
   };
 
@@ -453,14 +469,19 @@ export const AdminPromoterManagement: React.FC = () => {
                     )}
 
                     {app.status === 'onboarded_499_paid' && (
-                      <div className="flex items-center gap-2">
-                        <div className="text-right text-xs">
-                          <div className="font-bold text-slate-900">
-                            सत्यापित: {stats.verifiedCount} / 500
+                      <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
+                        <div className="text-right text-xs bg-slate-50 p-2 rounded-xl border border-slate-100">
+                          <div className="font-bold text-indigo-700">
+                            ट्रैक 1: {stats.verifiedCount}/500 एजेंट
                           </div>
-                          <div className="text-[10px] text-slate-500">
-                            (3 बुकिंग पूर्ण)
+                          <div className="text-[10px] text-amber-700 font-bold">
+                            ट्रैक 2: {stats.goldSubsCount}/20 गोल्ड दुकान
                           </div>
+                          {stats.isMixedAchieved && (
+                            <div className="text-[9px] font-black text-emerald-600">
+                              ✓ हाइब्रिड लक्ष्य पूर्ण
+                            </div>
+                          )}
                         </div>
 
                         {!app.fee_refund_eligible ? (

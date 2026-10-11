@@ -140,6 +140,34 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
               </button>
             )}
 
+            {currentUser && role === 'customer' && (
+              <button
+                onClick={() => handleTabChange('customer-portal')}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition ${
+                  currentTab === 'customer-portal'
+                    ? 'bg-orange-500 text-white shadow-sm'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <User className="w-4 h-4 text-orange-400" />
+                <span>ग्राहक डैशबोर्ड</span>
+              </button>
+            )}
+
+            {currentUser && role === 'shopkeeper' && (
+              <button
+                onClick={() => handleTabChange('shopkeeper-portal')}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition ${
+                  currentTab === 'shopkeeper-portal'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-emerald-300 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <Store className="w-4 h-4 text-emerald-400" />
+                <span>दुकानदार पोर्टल</span>
+              </button>
+            )}
+
             {currentUser && role === 'agent' && (
               <>
                 <button
@@ -456,7 +484,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                         </div>
                       )}
                     </div>
-                    <div className="hidden lg:block text-xs">
+                      <div className="hidden lg:block text-xs">
                       <div className="font-semibold text-white leading-tight flex items-center gap-1">
                         <span>{currentUser?.full_name}</span>
                         {currentUser?.photo_verified && (
@@ -464,7 +492,15 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                         )}
                       </div>
                       <div className="text-[10px] text-slate-400 uppercase tracking-wider">
-                        {isAdmin ? 'SUPER ADMIN' : currentUser?.shop_name || 'AGENT'}
+                        {isAdmin
+                          ? 'SUPER ADMIN'
+                          : role === 'customer'
+                          ? 'CUSTOMER'
+                          : role === 'shopkeeper'
+                          ? 'SHOPKEEPER'
+                          : role === 'promoter'
+                          ? 'PROMOTER'
+                          : currentUser?.shop_name || 'AGENT'}
                       </div>
                     </div>
                   </button>
@@ -482,21 +518,57 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                         </div>
                         <p className="text-slate-400 text-xs truncate mt-0.5">{currentUser?.email || currentUser?.mobile}</p>
                         <p className="text-orange-400 text-[11px] font-semibold mt-1">
-                          रोल: {isAdmin ? 'सुपर एडमिन' : 'अधिकृत एजेंट'} • KYC: {currentUser?.kyc_status === 'verified' ? 'सत्यापित ✓' : currentUser?.kyc_status === 'pending' ? 'प्रक्रियाधीन ⏳' : 'अधूरा ⚠️'}
+                          रोल: {isAdmin
+                            ? 'सुपर एडमिन'
+                            : role === 'promoter'
+                            ? 'प्रमोटर'
+                            : role === 'customer'
+                            ? 'ग्राहक'
+                            : role === 'shopkeeper'
+                            ? 'दुकानदार'
+                            : 'अधिकृत एजेंट'}
                         </p>
                       </div>
 
                       <div className="p-2 space-y-1">
-                        <button
-                          onClick={() => {
-                            handleTabChange('agent-profile');
-                            setUserDropdownOpen(false);
-                          }}
-                          className="w-full text-left px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700/60 rounded-xl flex items-center gap-2 transition"
-                        >
-                          <User className="w-4 h-4 text-slate-400" />
-                          <span>प्रोफ़ाइल एवं KYC सत्यापन</span>
-                        </button>
+                        {role === 'customer' && (
+                          <button
+                            onClick={() => {
+                              handleTabChange('customer-portal');
+                              setUserDropdownOpen(false);
+                            }}
+                            className="w-full text-left px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700/60 rounded-xl flex items-center gap-2 transition"
+                          >
+                            <User className="w-4 h-4 text-orange-400" />
+                            <span>मेरी टिकटें व डिलीवरी</span>
+                          </button>
+                        )}
+
+                        {role === 'shopkeeper' && (
+                          <button
+                            onClick={() => {
+                              handleTabChange('shopkeeper-portal');
+                              setUserDropdownOpen(false);
+                            }}
+                            className="w-full text-left px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700/60 rounded-xl flex items-center gap-2 transition"
+                          >
+                            <Store className="w-4 h-4 text-emerald-400" />
+                            <span>दुकानदार पोर्टल व कैटलॉग</span>
+                          </button>
+                        )}
+
+                        {role === 'agent' && (
+                          <button
+                            onClick={() => {
+                              handleTabChange('agent-profile');
+                              setUserDropdownOpen(false);
+                            }}
+                            className="w-full text-left px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700/60 rounded-xl flex items-center gap-2 transition"
+                          >
+                            <User className="w-4 h-4 text-slate-400" />
+                            <span>प्रोफ़ाइल एवं KYC सत्यापन</span>
+                          </button>
+                        )}
 
                         <button
                           onClick={handleLogout}

@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'promoter' | 'agent' | 'customer';
+export type UserRole = 'admin' | 'promoter' | 'agent' | 'customer' | 'shopkeeper';
 
 export type AgentStatus = 'pending_approval' | 'approved' | 'rejected' | 'suspended';
 
@@ -50,6 +50,7 @@ export interface Profile {
   district: string;
   address: string;
   shop_name?: string;
+  shop_id?: string;
   wallet_balance?: number;
   agent_status: AgentStatus;
   approved_by?: string;
@@ -376,7 +377,7 @@ export interface PromotionClaim {
   user_id: string;
   user_name: string;
   user_mobile: string;
-  user_role: 'admin' | 'promoter' | 'agent' | 'customer' | 'creator';
+  user_role: 'admin' | 'promoter' | 'agent' | 'customer' | 'shopkeeper' | 'creator';
   platform: PromotionPlatform;
   content_type: PromotionContentType;
   post_url: string;
@@ -428,6 +429,10 @@ export interface PromoterApplication {
   target_verified_agents: number; // Default 500
   current_verified_agents: number; // Count of agents who completed >= 3 confirmed bus bookings
   current_total_agents: number;
+  target_shops_count?: number; // Target 20 local shopkeepers
+  current_shops_count?: number; // Current shopkeepers onboarded
+  gold_subscriptions_count?: number; // Count of shops with highest Gold package (₹699/mo)
+  is_mixed_target_achieved?: boolean; // Achieved if verified agents >= 500 OR (shops >= 20 && gold >= 20)
   fee_refund_eligible: boolean;
   fee_refunded_at?: string;
   created_at: string;
@@ -457,6 +462,7 @@ export interface PartnerShopItem {
 
 export interface PartnerShop {
   id: string;
+  user_id?: string; // Linked shopkeeper profile ID for merchant login
   shop_name: string;
   owner_name: string;
   mobile: string;

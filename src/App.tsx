@@ -26,6 +26,8 @@ import { PromoterDashboard } from './components/promoter/PromoterDashboard';
 import { PromoterApplicationModal } from './components/promoter/PromoterApplicationModal';
 import { QuickDeliveryHub } from './components/delivery/QuickDeliveryHub';
 import { AgentDeliveryDesk } from './components/agent/AgentDeliveryDesk';
+import { CustomerPortal } from './components/customer/CustomerPortal';
+import { ShopkeeperPortal } from './components/shop/ShopkeeperPortal';
 import { AuthModal } from './components/auth/AuthModal';
 import { AnnouncementBanner } from './components/common/AnnouncementBanner';
 import { HomePage } from './components/home/HomePage';
@@ -128,6 +130,10 @@ const AppContent: React.FC = () => {
               }
             }}
           />
+        ) : currentTab === 'customer-portal' || role === 'customer' ? (
+          <CustomerPortal onNavigateTab={setCurrentTab} />
+        ) : currentTab === 'shopkeeper-portal' || role === 'shopkeeper' ? (
+          <ShopkeeperPortal />
         ) : role === 'promoter' ? (
           <>
             {currentTab === 'promoter-dashboard' && <PromoterDashboard />}

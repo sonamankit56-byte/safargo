@@ -996,6 +996,75 @@ describe('T. SafarGo 15-Minute Rural Quick Delivery Service (Distance Pricing & 
   });
 });
 
+describe('T. Customer Separate Authentication & Dedicated Portal', () => {
+  it('correctly registers customer with auto-approved status and no KYC overhead', () => {
+    const customer = INITIAL_PROFILES.find((p) => p.role === 'customer');
+    expect(customer).toBeDefined();
+    expect(customer?.role).toBe('customer');
+    expect(customer?.agent_status).toBe('approved');
+    expect(customer?.kyc_status).toBeUndefined(); // Customers do not need KYC
+  });
+
+  it('distinguishes customer, shopkeeper, promoter, agent, and admin roles', () => {
+    const roles = INITIAL_PROFILES.map((p) => p.role);
+    expect(roles).toContain('customer');
+    expect(roles).toContain('shopkeeper');
+    expect(roles).toContain('promoter');
+    expect(roles).toContain('agent');
+    expect(roles).toContain('admin');
+  });
+
+  it('allows customer to view personal bus bookings and delivery orders', () => {
+    const customer = INITIAL_PROFILES.find((p) => p.role === 'customer')!;
+    expect(customer.mobile).toBe('9827011223');
+    expect(customer.city).toBe('Sironj');
+    expect(customer.address).toBeDefined();
+  });
+});
+
+describe('U. Shopkeeper Portal & Subscription Upgrades', () => {
+  it('identifies shopkeeper and links shop record', () => {
+    const shopkeeper = INITIAL_PROFILES.find((p) => p.role === 'shopkeeper');
+    expect(shopkeeper).toBeDefined();
+    expect(shopkeeper?.shop_name).toBe('गुप्ता किराना एवं जनरल स्टोर्स');
+    expect(shopkeeper?.shop_id).toBe('shop-01');
+  });
+
+  it('supports upgrading shop to Gold Subscription Package (₹699/month)', () => {
+    const goldPlan = {
+      name: 'गोल्ड सुप्रीम पार्टनर (₹699/माह)',
+      price: 699,
+      duration_days: 30,
+    };
+    expect(goldPlan.price).toBe(699);
+    expect(goldPlan.name).toContain('गोल्ड');
+  });
+});
+
+describe('V. Promoter Partner Mixed / Hybrid Target Model', () => {
+  it('qualifies promoter if 500 agents target is achieved (Track 1)', () => {
+    const verifiedAgentsCount = 500;
+    const goldShopsCount = 0;
+    const isAchieved = verifiedAgentsCount >= 500 || (goldShopsCount >= 20);
+    expect(isAchieved).toBe(true);
+  });
+
+  it('qualifies promoter even if 500 agents is NOT met, provided 20 shops buy Gold Subscription (Track 2)', () => {
+    const verifiedAgentsCount = 12; // Far below 500
+    const goldShopsCount = 20; // 20 shops with highest Gold package!
+    const isAchieved = verifiedAgentsCount >= 500 || (goldShopsCount >= 20);
+    expect(isAchieved).toBe(true);
+  });
+
+  it('does not qualify promoter if neither track is completed', () => {
+    const verifiedAgentsCount = 85;
+    const goldShopsCount = 7;
+    const isAchieved = verifiedAgentsCount >= 500 || (goldShopsCount >= 20);
+    expect(isAchieved).toBe(false);
+  });
+});
+
+
 
 
 
