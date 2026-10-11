@@ -15,7 +15,14 @@ import {
   WalletTransaction,
   PromotionClaim,
   PromotionPlatform,
-  PromotionContentType
+  PromotionContentType,
+  PromoterApplication,
+  ShopSubscriptionPlan,
+  PartnerShop,
+  PartnerShopItem,
+  AgentCallLog,
+  QuickDeliveryOrder,
+  DeliveryOrderStatus
 } from '../types';
 import {
   INITIAL_BOOKINGS,
@@ -27,7 +34,12 @@ import {
   INITIAL_PAYOUT_REQUESTS,
   INITIAL_WALLET_RECHARGES,
   INITIAL_WALLET_TRANSACTIONS,
-  INITIAL_PROMOTION_CLAIMS
+  INITIAL_PROMOTION_CLAIMS,
+  INITIAL_PROMOTER_APPLICATIONS,
+  INITIAL_PARTNER_SHOPS,
+  INITIAL_AGENT_CALL_LOGS,
+  INITIAL_QUICK_DELIVERY_ORDERS,
+  SHOP_SUBSCRIPTION_PLANS
 } from '../lib/mockData';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
@@ -116,6 +128,53 @@ interface DataContextType {
   approvePromotionClaim: (claimId: string, paymentReference?: string, notes?: string) => Promise<boolean>;
   rejectPromotionClaim: (claimId: string, reason: string) => Promise<boolean>;
 
+  // Promoter Partner Program (Only 5 Candidates, ₹15,000/Month Salary, 500 Target, 100% Refund)
+  promoterApplications: PromoterApplication[];
+  submitPromoterApplication: (data: {
+    applicant_name: string;
+    mobile: string;
+    email: string;
+    city: string;
+    district: string;
+    experience_note: string;
+    application_fee_utr: string;
+  }) => Promise<boolean>;
+  schedulePromoterInterview: (appId: string, interviewDate: string, notes?: string) => Promise<boolean>;
+  passPromoterInterview: (appId: string, notes?: string) => Promise<boolean>;
+  onboardPromoterPartner: (appId: string, onboardingUtr: string, slotNo: number) => Promise<boolean>;
+  refundPromoterFee: (appId: string) => Promise<boolean>;
+
+  // Local Shopkeeper Subscriptions & Online Catalog
+  partnerShops: PartnerShop[];
+  addPartnerShop: (shop: Omit<PartnerShop, 'id' | 'created_at'>) => Promise<boolean>;
+  updatePartnerShop: (shopId: string, updates: Partial<PartnerShop>) => Promise<boolean>;
+  addPartnerShopItem: (shopId: string, item: Omit<PartnerShopItem, 'id'>) => Promise<boolean>;
+  togglePartnerShopItemStock: (shopId: string, itemId: string) => Promise<boolean>;
+
+  // Daily Agent Calling & Field Audit Tracker
+  agentCallLogs: AgentCallLog[];
+  logAgentCall: (callData: Omit<AgentCallLog, 'id' | 'created_at'>) => Promise<boolean>;
+
+  // SafarGo 15-Minute Rural/Town Quick Delivery (Blinkit Model for MP)
+  quickDeliveryOrders: QuickDeliveryOrder[];
+  agentQuickDeliveryOrders: QuickDeliveryOrder[];
+  createDeliveryOrder: (orderData: {
+    customer_name: string;
+    customer_mobile: string;
+    customer_address: string;
+    city: string;
+    items_description: string;
+    distance_km: number;
+    pickup_mode: 'local_concierge' | 'partner_shop';
+    partner_shop_id?: string;
+    partner_shop_name?: string;
+  }) => Promise<QuickDeliveryOrder | null>;
+  agentAcceptDeliveryOrder: (orderId: string) => Promise<boolean>;
+  agentUploadDeliveryPhotoAndPrice: (orderId: string, photoUrl: string, actualItemPrice: number) => Promise<boolean>;
+  customerConfirmDeliveryOrder: (orderId: string) => Promise<boolean>;
+  completeDeliveryOrder: (orderId: string) => Promise<boolean>;
+  cancelDeliveryOrder: (orderId: string, reason?: string) => Promise<boolean>;
+
   // Commission Celebration Modal Trigger
   celebrationBooking: Booking | null;
   dismissCelebration: () => void;
@@ -132,6 +191,10 @@ const STORAGE_KEY_PAYOUTS = 'safargo_payouts_v1';
 const STORAGE_KEY_WALLET_RECHARGES = 'safargo_wallet_recharges_v1';
 const STORAGE_KEY_WALLET_TX = 'safargo_wallet_tx_v1';
 const STORAGE_KEY_PROMOTIONS = 'safargo_promotion_claims_v1';
+const STORAGE_KEY_PROMOTERS = 'safargo_promoter_apps_v1';
+const STORAGE_KEY_PARTNER_SHOPS = 'safargo_partner_shops_v1';
+const STORAGE_KEY_CALL_LOGS = 'safargo_call_logs_v1';
+const STORAGE_KEY_QUICK_DELIVERIES = 'safargo_quick_deliveries_v1';
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
@@ -252,6 +315,46 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return INITIAL_PROMOTION_CLAIMS;
   });
 
+  const [promoterApplications, setPromoterApplications] = useState<PromoterApplication[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_PROMOTERS);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return INITIAL_PROMOTER_APPLICATIONS;
+  });
+
+  const [partnerShops, setPartnerShops] = useState<PartnerShop[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_PARTNER_SHOPS);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return INITIAL_PARTNER_SHOPS;
+  });
+
+  const [agentCallLogs, setAgentCallLogs] = useState<AgentCallLog[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_CALL_LOGS);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return INITIAL_AGENT_CALL_LOGS;
+  });
+
+  const [quickDeliveryOrders, setQuickDeliveryOrders] = useState<QuickDeliveryOrder[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_QUICK_DELIVERIES);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return INITIAL_QUICK_DELIVERY_ORDERS;
+  });
+
   // Track seen confirmation IDs so animation only plays once per confirmed booking
   const [seenConfirmations, setSeenConfirmations] = useState<string[]>(() => {
     try {
@@ -309,6 +412,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_PROMOTIONS, JSON.stringify(promotionClaims));
   }, [promotionClaims]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_PROMOTERS, JSON.stringify(promoterApplications));
+  }, [promoterApplications]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_PARTNER_SHOPS, JSON.stringify(partnerShops));
+  }, [partnerShops]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_CALL_LOGS, JSON.stringify(agentCallLogs));
+  }, [agentCallLogs]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_QUICK_DELIVERIES, JSON.stringify(quickDeliveryOrders));
+  }, [quickDeliveryOrders]);
 
   // Real Database Sync: Load initial live data from Supabase when configured
   useEffect(() => {
@@ -1778,6 +1897,419 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
+  // =====================================================================
+  // PROMOTER PARTNER PROGRAM METHODS (5 SLOTS, ₹15K SALARY, 500 TARGET)
+  // =====================================================================
+  const submitPromoterApplication = async (data: {
+    applicant_name: string;
+    mobile: string;
+    email: string;
+    city: string;
+    district: string;
+    experience_note: string;
+    application_fee_utr: string;
+  }): Promise<boolean> => {
+    // Check if 5 slots are already filled
+    const onboardedCount = promoterApplications.filter((p) => p.status === 'onboarded_499_paid').length;
+    if (onboardedCount >= 5) {
+      error('Slots Full', 'सफ़ारगो प्रमोटर पार्टनर के सभी 5 पद पूर्ण हो चुके हैं!');
+      return false;
+    }
+
+    const cleanUtr = data.application_fee_utr.trim();
+    if (cleanUtr.length < 6) {
+      error('Invalid UTR', 'कृपया वैध 12-अंकों का UPI/UTR रेफरेंस नंबर दर्ज करें।');
+      return false;
+    }
+
+    const nowIso = new Date().toISOString();
+    const threeMonthsLater = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+
+    const newApp: PromoterApplication = {
+      id: `prm-app-${Date.now()}`,
+      applicant_name: data.applicant_name.trim(),
+      mobile: data.mobile.trim(),
+      email: data.email.trim(),
+      city: data.city.trim(),
+      district: data.district.trim(),
+      experience_note: data.experience_note.trim(),
+      application_fee: 149,
+      application_fee_utr: cleanUtr,
+      status: 'applied_149_paid',
+      onboarding_fee: 499,
+      target_verified_agents: 500,
+      current_verified_agents: 0,
+      current_total_agents: 0,
+      fee_refund_eligible: false,
+      created_at: nowIso,
+      deadline_at: threeMonthsLater,
+    };
+
+    setPromoterApplications((prev) => [newApp, ...prev]);
+    addAuditLog('submit_promoter_app', 'promoter_applications', newApp.id, { applicant: data.applicant_name });
+    success('आवेदन सफलतापूर्वक जमा हुआ! 🎉', '₹149 आवेदन शुल्क दर्ज हुआ। सुपर एडमिन द्वारा इंटरव्यू शेड्यूल किया जाएगा।');
+    return true;
+  };
+
+  const schedulePromoterInterview = async (appId: string, interviewDate: string, notes?: string): Promise<boolean> => {
+    if (!isAdmin) return false;
+    setPromoterApplications((prev) =>
+      prev.map((app) =>
+        app.id === appId
+          ? {
+              ...app,
+              status: 'interview_scheduled',
+              interview_date: interviewDate,
+              interview_notes: notes || 'सुपर एडमिन द्वारा टेलीफोनिक/गूगल मीट इंटरव्यू निर्धारित।',
+            }
+          : app
+      )
+    );
+    addAuditLog('schedule_promoter_interview', 'promoter_applications', appId, { interviewDate });
+    success('इंटरव्यू शेड्यूल हुआ', `प्रमोटर इंटरव्यू दिनांक: ${interviewDate}`);
+    return true;
+  };
+
+  const passPromoterInterview = async (appId: string, notes?: string): Promise<boolean> => {
+    if (!isAdmin) return false;
+    setPromoterApplications((prev) =>
+      prev.map((app) =>
+        app.id === appId
+          ? {
+              ...app,
+              status: 'interview_passed',
+              interview_notes: notes || (app.interview_notes ? app.interview_notes + ' | इंटरव्यू पास' : 'इंटरव्यू पास'),
+            }
+          : app
+      )
+    );
+    addAuditLog('pass_promoter_interview', 'promoter_applications', appId, {});
+    success('इंटरव्यू पास! ✅', 'उम्मीदवार शॉर्टलिस्ट हुआ। अब ₹499 ऑनबोर्डिंग शुल्क दर्ज करके स्लॉट अलॉट करें।');
+    return true;
+  };
+
+  const onboardPromoterPartner = async (appId: string, onboardingUtr: string, slotNo: number): Promise<boolean> => {
+    if (!isAdmin) return false;
+    const target = promoterApplications.find((a) => a.id === appId);
+    if (!target) return false;
+
+    if (slotNo < 1 || slotNo > 5) {
+      error('Invalid Slot', 'स्लॉट नंबर केवल 1 से 5 के मध्य हो सकता है।');
+      return false;
+    }
+
+    const nowIso = new Date().toISOString();
+    const threeMonthsLater = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+    const promoterCode = `PRM-MP-0${slotNo}`;
+
+    setPromoterApplications((prev) =>
+      prev.map((app) =>
+        app.id === appId
+          ? {
+              ...app,
+              status: 'onboarded_499_paid',
+              onboarding_fee_utr: onboardingUtr.trim(),
+              assigned_slot: slotNo,
+              promoter_code: promoterCode,
+              deadline_at: threeMonthsLater,
+            }
+          : app
+      )
+    );
+
+    addAuditLog('onboard_promoter', 'promoter_applications', appId, { slotNo, promoterCode });
+    success('प्रमोटर पार्टनर ऑनबोर्ड! 🚀', `${target.applicant_name} को स्लॉट #${slotNo} (${promoterCode}) अलॉट हुआ। ₹15,000 मानदेय एक्टिव!`);
+    return true;
+  };
+
+  const refundPromoterFee = async (appId: string): Promise<boolean> => {
+    if (!isAdmin) return false;
+    const target = promoterApplications.find((a) => a.id === appId);
+    if (!target) return false;
+
+    const nowIso = new Date().toISOString();
+    setPromoterApplications((prev) =>
+      prev.map((app) =>
+        app.id === appId
+          ? {
+              ...app,
+              fee_refund_eligible: true,
+              fee_refunded_at: nowIso,
+            }
+          : app
+      )
+    );
+
+    addAuditLog('refund_promoter_fee', 'promoter_applications', appId, { totalRefund: 648 });
+    success('100% फीस रिफंड सफल! 💰', `${target.applicant_name} को ₹648 (₹149 + ₹499) का 100% रिफंड जारी कर दिया गया है।`);
+    return true;
+  };
+
+  // =====================================================================
+  // LOCAL DUKANDAR (SHOPKEEPER) SUBSCRIPTIONS & CATALOG METHODS
+  // =====================================================================
+  const addPartnerShop = async (shopData: Omit<PartnerShop, 'id' | 'created_at'>): Promise<boolean> => {
+    const newShop: PartnerShop = {
+      ...shopData,
+      id: `shop-${Date.now()}`,
+      created_at: new Date().toISOString(),
+    };
+    setPartnerShops((prev) => [newShop, ...prev]);
+    addAuditLog('add_partner_shop', 'partner_shops', newShop.id, { shopName: newShop.shop_name });
+    success('लोकल दुकान सफलतापूर्वक जुड़ी! 🏪', `${newShop.shop_name} (${newShop.subscription_plan_name}) प्लेटफॉर्म पर लिस्ट हो गई है।`);
+    return true;
+  };
+
+  const updatePartnerShop = async (shopId: string, updates: Partial<PartnerShop>): Promise<boolean> => {
+    setPartnerShops((prev) =>
+      prev.map((s) => (s.id === shopId ? { ...s, ...updates } : s))
+    );
+    success('दुकान जानकारी अपडेट हुई', 'पार्टनर दुकान विवरण सुरक्षित हुआ।');
+    return true;
+  };
+
+  const addPartnerShopItem = async (shopId: string, item: Omit<PartnerShopItem, 'id'>): Promise<boolean> => {
+    const newItem: PartnerShopItem = {
+      ...item,
+      id: `item-${Date.now()}`,
+    };
+    setPartnerShops((prev) =>
+      prev.map((s) =>
+        s.id === shopId
+          ? {
+              ...s,
+              catalog_items: [...(s.catalog_items || []), newItem],
+            }
+          : s
+      )
+    );
+    success('सामान लिस्ट हुआ! 📦', `${item.name} दुकान कैटलॉग में सफलतापूर्वक जुड़ गया।`);
+    return true;
+  };
+
+  const togglePartnerShopItemStock = async (shopId: string, itemId: string): Promise<boolean> => {
+    setPartnerShops((prev) =>
+      prev.map((s) =>
+        s.id === shopId
+          ? {
+              ...s,
+              catalog_items: (s.catalog_items || []).map((it) =>
+                it.id === itemId ? { ...it, in_stock: !it.in_stock } : it
+              ),
+            }
+          : s
+      )
+    );
+    return true;
+  };
+
+  // =====================================================================
+  // DAILY AGENT CALLING & FIELD AUDIT METHODS
+  // =====================================================================
+  const logAgentCall = async (callData: Omit<AgentCallLog, 'id' | 'created_at'>): Promise<boolean> => {
+    const newLog: AgentCallLog = {
+      ...callData,
+      id: `call-${Date.now()}`,
+      created_at: new Date().toISOString(),
+    };
+    setAgentCallLogs((prev) => [newLog, ...prev]);
+    addAuditLog('log_agent_call', 'agent_call_logs', newLog.id, { agentName: callData.agent_name });
+    success('कॉल लॉग दर्ज हुआ 📞', `${callData.agent_name} की दैनिक कॉलिंग व एक्टिविटी चेक-इन सेव हो गई।`);
+    return true;
+  };
+
+  // =====================================================================
+  // SAFARGO 15-MINUTE QUICK DELIVERY METHODS (DISTANCE SPLIT MODEL)
+  // =====================================================================
+  const agentQuickDeliveryOrders = useMemo(() => {
+    if (!currentUser) return [];
+    return quickDeliveryOrders.filter(
+      (o) => !o.agent_id || o.agent_id === currentUser.id
+    );
+  }, [quickDeliveryOrders, currentUser]);
+
+  const calculateDeliveryPricing = (distanceKm: number) => {
+    const km = Math.max(0.1, Number(distanceKm) || 1);
+    if (km <= 2) {
+      return { delivery_fee: 25, agent_payout: 18, safargo_platform_fee: 7 };
+    } else if (km <= 4) {
+      return { delivery_fee: 45, agent_payout: 34, safargo_platform_fee: 11 };
+    } else if (km <= 6) {
+      return { delivery_fee: 65, agent_payout: 50, safargo_platform_fee: 15 };
+    } else {
+      const extraKm = Math.ceil(km - 6);
+      return {
+        delivery_fee: 65 + extraKm * 10,
+        agent_payout: 50 + extraKm * 8,
+        safargo_platform_fee: 15 + extraKm * 2,
+      };
+    }
+  };
+
+  const createDeliveryOrder = async (orderData: {
+    customer_name: string;
+    customer_mobile: string;
+    customer_address: string;
+    city: string;
+    items_description: string;
+    distance_km: number;
+    pickup_mode: 'local_concierge' | 'partner_shop';
+    partner_shop_id?: string;
+    partner_shop_name?: string;
+  }): Promise<QuickDeliveryOrder | null> => {
+    const pricing = calculateDeliveryPricing(orderData.distance_km);
+    const nowIso = new Date().toISOString();
+    const newOrder: QuickDeliveryOrder = {
+      id: `dlv-${Date.now()}`,
+      order_code: `SFG-DLV-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`,
+      customer_name: orderData.customer_name.trim(),
+      customer_mobile: orderData.customer_mobile.trim(),
+      customer_address: orderData.customer_address.trim(),
+      city: orderData.city.trim(),
+      items_description: orderData.items_description.trim(),
+      distance_km: orderData.distance_km,
+      pickup_mode: orderData.pickup_mode,
+      partner_shop_id: orderData.partner_shop_id,
+      partner_shop_name: orderData.partner_shop_name,
+      delivery_fee: pricing.delivery_fee,
+      agent_payout: pricing.agent_payout,
+      safargo_platform_fee: pricing.safargo_platform_fee,
+      status: 'placed',
+      created_at: nowIso,
+    };
+
+    setQuickDeliveryOrders((prev) => [newOrder, ...prev]);
+    addAuditLog('create_delivery_order', 'quick_delivery_orders', newOrder.id, { code: newOrder.order_code });
+    success('15-मिनट डिलीवरी ऑर्डर दर्ज हुआ! ⚡', `दूरी: ${orderData.distance_km} KM | डिलीवरी शुल्क: ₹${pricing.delivery_fee}। नजदीकी सफ़ारगो एजेंट 5 मिनट में पिकअप शुरू करेगा।`);
+    return newOrder;
+  };
+
+  const agentAcceptDeliveryOrder = async (orderId: string): Promise<boolean> => {
+    if (!currentUser) return false;
+    const nowIso = new Date().toISOString();
+    setQuickDeliveryOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              status: 'agent_assigned',
+              agent_id: currentUser.id,
+              agent_name: currentUser.full_name,
+              agent_mobile: currentUser.mobile,
+              agent_accepted_at: nowIso,
+            }
+          : o
+      )
+    );
+    success('ऑर्डर स्वीकार किया! 🚴', 'अब 5 मिनट में नजदीकी दुकान पर पहुँचें और सामान व बिल की फोटो खींचकर अपलोड करें।');
+    return true;
+  };
+
+  const agentUploadDeliveryPhotoAndPrice = async (orderId: string, photoUrl: string, actualItemPrice: number): Promise<boolean> => {
+    const order = quickDeliveryOrders.find((o) => o.id === orderId);
+    if (!order) return false;
+
+    const totalAmt = actualItemPrice + order.delivery_fee;
+    setQuickDeliveryOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              item_photo_url: photoUrl,
+              actual_item_price: actualItemPrice,
+              total_order_amount: totalAmt,
+              status: 'photo_price_uploaded',
+            }
+          : o
+      )
+    );
+    success('बिल व फोटो अपलोड हुई! 📸', `कुल राशि: ₹${actualItemPrice} (सामान) + ₹${order.delivery_fee} (डिलीवरी) = ₹${totalAmt}। ग्राहक की स्क्रीन पर पुष्टि हेतु भेजा गया।`);
+    return true;
+  };
+
+  const customerConfirmDeliveryOrder = async (orderId: string): Promise<boolean> => {
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const deadline15m = new Date(now.getTime() + 15 * 60 * 1000).toISOString();
+
+    setQuickDeliveryOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              status: 'out_for_delivery',
+              customer_confirmed_at: nowIso,
+              deadline_15m_at: deadline15m,
+            }
+          : o
+      )
+    );
+    success('ग्राहक द्वारा बिल स्वीकृत! ⏳', '15 मिनट का डिलीवरी टाइमर शुरू हो गया है। एजेंट आपके घर की ओर निकल चुका है।');
+    return true;
+  };
+
+  const completeDeliveryOrder = async (orderId: string): Promise<boolean> => {
+    const order = quickDeliveryOrders.find((o) => o.id === orderId);
+    if (!order) return false;
+
+    const nowIso = new Date().toISOString();
+    setQuickDeliveryOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              status: 'delivered',
+              delivered_at: nowIso,
+            }
+          : o
+      )
+    );
+
+    // Auto-credit agent payout to wallet
+    if (order.agent_id) {
+      const agentProfile = allProfiles.find((p) => p.id === order.agent_id);
+      if (agentProfile) {
+        const curBal = agentProfile.wallet_balance || 0;
+        const newBal = curBal + order.agent_payout;
+        if (currentUser?.id === order.agent_id) {
+          await updateProfile({ wallet_balance: newBal });
+        } else if (isSupabaseConfigured) {
+          db.updateProfile(order.agent_id, { wallet_balance: newBal }).catch(console.error);
+        }
+
+        const payoutTx: WalletTransaction = {
+          id: `wtx-${Date.now()}`,
+          agent_id: order.agent_id,
+          amount: order.agent_payout,
+          type: 'adjustment',
+          description: `15-Min Delivery Payout (${order.order_code} - ${order.distance_km} KM)`,
+          balance_after: newBal,
+          created_at: nowIso,
+        };
+        setWalletTransactions((prev) => [payoutTx, ...prev]);
+      }
+    }
+
+    addAuditLog('complete_delivery_order', 'quick_delivery_orders', orderId, { payout: order.agent_payout });
+    success('डिलीवरी सफलतापूर्वक संपन्न! 🏆', `एजेंट को ₹${order.agent_payout} की डिलीवरी कमाई सीधे वॉलेट में क्रेडिट कर दी गई।`);
+    return true;
+  };
+
+  const cancelDeliveryOrder = async (orderId: string, reason?: string): Promise<boolean> => {
+    setQuickDeliveryOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              status: 'cancelled',
+            }
+          : o
+      )
+    );
+    warning('डिलीवरी ऑर्डर रद्द', reason || 'ऑर्डर रद्द कर दिया गया है।');
+    return true;
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -1817,6 +2349,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         submitPromotionClaim,
         approvePromotionClaim,
         rejectPromotionClaim,
+        promoterApplications,
+        submitPromoterApplication,
+        schedulePromoterInterview,
+        passPromoterInterview,
+        onboardPromoterPartner,
+        refundPromoterFee,
+        partnerShops,
+        addPartnerShop,
+        updatePartnerShop,
+        addPartnerShopItem,
+        togglePartnerShopItemStock,
+        agentCallLogs,
+        logAgentCall,
+        quickDeliveryOrders,
+        agentQuickDeliveryOrders,
+        createDeliveryOrder,
+        agentAcceptDeliveryOrder,
+        agentUploadDeliveryPhotoAndPrice,
+        customerConfirmDeliveryOrder,
+        completeDeliveryOrder,
+        cancelDeliveryOrder,
         settings,
         updateSettings,
         updateAnnouncement,

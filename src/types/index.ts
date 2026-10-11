@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'agent' | 'customer';
+export type UserRole = 'admin' | 'promoter' | 'agent' | 'customer';
 
 export type AgentStatus = 'pending_approval' | 'approved' | 'rejected' | 'suspended';
 
@@ -84,6 +84,13 @@ export interface Profile {
   last_login_device?: string;
   last_login_at?: string;
   security_2fa_enabled?: boolean;
+
+  // Promoter Partner fields
+  promoter_code?: string;
+  promoter_slot_no?: number; // 1 to 5
+  promoter_assigned_id?: string; // If this agent was onboarded by a promoter
+  promoter_salary?: number; // ₹15,000 / month
+  promoter_fee_refunded?: boolean;
 
   created_at: string;
   updated_at: string;
@@ -369,7 +376,7 @@ export interface PromotionClaim {
   user_id: string;
   user_name: string;
   user_mobile: string;
-  user_role: 'admin' | 'agent' | 'customer' | 'creator';
+  user_role: 'admin' | 'promoter' | 'agent' | 'customer' | 'creator';
   platform: PromotionPlatform;
   content_type: PromotionContentType;
   post_url: string;
@@ -388,4 +395,147 @@ export interface PromotionClaim {
   deadline_at: string; // created_at + 24 Hours SLA
   reviewed_at?: string;
   reviewed_by?: string;
+}
+
+// =====================================================================
+// PROMOTER PARTNER PROGRAM (ONLY 5 SLOTS, ₹15,000 SALARY, 500 TARGET)
+// =====================================================================
+
+export type PromoterAppStatus =
+  | 'applied_149_paid'
+  | 'interview_scheduled'
+  | 'interview_passed'
+  | 'onboarded_499_paid'
+  | 'rejected';
+
+export interface PromoterApplication {
+  id: string;
+  applicant_name: string;
+  mobile: string;
+  email: string;
+  city: string;
+  district: string;
+  experience_note: string;
+  application_fee: number; // ₹149
+  application_fee_utr: string;
+  status: PromoterAppStatus;
+  interview_date?: string;
+  interview_notes?: string;
+  onboarding_fee: number; // ₹499
+  onboarding_fee_utr?: string;
+  assigned_slot?: number; // 1 to 5
+  promoter_code?: string; // e.g. "PRM-MP-01"
+  target_verified_agents: number; // Default 500
+  current_verified_agents: number; // Count of agents who completed >= 3 confirmed bus bookings
+  current_total_agents: number;
+  fee_refund_eligible: boolean;
+  fee_refunded_at?: string;
+  created_at: string;
+  deadline_at: string; // 3 Months from onboarding date
+}
+
+// Local Dukandar (Shopkeeper) Subscription Package
+export interface ShopSubscriptionPlan {
+  id: string;
+  name: string;
+  price: number; // e.g. ₹199, ₹399, ₹699
+  duration_days: number;
+  listing_limit: number;
+  badge: string;
+  description: string;
+  features: string[];
+}
+
+export interface PartnerShopItem {
+  id: string;
+  name: string;
+  price: number;
+  unit: string;
+  in_stock: boolean;
+  category?: string;
+}
+
+export interface PartnerShop {
+  id: string;
+  shop_name: string;
+  owner_name: string;
+  mobile: string;
+  address: string;
+  city: string;
+  district: string;
+  category: 'kirana' | 'medical' | 'dairy' | 'bakery' | 'hardware' | 'general_store';
+  subscription_plan_name: string;
+  monthly_fee: number;
+  subscription_status: 'active' | 'expiring_soon' | 'expired';
+  subscription_start: string;
+  subscription_end: string;
+  promoter_id: string;
+  promoter_name: string;
+  catalog_items: PartnerShopItem[];
+  created_at: string;
+}
+
+// Daily Agent Calling & Field Audit Tracker
+export interface AgentCallLog {
+  id: string;
+  promoter_id: string;
+  promoter_name: string;
+  agent_id: string;
+  agent_name: string;
+  agent_mobile: string;
+  call_purpose: 'booking_activity' | 'delivery_coordination' | 'kyc_help' | 'general_audit';
+  bus_booking_health: 'high_active' | 'active_1_2' | 'zero_bookings' | 'issue_reported';
+  delivery_readiness: 'active_ready' | 'bike_ready' | 'offline' | 'needs_training';
+  notes: string;
+  created_at: string;
+}
+
+// =====================================================================
+// SAFARGO 15-MINUTE QUICK DELIVERY SERVICE (RURAL/TOWN BLINKIT MODEL)
+// =====================================================================
+
+export type DeliveryOrderStatus =
+  | 'placed'
+  | 'agent_assigned'
+  | 'photo_price_uploaded'
+  | 'customer_confirmed'
+  | 'out_for_delivery'
+  | 'delivered'
+  | 'cancelled';
+
+export interface QuickDeliveryOrder {
+  id: string;
+  order_code: string; // e.g. "SFG-DLV-20261011-001"
+  customer_name: string;
+  customer_mobile: string;
+  customer_address: string;
+  city: string;
+  items_description: string;
+  distance_km: number;
+  pickup_mode: 'local_concierge' | 'partner_shop';
+  partner_shop_id?: string;
+  partner_shop_name?: string;
+
+  // Delivery Fee Breakdown
+  delivery_fee: number; // e.g. 25, 45, etc.
+  agent_payout: number; // e.g. 18, 34, etc.
+  safargo_platform_fee: number; // e.g. 7, 11, etc.
+
+  // 5-minute photo & bill verification
+  item_photo_url?: string;
+  actual_item_price?: number;
+  total_order_amount?: number; // item price + delivery fee
+
+  // Agent Delivery Partner
+  agent_id?: string;
+  agent_name?: string;
+  agent_mobile?: string;
+
+  status: DeliveryOrderStatus;
+
+  created_at: string;
+  agent_accepted_at?: string;
+  customer_confirmed_at?: string;
+  delivered_at?: string;
+  deadline_15m_at?: string; // customer_confirmed_at + 15 minutes
 }

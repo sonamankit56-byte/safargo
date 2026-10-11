@@ -12,6 +12,7 @@ interface AuthContextType {
   role: UserRole | null;
   isApprovedAgent: boolean;
   isAdmin: boolean;
+  isPromoter: boolean;
   login: (emailOrMobile: string, password?: string) => Promise<boolean>;
   pendingLoginOtps: PendingLoginOtp[];
   initiateAgentLogin: (
@@ -189,6 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const currentUser = currentUserId ? profiles.find((p) => p.id === currentUserId) || null : null;
   const role: UserRole | null = currentUser ? currentUser.role : null;
   const isAdmin = currentUser?.role === 'admin';
+  const isPromoter = currentUser?.role === 'promoter';
   const isApprovedAgent = currentUser?.role === 'agent' && currentUser?.agent_status === 'approved';
 
   const login = async (emailOrMobile: string, password?: string): Promise<boolean> => {
@@ -454,6 +456,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       referral_code: myReferralCode,
       referred_by_code: referrer?.referral_code,
       referred_by_id: referrer?.id,
+      promoter_assigned_id: referrer?.role === 'promoter' ? referrer.id : undefined,
+      promoter_code: referrer?.role === 'promoter' ? (referrer.promoter_code || referrer.referral_code) : undefined,
       password: details.password?.trim() || 'Agent@123',
       created_at: nowIso,
       updated_at: nowIso,
@@ -509,8 +513,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const approveAgent = async (agentId: string): Promise<boolean> => {
-    if (!isAdmin) {
-      error('Permission Denied', 'केवल एडमिन ही एजेंट स्वीकृत कर सकते हैं।');
+    if (!isAdmin && !isPromoter) {
+      error('Permission Denied', 'केवल एडमिन या अधिकृत प्रमोटर ही एजेंट स्वीकृत कर सकते हैं।');
       return false;
     }
 
@@ -543,8 +547,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const rejectAgent = async (agentId: string): Promise<boolean> => {
-    if (!isAdmin) {
-      error('Permission Denied', 'केवल एडमिन ही एजेंट अस्वीकृत कर सकते हैं।');
+    if (!isAdmin && !isPromoter) {
+      error('Permission Denied', 'केवल एडमिन या अधिकृत प्रमोटर ही एजेंट अस्वीकृत कर सकते हैं।');
       return false;
     }
 
@@ -659,8 +663,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const approveAgentKyc = async (agentId: string): Promise<boolean> => {
-    if (!isAdmin) {
-      error('Permission Denied', 'केवल एडमिन ही एजेंट KYC स्वीकृत कर सकते हैं।');
+    if (!isAdmin && !isPromoter) {
+      error('Permission Denied', 'केवल एडमिन या अधिकृत प्रमोटर ही एजेंट KYC स्वीकृत कर सकते हैं।');
       return false;
     }
 
@@ -697,8 +701,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const rejectAgentKyc = async (agentId: string, reason: string): Promise<boolean> => {
-    if (!isAdmin) {
-      error('Permission Denied', 'केवल एडमिन ही एजेंट KYC अस्वीकृत कर सकते हैं।');
+    if (!isAdmin && !isPromoter) {
+      error('Permission Denied', 'केवल एडमिन या अधिकृत प्रमोटर ही एजेंट KYC अस्वीकृत कर सकते हैं।');
       return false;
     }
 
@@ -738,6 +742,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role,
         isApprovedAgent,
         isAdmin,
+        isPromoter,
         login,
         pendingLoginOtps,
         initiateAgentLogin,

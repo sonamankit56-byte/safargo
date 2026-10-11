@@ -27,7 +27,10 @@ import {
   Sparkles,
   CheckCircle,
   CreditCard,
-  ShieldCheck
+  ShieldCheck,
+  Bike,
+  Award,
+  Store
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -37,7 +40,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpenAuth }) => {
-  const { currentUser, role, isApprovedAgent, isAdmin, logout, allProfiles, pendingLoginOtps } = useAuth();
+  const { currentUser, role, isApprovedAgent, isAdmin, isPromoter, logout, allProfiles, pendingLoginOtps } = useAuth();
   const { agentWalletBalance } = useData();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -93,6 +96,49 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
               <Home className="w-4 h-4" />
               Home
             </button>
+
+            {/* 15-Minute Rural Quick Delivery */}
+            <button
+              onClick={() => handleTabChange(role === 'agent' ? 'agent-deliveries' : 'quick-delivery')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition ${
+                currentTab === 'quick-delivery' || currentTab === 'agent-deliveries'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-emerald-300 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Bike className="w-4 h-4 text-emerald-400" />
+              <span>15-मिनट डिलीवरी</span>
+              <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-400 text-slate-900">
+                ⚡ MP
+              </span>
+            </button>
+
+            {/* Promoter Partner Program */}
+            <button
+              onClick={() => handleTabChange(role === 'promoter' ? 'promoter-dashboard' : role === 'admin' ? 'admin-promoters' : 'promoter-program')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition ${
+                currentTab === 'promoter-program' || currentTab === 'promoter-dashboard' || currentTab === 'admin-promoters'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-indigo-300 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Award className="w-4 h-4 text-amber-400" />
+              <span>{role === 'promoter' ? 'प्रमोटर डैशबोर्ड' : role === 'admin' ? 'प्रमोटर (5 स्लॉट)' : 'प्रमोटर (₹15,000)'}</span>
+            </button>
+
+            {currentUser && role === 'promoter' && (
+              <button
+                onClick={() => handleTabChange('promoter-dashboard')}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition ${
+                  currentTab === 'promoter-dashboard'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                प्रमोटर डेस्क
+              </button>
+            )}
 
             {currentUser && role === 'agent' && (
               <>
@@ -167,6 +213,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                   <Sparkles className="w-4 h-4 text-purple-400" />
                   क्रिएटर बोनस (Earn ₹500)
                 </button>
+
+                <button
+                  onClick={() => handleTabChange('agent-deliveries')}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition ${
+                    currentTab === 'agent-deliveries'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'text-emerald-300 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  <Bike className="w-4 h-4 text-emerald-400" />
+                  डिलीवरी रनर
+                </button>
               </>
             )}
 
@@ -182,6 +240,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                 >
                   <LayoutDashboard className="w-4 h-4" />
                   Admin Overview
+                </button>
+
+                <button
+                  onClick={() => handleTabChange('admin-promoters')}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition ${
+                    currentTab === 'admin-promoters'
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'text-indigo-300 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  <Award className="w-4 h-4 text-amber-400" />
+                  प्रमोटर (5 स्लॉट)
                 </button>
 
                 <button
@@ -465,6 +535,24 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
               <Home className="w-4 h-4" /> Home
             </button>
 
+            <button
+              onClick={() => handleTabChange(role === 'agent' ? 'agent-deliveries' : 'quick-delivery')}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
+                currentTab === 'quick-delivery' || currentTab === 'agent-deliveries' ? 'bg-emerald-600 text-white' : 'text-emerald-300 hover:bg-slate-800'
+              }`}
+            >
+              <Bike className="w-4 h-4 text-emerald-400" /> 15-मिनट डिलीवरी (Rural Blinkit)
+            </button>
+
+            <button
+              onClick={() => handleTabChange(role === 'promoter' ? 'promoter-dashboard' : role === 'admin' ? 'admin-promoters' : 'promoter-program')}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
+                currentTab === 'promoter-program' || currentTab === 'promoter-dashboard' || currentTab === 'admin-promoters' ? 'bg-indigo-600 text-white' : 'text-indigo-300 hover:bg-slate-800'
+              }`}
+            >
+              <Award className="w-4 h-4 text-amber-400" /> प्रमोटर पार्टनर (₹15,000/माह)
+            </button>
+
             {!currentUser ? (
               <div className="pt-2 border-t border-slate-800 space-y-2 px-1">
                 <button
@@ -539,12 +627,45 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                   <Sparkles className="w-4 h-4 text-purple-400" /> क्रिएटर बोनस (Earn ₹500)
                 </button>
                 <button
+                  onClick={() => handleTabChange('agent-deliveries')}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
+                    currentTab === 'agent-deliveries' ? 'bg-emerald-600 text-white' : 'text-emerald-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <Bike className="w-4 h-4 text-emerald-400" /> 15-मिनट डिलीवरी रनर
+                </button>
+                <button
                   onClick={() => handleTabChange('agent-profile')}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
                     currentTab === 'agent-profile' ? 'bg-orange-500 text-white' : 'text-slate-300 hover:bg-slate-800'
                   }`}
                 >
                   <User className="w-4 h-4" /> Profile
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left px-3 py-2 rounded-lg text-sm font-bold text-rose-400 hover:bg-rose-950/40 flex items-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" /> लॉगआउट (Sign Out)
+                </button>
+              </>
+            ) : role === 'promoter' ? (
+              <>
+                <button
+                  onClick={() => handleTabChange('promoter-dashboard')}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
+                    currentTab === 'promoter-dashboard' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <LayoutDashboard className="w-4 h-4 text-indigo-400" /> प्रमोटर डैशबोर्ड (₹15,000)
+                </button>
+                <button
+                  onClick={() => handleTabChange('quick-delivery')}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
+                    currentTab === 'quick-delivery' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <Bike className="w-4 h-4 text-emerald-400" /> 15-मिनट डिलीवरी हब
                 </button>
                 <button
                   onClick={handleLogout}
@@ -562,6 +683,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                   }`}
                 >
                   <LayoutDashboard className="w-4 h-4" /> Admin Overview
+                </button>
+                <button
+                  onClick={() => handleTabChange('admin-promoters')}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
+                    currentTab === 'admin-promoters' ? 'bg-indigo-600 text-white' : 'text-indigo-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <Award className="w-4 h-4 text-amber-400" /> प्रमोटर प्रबंधन (5 स्लॉट)
                 </button>
                 <button
                   onClick={() => handleTabChange('admin-bookings')}

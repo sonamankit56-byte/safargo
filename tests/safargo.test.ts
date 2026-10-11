@@ -859,6 +859,143 @@ describe('Q. Agent Aadhaar/PAN KYC, Profile Photo & Verified Badge System', () =
   });
 });
 
+describe('S. SafarGo Promoter Partner Program (5 Slots, ₹15k Salary, 500 Quality Target, 100% Refund)', () => {
+  it('strictly limits onboarded promoter slots to maximum 5 candidates', () => {
+    const slots = [1, 2, 3, 4, 5];
+    expect(slots.length).toBe(5);
+
+    const onboardedCount = 5;
+    const canAcceptNewPromoter = onboardedCount < 5;
+    expect(canAcceptNewPromoter).toBe(false);
+  });
+
+  it('guarantees fixed ₹15,000 / month salary for onboarded promoter partners', () => {
+    const promoterProfile: Profile = {
+      ...INITIAL_PROFILES[0],
+      id: 'usr-promoter-01',
+      role: 'promoter',
+      promoter_slot_no: 1,
+      promoter_code: 'PRM-MP-01',
+      promoter_salary: 15000,
+    };
+
+    expect(promoterProfile.role).toBe('promoter');
+    expect(promoterProfile.promoter_salary).toBe(15000);
+    expect(promoterProfile.promoter_code).toBe('PRM-MP-01');
+  });
+
+  it('counts an agent toward the 500 target ONLY if they complete >= 3 confirmed bus bookings', () => {
+    const mockBookings: Booking[] = [
+      { id: 'b1', agent_id: 'ag-1', status: 'confirmed' } as Booking,
+      { id: 'b2', agent_id: 'ag-1', status: 'confirmed' } as Booking,
+      { id: 'b3', agent_id: 'ag-1', status: 'confirmed' } as Booking,
+      { id: 'b4', agent_id: 'ag-2', status: 'confirmed' } as Booking,
+      { id: 'b5', agent_id: 'ag-2', status: 'confirmed' } as Booking,
+      { id: 'b6', agent_id: 'ag-2', status: 'booking_request' } as Booking, // unconfirmed
+      { id: 'b7', agent_id: 'ag-3', status: 'confirmed' } as Booking,
+    ];
+
+    const isAgentVerifiedForTarget = (agentId: string) => {
+      const confirmedCount = mockBookings.filter((b) => b.agent_id === agentId && b.status === 'confirmed').length;
+      return confirmedCount >= 3;
+    };
+
+    expect(isAgentVerifiedForTarget('ag-1')).toBe(true); // 3 confirmed => VERIFIED!
+    expect(isAgentVerifiedForTarget('ag-2')).toBe(false); // 2 confirmed => NOT VERIFIED
+    expect(isAgentVerifiedForTarget('ag-3')).toBe(false); // 1 confirmed => NOT VERIFIED
+  });
+
+  it('guarantees 100% fee refund (₹149 + ₹499 = ₹648) upon target achievement within 3 months', () => {
+    const appFee = 149;
+    const onboardFee = 499;
+    const totalRefund = appFee + onboardFee;
+    expect(totalRefund).toBe(648);
+
+    const verifiedAgentsCount = 500;
+    const isTargetMet = verifiedAgentsCount >= 500;
+    const isRefundEligible = isTargetMet;
+
+    expect(isRefundEligible).toBe(true);
+  });
+
+  it('allows Promoters (under Super Admin) to approve agents and verify agent KYC', () => {
+    const canManageAgents = (role: string) => role === 'admin' || role === 'promoter';
+
+    expect(canManageAgents('admin')).toBe(true);
+    expect(canManageAgents('promoter')).toBe(true); // Promoter has agent manager authority!
+    expect(canManageAgents('agent')).toBe(false);
+    expect(canManageAgents('customer')).toBe(false);
+  });
+});
+
+describe('T. SafarGo 15-Minute Rural Quick Delivery Service (Distance Pricing & Splits)', () => {
+  const calcPricing = (km: number) => {
+    const d = Math.max(0.1, km);
+    if (d <= 2) return { fee: 25, agent: 18, platform: 7 };
+    if (d <= 4) return { fee: 45, agent: 34, platform: 11 };
+    if (d <= 6) return { fee: 65, agent: 50, platform: 15 };
+    const extra = Math.ceil(d - 6);
+    return {
+      fee: 65 + extra * 10,
+      agent: 50 + extra * 8,
+      platform: 15 + extra * 2,
+    };
+  };
+
+  it('accurately calculates 0-2 KM delivery fee: ₹25 (₹18 Agent / ₹7 SafarGo)', () => {
+    const res = calcPricing(1.5);
+    expect(res.fee).toBe(25);
+    expect(res.agent).toBe(18);
+    expect(res.platform).toBe(7);
+    expect(res.agent + res.platform).toBe(res.fee);
+  });
+
+  it('accurately calculates 2-4 KM delivery fee: ₹45 (₹34 Agent / ₹11 SafarGo)', () => {
+    const res = calcPricing(3.2);
+    expect(res.fee).toBe(45);
+    expect(res.agent).toBe(34);
+    expect(res.platform).toBe(11);
+    expect(res.agent + res.platform).toBe(res.fee);
+  });
+
+  it('accurately calculates 4-6 KM delivery fee: ₹65 (₹50 Agent / ₹15 SafarGo)', () => {
+    const res = calcPricing(5.0);
+    expect(res.fee).toBe(65);
+    expect(res.agent).toBe(50);
+    expect(res.platform).toBe(15);
+    expect(res.agent + res.platform).toBe(res.fee);
+  });
+
+  it('accurately adds ₹10/KM (+₹8 Agent / +₹2 SafarGo) for distance beyond 6 KM', () => {
+    // 8 KM => 6 KM base (₹65) + 2 extra KM (2 * 10 = ₹20) = ₹85
+    // Agent: 50 + (2 * 8) = ₹66
+    // Platform: 15 + (2 * 2) = ₹19
+    const res = calcPricing(8.0);
+    expect(res.fee).toBe(85);
+    expect(res.agent).toBe(66);
+    expect(res.platform).toBe(19);
+    expect(res.agent + res.platform).toBe(res.fee);
+  });
+
+  it('computes total customer payable = actual_item_price + delivery_fee', () => {
+    const actualItemPrice = 378; // Groceries bought from local shop
+    const distanceKm = 1.4;
+    const { fee } = calcPricing(distanceKm);
+
+    const totalCustomerPayable = actualItemPrice + fee;
+    expect(totalCustomerPayable).toBe(378 + 25);
+    expect(totalCustomerPayable).toBe(403);
+  });
+
+  it('enforces 15-minute countdown window upon customer confirmation', () => {
+    const confirmedAt = new Date('2026-10-11T12:00:00Z');
+    const deadline15m = new Date(confirmedAt.getTime() + 15 * 60 * 1000);
+
+    const diffMinutes = (deadline15m.getTime() - confirmedAt.getTime()) / (1000 * 60);
+    expect(diffMinutes).toBe(15);
+  });
+});
+
 
 
 

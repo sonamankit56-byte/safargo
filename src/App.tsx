@@ -21,6 +21,11 @@ import { AdminAuditLogs } from './components/admin/AdminAuditLogs';
 import { AdminSecurityDesk } from './components/admin/AdminSecurityDesk';
 import { AgentViralPromotions } from './components/agent/AgentViralPromotions';
 import { AdminPromotionManagement } from './components/admin/AdminPromotionManagement';
+import { AdminPromoterManagement } from './components/admin/AdminPromoterManagement';
+import { PromoterDashboard } from './components/promoter/PromoterDashboard';
+import { PromoterApplicationModal } from './components/promoter/PromoterApplicationModal';
+import { QuickDeliveryHub } from './components/delivery/QuickDeliveryHub';
+import { AgentDeliveryDesk } from './components/agent/AgentDeliveryDesk';
 import { AuthModal } from './components/auth/AuthModal';
 import { AnnouncementBanner } from './components/common/AnnouncementBanner';
 import { HomePage } from './components/home/HomePage';
@@ -28,13 +33,14 @@ import { SafarGoLogo } from './components/common/SafarGoLogo';
 import { Bus, ShieldCheck, Heart, UserPlus, LogIn, ExternalLink } from 'lucide-react';
 
 const AppContent: React.FC = () => {
-  const { currentUser, role, isAdmin } = useAuth();
+  const { currentUser, role, isAdmin, isPromoter } = useAuth();
   const { celebrationBooking, dismissCelebration, bookings } = useData();
 
   const [currentTab, setCurrentTab] = useState<string>('home');
   const [selectedReviewBookingId, setSelectedReviewBookingId] = useState<string | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register'>('login');
+  const [isPromoterModalOpen, setIsPromoterModalOpen] = useState(false);
 
   const handleOpenAuth = (initialTab: 'login' | 'register' = 'login') => {
     setAuthInitialTab(initialTab);
@@ -57,20 +63,80 @@ const AppContent: React.FC = () => {
 
       {/* Main Content View Container */}
       <main className="flex-1 pb-16">
-        {(!currentUser || currentTab === 'home') ? (
+        {currentTab === 'quick-delivery' ? (
+          <QuickDeliveryHub />
+        ) : currentTab === 'promoter-program' ? (
+          <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+            <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-400 text-slate-950">
+                    केवल 5 पद (Only 5 Candidates Allowed)
+                  </span>
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-slate-300">
+                    वेतन: ₹15,000 / माह
+                  </span>
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    100% फीस रिफंड गारंटी (₹648 वापस)
+                  </span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-black">
+                  सफ़ारगो प्रमोटर पार्टनर प्रोग्राम
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+                  पूरे SafarGo नेटवर्क में केवल 5 प्रमोटर पद! फिक्स्ड ₹15,000 मासिक वेतन + 500 एजेंट लक्ष्य (प्रति एजेंट <strong>न्यूनतम 3 कन्फर्म बस बुकिंग अनिवार्य</strong>) + लोकल दुकान सब्सक्रिप्शन पैकेज लिस्टिंग + 15-मिनट डिलीवरी ऑडिट + सुपर एडमिन के नीचे <strong>एजेंट रजिस्ट्रेशन व KYC अप्रूवल डेस्क</strong>!
+                </p>
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <button
+                    onClick={() => setIsPromoterModalOpen(true)}
+                    className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-sm shadow-md transition"
+                  >
+                    प्रमोटर पद हेतु आवेदन करें (₹149 UTR)
+                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => setCurrentTab('admin-promoters')}
+                      className="px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm border border-white/20 transition"
+                    >
+                      सुपर एडमिन प्रमोटर डेस्क
+                    </button>
+                  )}
+                  {isPromoter && (
+                    <button
+                      onClick={() => setCurrentTab('promoter-dashboard')}
+                      className="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition"
+                    >
+                      माई प्रमोटर डैशबोर्ड
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <QuickDeliveryHub />
+          </div>
+        ) : (!currentUser || currentTab === 'home') ? (
           <HomePage
             onOpenAuth={handleOpenAuth}
             onNavigateTab={(tab) => {
-              if (!currentUser) {
+              if (tab === 'promoter-modal') {
+                setIsPromoterModalOpen(true);
+              } else if (!currentUser && (tab === 'dashboard' || tab === 'new-booking')) {
                 handleOpenAuth('login');
               } else {
                 setCurrentTab(tab);
               }
             }}
           />
+        ) : role === 'promoter' ? (
+          <>
+            {currentTab === 'promoter-dashboard' && <PromoterDashboard />}
+            {currentTab !== 'promoter-dashboard' && <PromoterDashboard />}
+          </>
         ) : role === 'agent' ? (
           <>
             {currentTab === 'dashboard' && <AgentDashboard onNavigate={setCurrentTab} />}
+            {currentTab === 'agent-deliveries' && <AgentDeliveryDesk />}
             {currentTab === 'new-booking' && <ManualBookingForm />}
             {currentTab === 'my-bookings' && <AgentBookingsList />}
             {currentTab === 'commission' && <AgentCommissionLedger />}
@@ -86,6 +152,7 @@ const AppContent: React.FC = () => {
                 onOpenBooking={(id) => setSelectedReviewBookingId(id)}
               />
             )}
+            {currentTab === 'admin-promoters' && <AdminPromoterManagement />}
             {currentTab === 'admin-bookings' && (
               <AdminBookingsTable onOpenBooking={(id) => setSelectedReviewBookingId(id)} />
             )}
@@ -122,6 +189,12 @@ const AppContent: React.FC = () => {
         isOpen={isAuthModalOpen}
         initialTab={authInitialTab}
         onClose={() => setIsAuthModalOpen(false)}
+      />
+
+      {/* Promoter Partner Application Modal */}
+      <PromoterApplicationModal
+        isOpen={isPromoterModalOpen}
+        onClose={() => setIsPromoterModalOpen(false)}
       />
 
       {/* Footer */}

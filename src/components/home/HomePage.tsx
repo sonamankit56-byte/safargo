@@ -28,7 +28,9 @@ import {
   Printer,
   AlertTriangle,
   Instagram,
-  Youtube
+  Youtube,
+  Bike,
+  Store
 } from 'lucide-react';
 import { Booking, PromotionPlatform } from '../../types';
 import { StatusBadge } from '../common/StatusBadge';
@@ -674,6 +676,113 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab })
               )}
             </div>
           )}
+
+        </div>
+      </section>
+
+      {/* ======================================================== */}
+      {/* 2.4 SAFARGO PROMOTER PARTNER & 15-MINUTE QUICK DELIVERY  */}
+      {/* ======================================================== */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* Card 1: Promoter Partner Program (Only 5 Candidates, ₹15,000/Month, 100% Refund) */}
+          <div className="bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white border border-indigo-800/40 shadow-xl flex flex-col justify-between space-y-6 relative overflow-hidden">
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-400 text-slate-950 flex items-center gap-1.5 shadow-sm">
+                  <Award className="w-3.5 h-3.5" />
+                  केवल 5 पद (5 Slots Only)
+                </span>
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-emerald-300 border border-white/10">
+                  फिक्स्ड वेतन: ₹15,000 / माह
+                </span>
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  100% फीस रिफंड (₹648 वापस)
+                </span>
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-black text-white">
+                सफ़ारगो प्रमोटर पार्टनर प्रोग्राम
+              </h2>
+
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                सुपर एडमिन के नीचे कार्य करें! 500 SafarGo एजेंट जोड़ें (शर्त: प्रति एजेंट <strong>न्यूनतम 3 कन्फर्म बस बुकिंग अनिवार्य</strong>), लोकल दुकानों को मंथली सब्सक्रिप्शन पैकेज दें तथा अपने नेटवर्क के एजेंटों का रजिस्ट्रेशन व KYC अप्रूव करें।
+              </p>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                  <div className="text-slate-400 text-[11px]">आवेदन व ऑनबोर्डिंग</div>
+                  <div className="font-bold text-amber-400">₹149 + ₹499</div>
+                  <div className="text-[10px] text-emerald-300">लक्ष्य पर 100% रिफंड</div>
+                </div>
+                <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                  <div className="text-slate-400 text-[11px]">एजेंट मैनेजमेंट</div>
+                  <div className="font-bold text-white">KYC व अप्रूवल डेस्क</div>
+                  <div className="text-[10px] text-slate-300">दैनिक कॉलिंग ऑडिट</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                onClick={() => onNavigateTab('promoter-modal')}
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2"
+              >
+                <Award className="w-4 h-4" />
+                <span>प्रमोटर पद हेतु आवेदन करें (Apply ₹149 UTR)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Card 2: 15-Minute Rural Quick Delivery (Blinkit Model for MP Gap Towns) */}
+          <div className="bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 rounded-3xl p-6 sm:p-8 text-white border border-emerald-800/40 shadow-xl flex flex-col justify-between space-y-6 relative overflow-hidden">
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-400 text-slate-950 flex items-center gap-1.5 shadow-sm">
+                  <Bike className="w-3.5 h-3.5" />
+                  ब्लिंकिट का ग्रामीण विकल्प
+                </span>
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-emerald-300 border border-white/10">
+                  15 मिनट डिलीवरी गारंटी
+                </span>
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  शुरुआत मात्र ₹25
+                </span>
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-black text-white">
+                सफ़ारगो 15-मिनट क्विक डिलीवरी
+              </h2>
+
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                सिरोंज, कुरवाई, लटेरी, चंदेरी, गुना, बीना, विदिशा - जहाँ ब्लिंकिट नहीं है, वहाँ सफ़ारगो एजेंट 5 मिनट में नजदीकी दुकान से सामान व बिल की फोटो खींचकर भेजेंगे, पुष्टि होने पर 15 मिनट में घर पहुँचाएंगे!
+              </p>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                  <div className="text-slate-400 text-[11px]">0 से 2 KM</div>
+                  <div className="font-bold text-emerald-400">₹25 कुल शुल्क</div>
+                  <div className="text-[10px] text-slate-300">₹18 एजेंट + ₹7 सफ़ारगो</div>
+                </div>
+                <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                  <div className="text-slate-400 text-[11px]">2 से 4 KM</div>
+                  <div className="font-bold text-emerald-400">₹45 कुल शुल्क</div>
+                  <div className="text-[10px] text-slate-300">₹34 एजेंट + ₹11 सफ़ारगो</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                onClick={() => onNavigateTab('quick-delivery')}
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-700 hover:from-emerald-600 hover:to-teal-800 text-white font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2"
+              >
+                <Bike className="w-4 h-4" />
+                <span>15-मिनट डिलीवरी ऑर्डर हब खोलें (Order Now)</span>
+              </button>
+            </div>
+          </div>
 
         </div>
       </section>

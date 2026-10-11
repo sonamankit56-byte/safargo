@@ -9,7 +9,12 @@ import {
   PayoutRequest,
   WalletRechargeRequest,
   WalletTransaction,
-  PromotionClaim
+  PromotionClaim,
+  PromoterApplication,
+  ShopSubscriptionPlan,
+  PartnerShop,
+  AgentCallLog,
+  QuickDeliveryOrder
 } from '../types';
 
 export const INITIAL_SETTINGS: AdminSettings = {
@@ -165,6 +170,25 @@ export const INITIAL_PROFILES: Profile[] = [
     agent_status: 'approved',
     referral_code: 'SFG-REF-RAMESH',
     password: 'Admin@123',
+    created_at: '2026-09-01T08:00:00Z',
+    updated_at: '2026-09-01T08:00:00Z',
+  },
+  {
+    id: 'usr-promoter-01',
+    role: 'promoter',
+    full_name: 'Dharmendra Yadav',
+    mobile: '9826012345',
+    email: 'dharmendra.promoter@safargo.in',
+    city: 'Sironj',
+    district: 'Vidisha',
+    address: 'Near Old Bus Stand, Sironj, District Vidisha (MP)',
+    shop_name: 'SafarGo Sironj Territory Manager',
+    agent_status: 'approved',
+    referral_code: 'PRM-MP-01',
+    promoter_code: 'PRM-MP-01',
+    promoter_slot_no: 1,
+    promoter_salary: 15000,
+    password: 'Promoter@123',
     created_at: '2026-09-01T08:00:00Z',
     updated_at: '2026-09-01T08:00:00Z',
   },
@@ -778,6 +802,318 @@ export const INITIAL_PROMOTION_CLAIMS: PromotionClaim[] = [
     reviewed_at: '2026-10-09T18:30:00Z',
     created_at: '2026-10-09T14:00:00Z',
     deadline_at: '2026-10-10T14:00:00Z',
+  }
+];
+
+// =====================================================================
+// SHOPKEEPER (DUKANDAR) SUBSCRIPTION PACKAGES
+// =====================================================================
+export const SHOP_SUBSCRIPTION_PLANS: ShopSubscriptionPlan[] = [
+  {
+    id: 'sub-plan-basic',
+    name: 'ब्रॉन्ज किराना स्टार्टर (Bronze Plan)',
+    price: 199,
+    duration_days: 30,
+    listing_limit: 25,
+    badge: 'कस्बा विजिबिलिटी',
+    description: 'छोटे किराना, फल-सब्जी व डेयरी दुकानदारों के लिए बेसिक ऑनलाइन लिस्टिंग',
+    features: [
+      '25 प्रमुख दैनिक जरूरी सामान ऑनलाइन लिस्टिंग',
+      'गाँव व कस्बे के ग्राहकों को दुकान का नाम व मोबाइल शोकेस',
+      'सफ़ारगो एजेंट द्वारा 15-मिनट पिकअप व डिलीवरी',
+      'दुकानदार से 0% कमीशन (पूरा बिल दुकानदार का)'
+    ]
+  },
+  {
+    id: 'sub-plan-standard',
+    name: 'सिल्वर मर्चेंट प्रो (Silver Plan)',
+    price: 399,
+    duration_days: 30,
+    listing_limit: 75,
+    badge: 'लोकप्रिय चॉइस ⭐',
+    description: 'मध्यम किराना, मेडिकल स्टोर व जनरल स्टोर्स के लिए प्राइम विजिबिलिटी',
+    features: [
+      '75 जरूरी उत्पाद ऑनलाइन कैटलॉग में लिस्टिंग',
+      'सफ़ारगो ऐप सर्च में प्राथमिकता (Top Search Placement)',
+      'वेरिफाइड लोकल मर्चेंट बैज (✓ Verified Shop)',
+      'एजेंट्स द्वारा 5-मिनट फास्ट पिकअप गारंटी',
+      'महीने में 4 डिजिटल बैनर प्रमोशन'
+    ]
+  },
+  {
+    id: 'sub-plan-premium',
+    name: 'गोल्ड सुपरमार्ट एलीट (Gold Plan)',
+    price: 699,
+    duration_days: 30,
+    listing_limit: 200,
+    badge: 'सर्वश्रेष्ठ परिणाम 👑',
+    description: 'बड़े होलसेल, सुपरमार्ट, प्रमुख मेडिकल व इलेक्ट्रॉनिक्स दुकानों के लिए',
+    features: [
+      '200+ प्रोडक्ट्स ऑनलाइन लिस्टिंग व रियल-टाइम स्टॉक अपडेट',
+      'होमपेज पर फीचर्ड पार्टनर बैनर',
+      'प्रमोटर द्वारा वीकली स्टॉक कैटलॉग अपडेट सहायता',
+      'वीआईपी डिलीवरी एजेंट असाइनमेंट',
+      'व्हाट्सएप ऑर्डर ब्रॉडकास्ट सपोर्ट'
+    ]
+  }
+];
+
+// =====================================================================
+// INITIAL PROMOTER APPLICATIONS (ONLY 5 POSITIONS ARCHITECTURE)
+// =====================================================================
+export const INITIAL_PROMOTER_APPLICATIONS: PromoterApplication[] = [
+  {
+    id: 'prm-app-01',
+    applicant_name: 'Dharmendra Yadav',
+    mobile: '9826012345',
+    email: 'dharmendra.promoter@safargo.in',
+    city: 'Sironj',
+    district: 'Vidisha',
+    experience_note: 'सिरोंज और लटेरी क्षेत्र में 4 वर्ष से सीएससी नेटवर्क और किराना एसोसिएशन में काम का अनुभव।',
+    application_fee: 149,
+    application_fee_utr: 'UTR-149-8839201',
+    status: 'onboarded_499_paid',
+    interview_date: '2026-09-02T11:00:00Z',
+    interview_notes: 'ग्राउंड फील्ड वर्क और लोकल नेटवर्किंग बहुत मजबूत है। सिरोंज-विदिशा क्लस्टर के लिए सिलेक्ट किया गया।',
+    onboarding_fee: 499,
+    onboarding_fee_utr: 'UTR-499-9948210',
+    assigned_slot: 1,
+    promoter_code: 'PRM-MP-01',
+    target_verified_agents: 500,
+    current_verified_agents: 42, // Agents with >= 3 confirmed bus bookings
+    current_total_agents: 86,
+    fee_refund_eligible: false,
+    created_at: '2026-09-01T10:00:00Z',
+    deadline_at: '2026-12-01T23:59:59Z'
+  },
+  {
+    id: 'prm-app-02',
+    applicant_name: 'Vikas Raghuvanshi',
+    mobile: '9752011223',
+    email: 'vikas.raghu@gmail.com',
+    city: 'Guna',
+    district: 'Guna',
+    experience_note: 'गुना और बमोरी के 45+ सीएससी सेंटर्स से सीधा संपर्क। बस यूनियन और डिलीवरी में अनुभव।',
+    application_fee: 149,
+    application_fee_utr: 'UTR-149-7728193',
+    status: 'interview_passed',
+    interview_date: '2026-10-09T15:00:00Z',
+    interview_notes: 'इंटरव्यू बहुत शानदार रहा। गुना जिले के लिए चुना गया। ₹499 ऑनबोर्डिंग फीस और एक्टिवेशन प्रतीक्षारत।',
+    onboarding_fee: 499,
+    assigned_slot: 2,
+    target_verified_agents: 500,
+    current_verified_agents: 0,
+    current_total_agents: 0,
+    fee_refund_eligible: false,
+    created_at: '2026-10-07T12:00:00Z',
+    deadline_at: '2027-01-07T23:59:59Z'
+  },
+  {
+    id: 'prm-app-03',
+    applicant_name: 'Deepesh Lodhi',
+    mobile: '9685033445',
+    email: 'deepesh.chanderi@gmail.com',
+    city: 'Chanderi',
+    district: 'Ashok Nagar',
+    experience_note: 'चंदेरी और ईसागढ़ के साड़ी बुनकर व साइबर कैफे नेटवर्क का संचालन।',
+    application_fee: 149,
+    application_fee_utr: 'UTR-149-6619024',
+    status: 'interview_scheduled',
+    interview_date: '2026-10-12T16:00:00Z',
+    interview_notes: 'टेलीफोनिक इंटरव्यू 12 अक्टूबर को शेड्यूल है।',
+    onboarding_fee: 499,
+    target_verified_agents: 500,
+    current_verified_agents: 0,
+    current_total_agents: 0,
+    fee_refund_eligible: false,
+    created_at: '2026-10-10T09:30:00Z',
+    deadline_at: '2027-01-10T23:59:59Z'
+  }
+];
+
+// =====================================================================
+// INITIAL LOCAL PARTNER SHOPS (ONBOARDED BY PROMOTER)
+// =====================================================================
+export const INITIAL_PARTNER_SHOPS: PartnerShop[] = [
+  {
+    id: 'shop-01',
+    shop_name: 'श्री राम किराना एवं जनरल स्टोर्स',
+    owner_name: 'मोहन लाल गुप्ता',
+    mobile: '9826199881',
+    address: 'महावीर चौक, बस स्टैंड रोड, सिरोंज',
+    city: 'Sironj',
+    district: 'Vidisha',
+    category: 'kirana',
+    subscription_plan_name: 'सिल्वर मर्चेंट प्रो (₹399/माह)',
+    monthly_fee: 399,
+    subscription_status: 'active',
+    subscription_start: '2026-09-05',
+    subscription_end: '2026-10-25',
+    promoter_id: 'usr-promoter-01',
+    promoter_name: 'Dharmendra Yadav',
+    catalog_items: [
+      { id: 'item-101', name: 'फॉर्च्यून सोयाबीन तेल 1 लीटर', price: 135, unit: '1 Pouch', in_stock: true, category: 'किराना' },
+      { id: 'item-102', name: 'आशीर्वाद चक्की फ्रेश आटा 5 किलो', price: 215, unit: '5 kg Bag', in_stock: true, category: 'किराना' },
+      { id: 'item-103', name: 'टाटा प्रीमियम नमक 1 किलो', price: 28, unit: '1 Packet', in_stock: true, category: 'किराना' },
+      { id: 'item-104', name: 'वाघ बकरी सीटी चाय 250 ग्राम', price: 140, unit: '250g Box', in_stock: true, category: 'किराना' },
+      { id: 'item-105', name: 'माधुर प्योर चीनी 1 किलो', price: 44, unit: '1 kg', in_stock: true, category: 'किराना' },
+    ],
+    created_at: '2026-09-05T10:00:00Z'
+  },
+  {
+    id: 'shop-02',
+    shop_name: 'संजीवनी मेडिकल एवं सर्जिकल',
+    owner_name: 'डॉ. सतीश भार्गव',
+    mobile: '9425188772',
+    address: 'तहसील चौराहा, कुरवाई रोड, कुरवाई',
+    city: 'Kurwai',
+    district: 'Vidisha',
+    category: 'medical',
+    subscription_plan_name: 'ब्रॉन्ज किराना स्टार्टर (₹199/माह)',
+    monthly_fee: 199,
+    subscription_status: 'active',
+    subscription_start: '2026-09-10',
+    subscription_end: '2026-10-30',
+    promoter_id: 'usr-promoter-01',
+    promoter_name: 'Dharmendra Yadav',
+    catalog_items: [
+      { id: 'item-201', name: 'डेटॉल एंटीसेप्टिक लिक्विड 100ml', price: 72, unit: '1 Bottle', in_stock: true, category: 'दवा' },
+      { id: 'item-202', name: 'पैरासिटामोल 650mg (डोलो 15 गोली)', price: 34, unit: '1 Strip', in_stock: true, category: 'दवा' },
+      { id: 'item-203', name: 'ओआरएस (ORS) इलेक्ट्रोलाइट पाउच', price: 22, unit: '1 Sachet', in_stock: true, category: 'दवा' },
+      { id: 'item-204', name: 'हैंड सैनिटाइजर 200ml', price: 60, unit: '1 Bottle', in_stock: true, category: 'दवा' },
+    ],
+    created_at: '2026-09-10T12:00:00Z'
+  },
+  {
+    id: 'shop-03',
+    shop_name: 'मालवा डेयरी फ्रेश मिल्क एवं मिष्ठान',
+    owner_name: 'राजेश पटेल',
+    mobile: '9753177663',
+    address: 'हनुमान चौराहा, ओवरब्रिज के पास, गुना',
+    city: 'Guna',
+    district: 'Guna',
+    category: 'dairy',
+    subscription_plan_name: 'सिल्वर मर्चेंट प्रो (₹399/माह)',
+    monthly_fee: 399,
+    subscription_status: 'active',
+    subscription_start: '2026-09-15',
+    subscription_end: '2026-11-05',
+    promoter_id: 'usr-promoter-01',
+    promoter_name: 'Dharmendra Yadav',
+    catalog_items: [
+      { id: 'item-301', name: 'शुद्ध देसी गाय का दूध 1 लीटर', price: 60, unit: '1 Liter', in_stock: true, category: 'डेयरी' },
+      { id: 'item-302', name: 'अमूल ताजा दूध पाउच 500ml', price: 28, unit: '1 Pouch', in_stock: true, category: 'डेयरी' },
+      { id: 'item-303', name: 'ताजा मलाई पनीर 250 ग्राम', price: 105, unit: '250 gm', in_stock: true, category: 'डेयरी' },
+      { id: 'item-304', name: 'शुद्ध खोया / मावा 500 ग्राम', price: 180, unit: '500 gm', in_stock: true, category: 'डेयरी' },
+    ],
+    created_at: '2026-09-15T09:00:00Z'
+  }
+];
+
+// =====================================================================
+// INITIAL AGENT CALL & AUDIT LOGS
+// =====================================================================
+export const INITIAL_AGENT_CALL_LOGS: AgentCallLog[] = [
+  {
+    id: 'call-01',
+    promoter_id: 'usr-promoter-01',
+    promoter_name: 'Dharmendra Yadav',
+    agent_id: 'usr-agent-01',
+    agent_name: 'Pawan Kumar Verma',
+    agent_mobile: '9450123456',
+    call_purpose: 'booking_activity',
+    bus_booking_health: 'high_active',
+    delivery_readiness: 'active_ready',
+    notes: 'पवन जी रोज 2-3 बस बुकिंग कर रहे हैं। 15-मिनट डिलीवरी के लिए अपनी बाइक तैयार रखी है।',
+    created_at: '2026-10-10T11:30:00Z'
+  },
+  {
+    id: 'call-02',
+    promoter_id: 'usr-promoter-01',
+    promoter_name: 'Dharmendra Yadav',
+    agent_id: 'usr-agent-02',
+    agent_name: 'Anil Kumar Maurya',
+    agent_mobile: '9839456789',
+    call_purpose: 'delivery_coordination',
+    bus_booking_health: 'active_1_2',
+    delivery_readiness: 'bike_ready',
+    notes: 'अनिल जी को सिरोंज के किराना ऑर्डर पिकअप और बिल फोटो अपलोड करने की ट्रेनिंग दी गई।',
+    created_at: '2026-10-10T14:45:00Z'
+  }
+];
+
+// =====================================================================
+// INITIAL 15-MINUTE QUICK DELIVERY ORDERS
+// =====================================================================
+export const INITIAL_QUICK_DELIVERY_ORDERS: QuickDeliveryOrder[] = [
+  {
+    id: 'dlv-001',
+    order_code: 'SFG-DLV-20261011-001',
+    customer_name: 'कैलाश चंद शर्मा',
+    customer_mobile: '9826543210',
+    customer_address: 'वार्ड 4, पुरानी कचहरी के पीछे, सिरोंज',
+    city: 'Sironj',
+    items_description: 'आशीर्वाद आटा 5kg, टाटा नमक 1 पैकेट, फॉर्च्यून तेल 1 लीटर',
+    distance_km: 1.4, // 0-2 KM
+    pickup_mode: 'partner_shop',
+    partner_shop_id: 'shop-01',
+    partner_shop_name: 'श्री राम किराना एवं जनरल स्टोर्स',
+    delivery_fee: 25,
+    agent_payout: 18,
+    safargo_platform_fee: 7,
+    item_photo_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=300&q=80',
+    actual_item_price: 378,
+    total_order_amount: 403, // 378 + 25
+    agent_id: 'usr-agent-01',
+    agent_name: 'Pawan Kumar Verma',
+    agent_mobile: '9450123456',
+    status: 'delivered',
+    created_at: '2026-10-11T09:10:00Z',
+    agent_accepted_at: '2026-10-11T09:13:00Z', // In 3 minutes
+    customer_confirmed_at: '2026-10-11T09:16:00Z',
+    delivered_at: '2026-10-11T09:28:00Z', // 12 minutes!
+    deadline_15m_at: '2026-10-11T09:31:00Z'
+  },
+  {
+    id: 'dlv-002',
+    order_code: 'SFG-DLV-20261011-002',
+    customer_name: 'राधा बाई कुशवाह',
+    customer_mobile: '9752119900',
+    customer_address: 'गाँव बगरोद रोड, सिरोंज बाईपास, सिरोंज',
+    city: 'Sironj',
+    items_description: 'डोलो 650 2 पत्ता, डेटॉल लिक्विड, ओआरएस 2 पैकेट',
+    distance_km: 3.1, // 2-4 KM
+    pickup_mode: 'local_concierge',
+    delivery_fee: 45,
+    agent_payout: 34,
+    safargo_platform_fee: 11,
+    item_photo_url: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=300&q=80',
+    actual_item_price: 184,
+    total_order_amount: 229, // 184 + 45
+    agent_id: 'usr-agent-01',
+    agent_name: 'Pawan Kumar Verma',
+    agent_mobile: '9450123456',
+    status: 'out_for_delivery',
+    created_at: '2026-10-11T12:45:00Z',
+    agent_accepted_at: '2026-10-11T12:48:00Z',
+    customer_confirmed_at: '2026-10-11T12:51:00Z',
+    deadline_15m_at: '2026-10-11T13:06:00Z'
+  },
+  {
+    id: 'dlv-003',
+    order_code: 'SFG-DLV-20261011-003',
+    customer_name: 'मुकेश अहिरवार',
+    customer_mobile: '9685994433',
+    customer_address: 'तहसील कॉलोनी, कुरवाई',
+    city: 'Kurwai',
+    items_description: 'अमूल दूध 2 पैकेट, ताजा पनीर 250g, ब्रेड 1 पैकेट',
+    distance_km: 1.8,
+    pickup_mode: 'local_concierge',
+    delivery_fee: 25,
+    agent_payout: 18,
+    safargo_platform_fee: 7,
+    status: 'placed',
+    created_at: '2026-10-11T13:10:00Z'
   }
 ];
 
