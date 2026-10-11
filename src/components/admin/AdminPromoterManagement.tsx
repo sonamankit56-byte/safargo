@@ -25,7 +25,10 @@ import {
   XCircle,
   Sparkles,
   RefreshCw,
-  Gift
+  Gift,
+  Lock,
+  Key,
+  Copy
 } from 'lucide-react';
 
 export const AdminPromoterManagement: React.FC = () => {
@@ -34,11 +37,12 @@ export const AdminPromoterManagement: React.FC = () => {
     schedulePromoterInterview,
     passPromoterInterview,
     onboardPromoterPartner,
+    setPromoterCredentials,
     refundPromoterFee,
     bookings,
     partnerShops,
   } = useData();
-  const { allProfiles } = useAuth();
+  const { allProfiles, createOrUpdatePromoterAccount } = useAuth();
   const { success, error, info } = useToast();
 
   const [activeFilter, setActiveFilter] = useState<string>('all');
@@ -53,6 +57,14 @@ export const AdminPromoterManagement: React.FC = () => {
   const [selectedAppForOnboard, setSelectedAppForOnboard] = useState<PromoterApplication | null>(null);
   const [onboardingUtr, setOnboardingUtr] = useState('');
   const [selectedSlot, setSelectedSlot] = useState<number>(2);
+  const [onboardUserId, setOnboardUserId] = useState('');
+  const [onboardPassword, setOnboardPassword] = useState('Promoter@123');
+
+  // Credentials Modal State (Super Admin can create or reset User ID & Password)
+  const [selectedAppForCredentials, setSelectedAppForCredentials] = useState<PromoterApplication | null>(null);
+  const [credUserId, setCredUserId] = useState('');
+  const [credPassword, setCredPassword] = useState('Promoter@123');
+  const [credSlot, setCredSlot] = useState<number>(1);
 
   // Compute 5 slots status
   const slots = [1, 2, 3, 4, 5].map((slotNo) => {
@@ -145,9 +157,52 @@ export const AdminPromoterManagement: React.FC = () => {
   const handleOpenOnboardModal = (app: PromoterApplication) => {
     setSelectedAppForOnboard(app);
     setOnboardingUtr('');
-    // Pick first free slot
     const firstFree = slots.find((s) => !s.isFilled);
-    setSelectedSlot(firstFree ? firstFree.slotNo : 1);
+    const chosenSlot = firstFree ? firstFree.slotNo : 1;
+    setSelectedSlot(chosenSlot);
+    setOnboardUserId(app.promoter_user_id || app.mobile);
+    setOnboardPassword(app.promoter_password || 'Promoter@123');
+  };
+
+  const handleOpenCredentialsModal = (app: PromoterApplication) => {
+    setSelectedAppForCredentials(app);
+    setCredUserId(app.promoter_user_id || app.mobile);
+    setCredPassword(app.promoter_password || 'Promoter@123');
+    setCredSlot(app.assigned_slot || 1);
+  };
+
+  const generateRandomPassword = () => {
+    const randomDigits = Math.floor(1000 + Math.random() * 9000);
+    return `Promoter@${randomDigits}`;
+  };
+
+  const handleSaveCredentials = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAppForCredentials) return;
+    if (!credUserId.trim() || !credPassword.trim()) {
+      error('Missing Field', 'कृपया यूजर आईडी और पासवर्ड दोनों दर्ज करें।');
+      return;
+    }
+
+    // 1. AuthContext Profile
+    await createOrUpdatePromoterAccount({
+      applicationId: selectedAppForCredentials.id,
+      applicantName: selectedAppForCredentials.applicant_name,
+      mobile: credUserId.trim(),
+      email: selectedAppForCredentials.email,
+      slotNo: credSlot,
+      password: credPassword.trim(),
+    });
+
+    // 2. DataContext Application
+    await setPromoterCredentials(
+      selectedAppForCredentials.id,
+      credUserId.trim(),
+      credPassword.trim(),
+      credSlot
+    );
+
+    setSelectedAppForCredentials(null);
   };
 
   const handleSaveOnboard = async (e: React.FormEvent) => {
@@ -157,8 +212,31 @@ export const AdminPromoterManagement: React.FC = () => {
       error('Missing UTR', 'कृपया ₹499 का UPI/UTR रेफरेंस नंबर दर्ज करें।');
       return;
     }
-    await onboardPromoterPartner(selectedAppForOnboard.id, onboardingUtr, selectedSlot);
-    setSelectedAppForOnboard(null);
+
+    const finalUserId = onboardUserId.trim() || selectedAppForOnboard.mobile;
+    const finalPassword = onboardPassword.trim() || 'Promoter@123';
+
+    // 1. DataContext onboard
+    const ok = await onboardPromoterPartner(
+      selectedAppForOnboard.id,
+      onboardingUtr.trim(),
+      selectedSlot,
+      finalUserId,
+      finalPassword
+    );
+
+    if (ok) {
+      // 2. AuthContext Profile
+      await createOrUpdatePromoterAccount({
+        applicationId: selectedAppForOnboard.id,
+        applicantName: selectedAppForOnboard.applicant_name,
+        mobile: finalUserId,
+        email: selectedAppForOnboard.email,
+        slotNo: selectedSlot,
+        password: finalPassword,
+      });
+      setSelectedAppForOnboard(null);
+    }
   };
 
   const handleProcessRefund = async (appId: string) => {
@@ -500,6 +578,30 @@ export const AdminPromoterManagement: React.FC = () => {
                           )}
                         </div>
 
+                        {/* Super Admin Manage User ID & Password */}
+                        <button
+                          onClick={() => handleOpenCredentialsModal(app)}
+                          className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs border border-amber-300 transition flex items-center gap-1 cursor-pointer"
+                          title="प्रमोटर यूजर आईडी व पासवर्ड बनाएं / देखें"
+                        >
+                          <Lock className="w-3.5 h-3.5 text-amber-700" />
+                          <span>🔑 आईडी व पासवर्ड</span>
+                        </button>
+
+                        {/* WhatsApp Credentials Link */}
+                        <a
+                          href={`https://wa.me/91${app.mobile.replace(/\D/g, '')}?text=${encodeURIComponent(
+                            `बधाई हो ${app.applicant_name} जी!\nआप SafarGo के आधिकारिक प्रमोटिंग पार्टनर बन गए हैं (स्लॉट #${app.assigned_slot || 1}, कोड: ${app.promoter_code || 'PRM-MP-01'})।\n\n📌 आपका आधिकारिक लॉगिन विवरण:\n👤 यूजर आईडी: ${app.promoter_user_id || app.mobile}\n🔑 पासवर्ड: ${app.promoter_password || 'Promoter@123'}\n💰 मासिक फिक्स वेतन: ₹15,000 / माह\n🔗 पोर्टल लिंक: https://safargo.in\n\nवेबसाइट पर '🤝 प्रमोटर लॉगिन' बटन से तुरंत लॉगिन कर अपना डैशबोर्ड देखें।`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-200 transition flex items-center gap-1"
+                          title="WhatsApp पर लॉगिन विवरण भेजें"
+                        >
+                          <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>WhatsApp क्रेडेंशियल्स</span>
+                        </a>
+
                         {!app.fee_refund_eligible ? (
                           <button
                             onClick={() => handleProcessRefund(app.id)}
@@ -623,11 +725,49 @@ export const AdminPromoterManagement: React.FC = () => {
                 />
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  प्रमोटर यूजर आईडी (User ID / Mobile) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={onboardUserId}
+                  onChange={(e) => setOnboardUserId(e.target.value.trim())}
+                  placeholder="10 अंकों का मोबाइल नंबर"
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-700">
+                    लॉगिन पासवर्ड बनाएं *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setOnboardPassword(generateRandomPassword())}
+                    className="text-[11px] text-indigo-600 hover:text-indigo-800 font-bold underline cursor-pointer"
+                  >
+                    🎲 ऑटो पासवर्ड
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  required
+                  value={onboardPassword}
+                  onChange={(e) => setOnboardPassword(e.target.value.trim())}
+                  placeholder="उदा. Promoter@123"
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 font-mono font-bold"
+                />
+              </div>
+
               <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200 text-[11px] text-emerald-800 space-y-1">
                 <div>✓ कोड: PRM-MP-0{selectedSlot}</div>
                 <div>✓ वेतन: ₹15,000 / माह</div>
                 <div>✓ टारगेट: 500 एजेंट (3 बुकिंग अनिवार्य)</div>
                 <div>✓ 100% रिफंड गारंटी: ₹648 (₹149 + ₹499)</div>
+                <div>✓ लॉगिन पोर्टल: <strong>🤝 प्रमोटर लॉगिन</strong></div>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2">
@@ -642,8 +782,116 @@ export const AdminPromoterManagement: React.FC = () => {
                   type="submit"
                   className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl"
                 >
-                  स्लॉट अलॉट व एक्टिवेट करें
+                  स्लॉट अलॉट व क्रेडेंशियल्स एक्टिवेट करें
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 3: Super Admin Create / Reset User ID and Password */}
+      {selectedAppForCredentials && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-200 space-y-4 animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <Lock className="w-5 h-5 text-amber-600" />
+                प्रमोटर क्रेडेंशियल्स डेस्क - {selectedAppForCredentials.applicant_name}
+              </h3>
+            </div>
+            <p className="text-xs text-slate-500">
+              प्रमोटर के लिए यूजर आईडी व पासवर्ड बनाएं या अपडेट करें। इसके माध्यम से प्रमोटर सीधे <strong>'🤝 प्रमोटर लॉगिन'</strong> पोर्टल से लॉगिन कर सकेंगे।
+            </p>
+            <form onSubmit={handleSaveCredentials} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  प्रमोटर यूजर आईडी / मोबाइल नंबर *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={credUserId}
+                  onChange={(e) => setCredUserId(e.target.value.trim())}
+                  placeholder="उदा. 9826012345"
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-700">
+                    लॉगिन पासवर्ड (Password) *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setCredPassword(generateRandomPassword())}
+                    className="text-[11px] text-indigo-600 hover:text-indigo-800 font-bold underline cursor-pointer"
+                  >
+                    🎲 ऑटो-पासवर्ड जनरेट करें
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  required
+                  value={credPassword}
+                  onChange={(e) => setCredPassword(e.target.value.trim())}
+                  placeholder="उदा. Promoter@123"
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  अलॉटेड स्लॉट (1 से 5)
+                </label>
+                <select
+                  value={credSlot}
+                  onChange={(e) => setCredSlot(Number(e.target.value))}
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 font-bold bg-white"
+                >
+                  {[1, 2, 3, 4, 5].map((num) => (
+                    <option key={num} value={num}>
+                      स्लॉट #{num} (PRM-MP-0{num})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="bg-amber-50 p-3 rounded-xl border border-amber-200 text-[11px] text-amber-900 space-y-1">
+                <div>✓ <strong>मासिक वेतन:</strong> ₹15,000 / माह</div>
+                <div>✓ <strong>लॉगिन टैब:</strong> 🤝 प्रमोटर लॉगिन</div>
+                <div>✓ <strong>अधिकार:</strong> सीएससी एजेंट अप्रूवल, KYC सत्यापन, शॉप लिस्टिंग</div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <a
+                  href={`https://wa.me/91${(selectedAppForCredentials.mobile || credUserId).replace(/\D/g, '')}?text=${encodeURIComponent(
+                    `बधाई हो ${selectedAppForCredentials.applicant_name} जी!\nआप SafarGo के आधिकारिक प्रमोटिंग पार्टनर बन गए हैं (स्लॉट #${credSlot}, कोड: PRM-MP-0${credSlot})।\n\n📌 आपका लॉगिन विवरण:\n👤 यूजर आईडी: ${credUserId}\n🔑 पासवर्ड: ${credPassword}\n💰 मासिक वेतन: ₹15,000 / माह\n🔗 पोर्टल लिंक: https://safargo.in\n\nकृपया वेबसाइट पर '🤝 प्रमोटर लॉगिन' बटन दबाकर तुरंत लॉगिन करें।`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-2 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-xl flex items-center gap-1"
+                >
+                  <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>WhatsApp शेयर</span>
+                </a>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAppForCredentials(null)}
+                    className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                  >
+                    रद्द करें
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm"
+                  >
+                    क्रेडेंशियल्स सेव करें
+                  </button>
+                </div>
               </div>
             </form>
           </div>

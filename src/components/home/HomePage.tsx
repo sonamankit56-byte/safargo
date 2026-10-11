@@ -37,14 +37,16 @@ import { StatusBadge } from '../common/StatusBadge';
 import { PrintTicketModal } from '../common/PrintTicketModal';
 import { SafarGoLogo } from '../common/SafarGoLogo';
 import { PromotionClaimModal } from '../promotions/PromotionClaimModal';
+import { PromoterTrackStatusWidget } from '../promoter/PromoterTrackStatusWidget';
 import { MP_NETWORK_CITIES, POPULAR_MP_ROUTES } from '../../lib/mockData';
 
 interface HomePageProps {
-  onOpenAuth: (initialTab?: 'login' | 'register') => void;
+  onOpenAuth: (initialTab?: 'login' | 'register' | 'promoter_login') => void;
   onNavigateTab: (tab: string) => void;
+  onOpenPromoterApply?: () => void;
 }
 
-export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab }) => {
+export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, onOpenPromoterApply }) => {
   const { currentUser, role } = useAuth();
   const { settings, busTrips, bookings } = useData();
 
@@ -759,13 +761,19 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab })
               </div>
             </div>
 
-            <div className="pt-2">
+            <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
               <button
-                onClick={() => onNavigateTab('promoter-modal')}
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2"
+                onClick={() => (onOpenPromoterApply ? onOpenPromoterApply() : onNavigateTab('promoter-modal'))}
+                className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Award className="w-4 h-4" />
                 <span>प्रमोटर पद हेतु आवेदन करें (Apply ₹149 UTR)</span>
+              </button>
+              <button
+                onClick={() => onOpenAuth('promoter_login')}
+                className="px-5 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm border border-white/20 transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+              >
+                <span>🤝 प्रमोटर लॉगिन</span>
               </button>
             </div>
           </div>
@@ -819,6 +827,15 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab })
             </div>
           </div>
 
+        </div>
+
+        {/* Promoting Partner Application Live Tracking System on Homepage */}
+        <div className="pt-4" id="promoter-track-section">
+          <PromoterTrackStatusWidget
+            onOpenApplyModal={() => (onOpenPromoterApply ? onOpenPromoterApply() : onNavigateTab('promoter-modal'))}
+            onOpenPromoterLogin={() => onOpenAuth('promoter_login')}
+            onNavigateTab={onNavigateTab}
+          />
         </div>
       </section>
 

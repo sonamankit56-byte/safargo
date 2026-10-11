@@ -473,6 +473,8 @@ export interface PromoterApplication {
   is_mixed_target_achieved?: boolean; // Achieved if verified agents >= 500 OR (verified agents >= 125 && (gold >= 20 || shops >= 20))
   fee_refund_eligible: boolean;
   fee_refunded_at?: string;
+  promoter_user_id?: string; // Login User ID set by Admin
+  promoter_password?: string; // Login Password set by Admin
   created_at: string;
   deadline_at: string; // 3 Months from onboarding date
 }

@@ -76,6 +76,15 @@ interface AuthContextType {
     avatar_url?: string;
   }) => Promise<boolean>;
   resetPassword: (emailOrMobile: string, newPassword: string) => Promise<boolean>;
+  createOrUpdatePromoterAccount: (params: {
+    applicationId: string;
+    applicantName: string;
+    mobile: string;
+    email?: string;
+    slotNo: number;
+    password: string;
+    userId?: string;
+  }) => Promise<boolean>;
 }
 
 const STORAGE_KEY_PROFILES = 'safargo_profiles_v1';
@@ -236,7 +245,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const found = profiles.find(
-      (p) => p.email.toLowerCase() === term || p.mobile.replace(/\D/g, '') === term.replace(/\D/g, '')
+      (p) =>
+        p.email.toLowerCase() === term ||
+        p.mobile.replace(/\D/g, '') === term.replace(/\D/g, '') ||
+        (p.promoter_code && p.promoter_code.toLowerCase() === term) ||
+        p.id.toLowerCase() === term
     );
 
     if (found) {
@@ -293,7 +306,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const found = profiles.find(
-      (p) => p.email.toLowerCase() === term || p.mobile.replace(/\D/g, '') === term.replace(/\D/g, '')
+      (p) =>
+        p.email.toLowerCase() === term ||
+        p.mobile.replace(/\D/g, '') === term.replace(/\D/g, '') ||
+        (p.promoter_code && p.promoter_code.toLowerCase() === term) ||
+        p.id.toLowerCase() === term
     );
 
     if (!found) {
@@ -879,6 +896,86 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
+  const createOrUpdatePromoterAccount = async (params: {
+    applicationId: string;
+    applicantName: string;
+    mobile: string;
+    email?: string;
+    slotNo: number;
+    password: string;
+    userId?: string;
+  }): Promise<boolean> => {
+    if (!isAdmin) {
+      error('Permission Denied', 'केवल सुपर एडमिन ही प्रमोटर यूजर आईडी व पासवर्ड बना सकते हैं।');
+      return false;
+    }
+
+    const { applicantName, mobile, email, slotNo, password, userId } = params;
+    const cleanMobile = mobile.replace(/\D/g, '');
+    const promoterCode = `PRM-MP-0${slotNo}`;
+    const nowIso = new Date().toISOString();
+
+    const existingIndex = profiles.findIndex(
+      (p) =>
+        p.role === 'promoter' &&
+        (p.promoter_slot_no === slotNo ||
+          p.mobile.replace(/\D/g, '') === cleanMobile ||
+          (p.promoter_code && p.promoter_code === promoterCode))
+    );
+
+    let nextProfiles: Profile[];
+    if (existingIndex >= 0) {
+      const existing = profiles[existingIndex];
+      const updated: Profile = {
+        ...existing,
+        full_name: applicantName,
+        mobile: cleanMobile,
+        email: email || existing.email || `${cleanMobile}@safargo.in`,
+        password: password,
+        promoter_code: promoterCode,
+        promoter_slot_no: slotNo,
+        promoter_salary: 15000,
+        agent_status: 'approved',
+        updated_at: nowIso,
+      };
+      nextProfiles = profiles.map((p, idx) => (idx === existingIndex ? updated : p));
+    } else {
+      const newPromoter: Profile = {
+        id: userId || `usr-promoter-0${slotNo}`,
+        role: 'promoter',
+        full_name: applicantName,
+        mobile: cleanMobile,
+        email: email || `${cleanMobile}@safargo.in`,
+        city: 'Sironj',
+        district: 'Vidisha',
+        address: 'Madhya Pradesh Cluster Operations',
+        shop_name: `SafarGo Territory Manager - Slot #${slotNo}`,
+        agent_status: 'approved',
+        referral_code: promoterCode,
+        promoter_code: promoterCode,
+        promoter_slot_no: slotNo,
+        promoter_salary: 15000,
+        password: password,
+        created_at: nowIso,
+        updated_at: nowIso,
+      };
+      nextProfiles = [newPromoter, ...profiles];
+    }
+
+    setProfiles(nextProfiles);
+    try {
+      localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(nextProfiles));
+    } catch (err) {
+      console.error(err);
+    }
+
+    success(
+      'प्रमोटर क्रेडेंशियल्स सक्रिय! 🔑',
+      `${applicantName} (स्लॉट #${slotNo}) के लिए यूजर आईडी: ${cleanMobile} और पासवर्ड सेट हो गया है।`
+    );
+    return true;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -908,6 +1005,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         rejectAgentKyc,
         submitAgentKyc,
         resetPassword,
+        createOrUpdatePromoterAccount,
       }}
     >
       {children}

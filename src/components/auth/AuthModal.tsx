@@ -23,19 +23,24 @@ import {
   Bike,
   ShoppingBag,
   Sparkles,
-  HelpCircle
+  HelpCircle,
+  Award
 } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialTab?: 'login' | 'register' | 'forgot_password';
+  initialTab?: 'login' | 'register' | 'forgot_password' | 'promoter_login';
+  onOpenTrackPromoter?: () => void;
+  onOpenApplyPromoter?: () => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
   initialTab = 'login',
+  onOpenTrackPromoter,
+  onOpenApplyPromoter,
 }) => {
   const {
     login,
@@ -50,8 +55,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const { error } = useToast();
 
   const [activeTab, setActiveTab] = useState<
-    'login' | 'otp_verify' | 'register' | 'forgot_password' | 'registered_success'
+    'login' | 'otp_verify' | 'register' | 'forgot_password' | 'registered_success' | 'promoter_login'
   >(initialTab);
+
+  // Promoter Login state
+  const [promoterIdentifier, setPromoterIdentifier] = useState('9826012345');
+  const [promoterPassword, setPromoterPassword] = useState('Promoter@123');
 
   // Registration role switcher
   const [registerRole, setRegisterRole] = useState<'customer' | 'agent' | 'shopkeeper'>('customer');
@@ -153,6 +162,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         setEnteredOtp('');
         setOtpCountdown(180);
         setActiveTab('otp_verify');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle Dedicated Promoter Login Submit
+  const handlePromoterLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!promoterIdentifier.trim()) {
+      error('Input Required', 'कृपया अपना प्रमोटर यूजर आईडी, मोबाइल नंबर या प्रमोटर कोड दर्ज करें।');
+      return;
+    }
+    if (!promoterPassword.trim()) {
+      error('Password Required', 'कृपया अपना प्रमोटर पासवर्ड दर्ज करें।');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const ok = await login(promoterIdentifier.trim(), promoterPassword.trim());
+      if (ok) {
+        onClose();
       }
     } finally {
       setIsSubmitting(false);
@@ -370,6 +402,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               ? 'सफ़ारगो नया खाता बनाएं (Sign Up)'
               : activeTab === 'forgot_password'
               ? 'पासवर्ड रीसेट करें (Reset Password)'
+              : activeTab === 'promoter_login'
+              ? '🤝 प्रमोटिंग पार्टनर लॉगिन (Exclusive Desk)'
               : 'सफ़ारगो पोर्टल लॉगिन (Sign In)'}
           </h2>
           <p className="text-xs text-slate-400 mt-1">
@@ -381,38 +415,51 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               ? 'ग्राहक, स्थानीय दुकानदार या सीएससी एजेंट के रूप में तुरंत पंजीकरण करें'
               : activeTab === 'forgot_password'
               ? 'पंजीकृत मोबाइल या ईमेल दर्ज कर नया पासवर्ड बनाएं'
+              : activeTab === 'promoter_login'
+              ? 'सीमित 5 प्रमोटर पद | ₹15,000 मासिक वेतन | अधिकृत क्रेडेंशियल्स दर्ज करें'
               : 'अपने अधिकृत क्रेडेंशियल्स दर्ज कर सुरक्षित लॉगिन करें'}
           </p>
 
           {/* Top Sub-Navigation Tabs */}
           {activeTab !== 'registered_success' && activeTab !== 'otp_verify' && (
-            <div className="flex bg-slate-800/80 p-1 rounded-xl mt-4 border border-slate-700">
+            <div className="flex bg-slate-800/80 p-1 rounded-xl mt-4 border border-slate-700 gap-1 overflow-x-auto">
               <button
                 type="button"
                 onClick={() => setActiveTab('login')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition ${
+                className={`flex-1 py-1.5 px-2 text-xs font-bold rounded-lg transition whitespace-nowrap ${
                   activeTab === 'login'
                     ? 'bg-orange-500 text-white shadow-sm'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                लॉगिन (Sign In)
+                लॉगिन
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('promoter_login')}
+                className={`flex-1 py-1.5 px-2 text-xs font-black rounded-lg transition whitespace-nowrap flex items-center justify-center gap-1 ${
+                  activeTab === 'promoter_login'
+                    ? 'bg-amber-400 text-slate-950 shadow-sm'
+                    : 'text-amber-300 hover:text-white bg-amber-400/10'
+                }`}
+              >
+                <span>🤝 प्रमोटर लॉगिन</span>
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('register')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition ${
+                className={`flex-1 py-1.5 px-2 text-xs font-bold rounded-lg transition whitespace-nowrap ${
                   activeTab === 'register'
                     ? 'bg-orange-500 text-white shadow-sm'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                नया खाता (Register)
+                नया खाता
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('forgot_password')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition ${
+                className={`flex-1 py-1.5 px-2 text-xs font-bold rounded-lg transition whitespace-nowrap ${
                   activeTab === 'forgot_password'
                     ? 'bg-orange-500 text-white shadow-sm'
                     : 'text-slate-400 hover:text-white'
@@ -1125,6 +1172,123 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </button>
               </div>
             </div>
+          ) : activeTab === 'promoter_login' ? (
+            /* ========================================================== */
+            /* 4. EXCLUSIVE PROMOTING PARTNER LOGIN FORM                  */
+            /* ========================================================== */
+            <form onSubmit={handlePromoterLoginSubmit} className="space-y-4 animate-fadeIn">
+              <div className="bg-gradient-to-r from-amber-500/15 via-indigo-500/10 to-amber-500/15 border-2 border-amber-400/80 rounded-2xl p-4 text-slate-900 space-y-1.5 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950">
+                    सीमित 5 पद (Slot #1 - #5)
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">
+                    फिक्स्ड वेतन: ₹15,000 / माह
+                  </span>
+                </div>
+                <h4 className="text-sm font-black text-slate-950 flex items-center gap-1.5">
+                  <Award className="w-4 h-4 text-amber-600" />
+                  सफ़ारगो प्रमोटिंग पार्टनर अधिकृत लॉगिन
+                </h4>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  यह विशेष पोर्टल केवल शॉर्टलिस्ट व सुपर एडमिन द्वारा ऑनबोर्ड किए गए अधिकृत प्रमोटर पार्टनर्स के लिए है। यहां से आप एजेंट अप्रूवल, KYC सत्यापन एवं लोकल दुकान लिस्टिंग डैशबोर्ड एक्सेस कर सकते हैं।
+                </p>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1 text-xs">
+                  प्रमोटर यूजर आईडी, मोबाइल नंबर या कोड *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={promoterIdentifier}
+                  onChange={(e) => setPromoterIdentifier(e.target.value)}
+                  placeholder="उदा. 9826012345 या PRM-MP-01"
+                  className="w-full p-3 rounded-xl border border-slate-300 text-xs font-mono font-bold focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold text-slate-700 text-xs">
+                    प्रमोटर पासवर्ड (Password) *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotIdentifier(promoterIdentifier);
+                      setActiveTab('forgot_password');
+                    }}
+                    className="text-amber-700 hover:text-amber-800 font-bold text-xs underline"
+                  >
+                    पासवर्ड भूल गए?
+                  </button>
+                </div>
+                <input
+                  type="password"
+                  required
+                  value={promoterPassword}
+                  onChange={(e) => setPromoterPassword(e.target.value)}
+                  placeholder="एडमिन द्वारा सेट पासवर्ड दर्ज करें"
+                  className="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none font-mono"
+                />
+              </div>
+
+              {/* Demo 1-Click Autofill Chip */}
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 flex items-center justify-between gap-2 text-xs">
+                <span className="text-[11px] text-amber-900 font-medium">
+                  डेमो प्रमोटर (धर्मेंद्र यादव - स्लॉट #1):
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPromoterIdentifier('9826012345');
+                    setPromoterPassword('Promoter@123');
+                  }}
+                  className="px-2.5 py-1 bg-amber-400 hover:bg-amber-500 text-slate-950 font-black rounded-lg text-[10px] transition cursor-pointer shrink-0"
+                >
+                  ⚡ ऑटो भरें (9826012345)
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-3.5 bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-950 hover:from-slate-900 hover:to-slate-900 text-amber-300 hover:text-amber-200 font-black rounded-xl shadow-xl transition active:scale-98 disabled:opacity-50 text-xs flex items-center justify-center gap-2 cursor-pointer border border-amber-400/40"
+              >
+                <Award className="w-4 h-4 text-amber-400" />
+                <span>{isSubmitting ? 'लॉगिन हो रहा है...' : '🚀 प्रमोटर पोर्टल लॉगिन करें (Open Dashboard)'}</span>
+              </button>
+
+              {/* Status Tracking Link */}
+              <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+                {onOpenTrackPromoter && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenTrackPromoter();
+                    }}
+                    className="text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>🔎 प्रमोटर आवेदन स्टेटस ट्रैक करें</span>
+                  </button>
+                )}
+                {onOpenApplyPromoter && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenApplyPromoter();
+                    }}
+                    className="text-amber-700 hover:text-amber-900 font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>📝 नया प्रमोटर आवेदन करें (₹149)</span>
+                  </button>
+                )}
+              </div>
+            </form>
           ) : (
             /* ========================================================== */
             /* 5. UNIVERSAL SIGN IN FORM                                  */

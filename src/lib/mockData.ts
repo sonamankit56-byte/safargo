@@ -1042,6 +1042,8 @@ export const INITIAL_PROMOTER_APPLICATIONS: PromoterApplication[] = [
     current_verified_agents: 42, // Agents with >= 3 confirmed bus bookings
     current_total_agents: 86,
     fee_refund_eligible: false,
+    promoter_user_id: '9826012345',
+    promoter_password: 'Promoter@123',
     created_at: '2026-09-01T10:00:00Z',
     deadline_at: '2026-12-01T23:59:59Z'
   },

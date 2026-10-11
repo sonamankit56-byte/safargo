@@ -37,7 +37,7 @@ import {
 interface NavbarProps {
   currentTab: string;
   setCurrentTab: (tab: string) => void;
-  onOpenAuth: (initialTab?: 'login' | 'register') => void;
+  onOpenAuth: (initialTab?: 'login' | 'register' | 'promoter_login') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpenAuth }) => {
@@ -409,18 +409,27 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
             
             {!currentUser ? (
               /* Guest Actions: Real Login & Register buttons */
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => onOpenAuth('login')}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl border border-slate-700 transition flex items-center gap-1.5 shadow-xs"
+                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl border border-slate-700 transition flex items-center gap-1.5 shadow-xs"
                 >
                   <LogIn className="w-3.5 h-3.5 text-orange-400" />
                   <span>लॉगिन करें</span>
                 </button>
 
                 <button
+                  onClick={() => onOpenAuth('promoter_login')}
+                  className="px-3 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-xs rounded-xl transition flex items-center gap-1.5 shadow-sm active:scale-95 border border-amber-300"
+                  title="विशेष प्रमोटिंग पार्टनर लॉगिन पोर्टल (₹15,000/माह)"
+                >
+                  <Award className="w-3.5 h-3.5 text-slate-950" />
+                  <span>🤝 प्रमोटर लॉगिन</span>
+                </button>
+
+                <button
                   onClick={() => onOpenAuth('register')}
-                  className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-xs rounded-xl transition flex items-center gap-1.5 shadow-md active:scale-95"
+                  className="px-3.5 py-2 bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-xs rounded-xl transition flex items-center gap-1.5 shadow-md active:scale-95"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   <span>फ्री एजेंट बनें</span>
@@ -637,6 +646,16 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                 >
                   <LogIn className="w-4 h-4 text-orange-400" />
                   लॉगिन करें
+                </button>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenAuth('promoter_login');
+                  }}
+                  className="w-full py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm border border-amber-300"
+                >
+                  <Award className="w-4 h-4 text-slate-950" />
+                  🤝 प्रमोटर लॉगिन (₹15,000/माह)
                 </button>
                 <button
                   onClick={() => {

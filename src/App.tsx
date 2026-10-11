@@ -42,11 +42,11 @@ const AppContent: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<string>('home');
   const [selectedReviewBookingId, setSelectedReviewBookingId] = useState<string | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register'>('login');
+  const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register' | 'promoter_login'>('login');
   const [isPromoterModalOpen, setIsPromoterModalOpen] = useState(false);
   const [selectedTrackOrderId, setSelectedTrackOrderId] = useState<string | null>(null);
 
-  const handleOpenAuth = (initialTab: 'login' | 'register' = 'login') => {
+  const handleOpenAuth = (initialTab: 'login' | 'register' | 'promoter_login' = 'login') => {
     setAuthInitialTab(initialTab);
     setIsAuthModalOpen(true);
   };
@@ -141,6 +141,7 @@ const AppContent: React.FC = () => {
         ) : (!currentUser || currentTab === 'home') ? (
           <HomePage
             onOpenAuth={handleOpenAuth}
+            onOpenPromoterApply={() => setIsPromoterModalOpen(true)}
             onNavigateTab={(tab) => {
               if (tab === 'promoter-modal') {
                 setIsPromoterModalOpen(true);
@@ -195,6 +196,7 @@ const AppContent: React.FC = () => {
         ) : (
           <HomePage
             onOpenAuth={handleOpenAuth}
+            onOpenPromoterApply={() => setIsPromoterModalOpen(true)}
             onNavigateTab={(tab) => {
               if (tab === 'promoter-modal') {
                 setIsPromoterModalOpen(true);
@@ -229,6 +231,20 @@ const AppContent: React.FC = () => {
         isOpen={isAuthModalOpen}
         initialTab={authInitialTab}
         onClose={() => setIsAuthModalOpen(false)}
+        onOpenTrackPromoter={() => {
+          setIsAuthModalOpen(false);
+          setCurrentTab('home');
+          setTimeout(() => {
+            const el = document.getElementById('promoter-track-section');
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth' });
+            }
+          }, 100);
+        }}
+        onOpenApplyPromoter={() => {
+          setIsAuthModalOpen(false);
+          setIsPromoterModalOpen(true);
+        }}
       />
 
       {/* Promoter Partner Application Modal */}

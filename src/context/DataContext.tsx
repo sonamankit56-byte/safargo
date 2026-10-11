@@ -143,7 +143,19 @@ interface DataContextType {
   }) => Promise<boolean>;
   schedulePromoterInterview: (appId: string, interviewDate: string, notes?: string) => Promise<boolean>;
   passPromoterInterview: (appId: string, notes?: string) => Promise<boolean>;
-  onboardPromoterPartner: (appId: string, onboardingUtr: string, slotNo: number) => Promise<boolean>;
+  onboardPromoterPartner: (
+    appId: string,
+    onboardingUtr: string,
+    slotNo: number,
+    userId?: string,
+    password?: string
+  ) => Promise<boolean>;
+  setPromoterCredentials: (
+    appId: string,
+    userId: string,
+    password: string,
+    slotNo?: number
+  ) => Promise<boolean>;
   refundPromoterFee: (appId: string) => Promise<boolean>;
 
   // Local Shopkeeper Subscriptions & Online Catalog
@@ -2057,7 +2069,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
-  const onboardPromoterPartner = async (appId: string, onboardingUtr: string, slotNo: number): Promise<boolean> => {
+  const onboardPromoterPartner = async (
+    appId: string,
+    onboardingUtr: string,
+    slotNo: number,
+    userId?: string,
+    password?: string
+  ): Promise<boolean> => {
     if (!isAdmin) return false;
     const target = promoterApplications.find((a) => a.id === appId);
     if (!target) return false;
@@ -2080,6 +2098,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
               onboarding_fee_utr: onboardingUtr.trim(),
               assigned_slot: slotNo,
               promoter_code: promoterCode,
+              promoter_user_id: userId || app.promoter_user_id || app.mobile,
+              promoter_password: password || app.promoter_password || 'Promoter@123',
               deadline_at: threeMonthsLater,
             }
           : app
@@ -2088,6 +2108,34 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     addAuditLog('onboard_promoter', 'promoter_applications', appId, { slotNo, promoterCode });
     success('प्रमोटर पार्टनर ऑनबोर्ड! 🚀', `${target.applicant_name} को स्लॉट #${slotNo} (${promoterCode}) अलॉट हुआ। ₹15,000 मानदेय एक्टिव!`);
+    return true;
+  };
+
+  const setPromoterCredentials = async (
+    appId: string,
+    userId: string,
+    password: string,
+    slotNo?: number
+  ): Promise<boolean> => {
+    if (!isAdmin) return false;
+    const target = promoterApplications.find((a) => a.id === appId);
+    if (!target) return false;
+
+    setPromoterApplications((prev) =>
+      prev.map((app) =>
+        app.id === appId
+          ? {
+              ...app,
+              promoter_user_id: userId.trim(),
+              promoter_password: password.trim(),
+              ...(slotNo ? { assigned_slot: slotNo, promoter_code: `PRM-MP-0${slotNo}` } : {}),
+            }
+          : app
+      )
+    );
+
+    addAuditLog('set_promoter_credentials', 'promoter_applications', appId, { userId });
+    success('प्रमोटर क्रेडेंशियल्स अपडेट! 🔑', `${target.applicant_name} के लिए यूजर आईडी (${userId}) और पासवर्ड सेव हो गया है।`);
     return true;
   };
 
@@ -2568,6 +2616,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         schedulePromoterInterview,
         passPromoterInterview,
         onboardPromoterPartner,
+        setPromoterCredentials,
         refundPromoterFee,
         partnerShops,
         addPartnerShop,

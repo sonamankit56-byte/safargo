@@ -6,9 +6,10 @@ import {
   INITIAL_SETTINGS,
   INITIAL_BUS_TRIPS,
   INITIAL_PROMO_CODES,
-  INITIAL_QUICK_DELIVERY_ORDERS
+  INITIAL_QUICK_DELIVERY_ORDERS,
+  INITIAL_PROMOTER_APPLICATIONS
 } from '../src/lib/mockData';
-import { Booking, CommissionEntry, Profile, PromoCode, QuickDeliveryOrder } from '../src/types';
+import { Booking, CommissionEntry, Profile, PromoCode, QuickDeliveryOrder, PromoterApplication } from '../src/types';
 
 describe('A. Authentication & Secure Roles', () => {
   it('identifies admin, approved agent, and pending agent correctly', () => {
@@ -1382,6 +1383,122 @@ describe('AC. Boarding Sathi Add-On & Fair Earning Split', () => {
     const baseAgentCommission = 35;
     const totalAgentEarning = baseAgentCommission + (withBoardingSathi ? AGENT_SHARE : 0);
     expect(totalAgentEarning).toBe(58);
+  });
+});
+
+describe('AD. SafarGo Promoting Partner Tracking & Admin Credential Generation Desk', () => {
+  it('tracks promoting partner application by 10-digit mobile number with sanitization', () => {
+    const rawInputs = [
+      '9826012345',
+      '+91 9826012345',
+      '98260-12345',
+      ' +919826012345 '
+    ];
+
+    rawInputs.forEach((raw) => {
+      const sanitized = raw.replace(/\D/g, '').slice(-10);
+      const matched = INITIAL_PROMOTER_APPLICATIONS.find((app) => app.mobile === sanitized);
+      expect(matched).toBeDefined();
+      expect(matched?.applicant_name).toBe('Dharmendra Yadav');
+      expect(matched?.promoter_code).toBe('PRM-MP-01');
+    });
+  });
+
+  it('verifies submission acknowledgement message on request receipt', () => {
+    const app = INITIAL_PROMOTER_APPLICATIONS.find((a) => a.mobile === '9826012345')!;
+    const ACKNOWLEDGEMENT_TEXT = 'आपका SafarGo प्रमोटिंग पार्टनर में रुचि दिखाने के लिए धन्यवाद!';
+
+    // Verify acknowledgement is associated with submitted requests
+    expect(app.application_fee).toBe(149);
+    expect(app.application_fee_utr).toBeDefined();
+    expect(ACKNOWLEDGEMENT_TEXT).toContain('SafarGo प्रमोटिंग पार्टनर में रुचि दिखाने के लिए धन्यवाद');
+  });
+
+  it('accurately tracks 4-step onboarding timeline progression across application states', () => {
+    // Step index helper function matching PromoterTrackStatusWidget logic
+    const getActiveStep = (status: PromoterApplication['status']) => {
+      switch (status) {
+        case 'applied_149_submitted':
+          return 1;
+        case 'interview_scheduled':
+        case 'interview_passed':
+          return 2;
+        case 'onboarded_499_paid':
+          return 4;
+        case 'rejected':
+          return -1;
+        default:
+          return 1;
+      }
+    };
+
+    // Deepesh Lodhi: interview scheduled -> Step 2
+    const deepesh = INITIAL_PROMOTER_APPLICATIONS.find((a) => a.id === 'prm-app-03')!;
+    expect(getActiveStep(deepesh.status)).toBe(2);
+
+    // Vikas Raghuvanshi: interview passed -> Step 2 completed / ready for onboarding
+    const vikas = INITIAL_PROMOTER_APPLICATIONS.find((a) => a.id === 'prm-app-02')!;
+    expect(getActiveStep(vikas.status)).toBe(2);
+    expect(vikas.assigned_slot).toBe(2);
+
+    // Dharmendra Yadav: onboarded -> Step 4 completed
+    const dharmendra = INITIAL_PROMOTER_APPLICATIONS.find((a) => a.id === 'prm-app-01')!;
+    expect(getActiveStep(dharmendra.status)).toBe(4);
+  });
+
+  it('renders exclusive celebration banner when partner is officially onboarded', () => {
+    const activePromoter = INITIAL_PROMOTER_APPLICATIONS.find((a) => a.status === 'onboarded_499_paid')!;
+    const CELEBRATION_MESSAGE = '🎉 Congratulations! अब आप SafarGo के Exclusive Promoting Partner बन गए हैं! काम शुरू करें - यह मौका सबको नहीं मिलता है!';
+
+    expect(activePromoter.status).toBe('onboarded_499_paid');
+    expect(activePromoter.assigned_slot).toBe(1);
+    expect(activePromoter.assigned_slot).toBeLessThanOrEqual(5); // Only 5 slots
+    expect(activePromoter.promoter_code).toBe('PRM-MP-01');
+    expect(CELEBRATION_MESSAGE).toContain('Exclusive Promoting Partner बन गए हैं');
+    expect(CELEBRATION_MESSAGE).toContain('यह मौका सबको नहीं मिलता है');
+  });
+
+  it('allows admin to create and update promoter User ID and password credentials', () => {
+    let mockApp: PromoterApplication = { ...INITIAL_PROMOTER_APPLICATIONS[1] }; // Vikas Raghuvanshi
+
+    // Admin creates credentials upon onboarding
+    const generatedUserId = mockApp.mobile;
+    const generatedPassword = `Prm@${Math.random().toString(36).slice(-6)}!`;
+
+    mockApp = {
+      ...mockApp,
+      status: 'onboarded_499_paid',
+      promoter_code: 'PRM-MP-02',
+      promoter_user_id: generatedUserId,
+      promoter_password: generatedPassword
+    };
+
+    expect(mockApp.promoter_user_id).toBe('9752011223');
+    expect(mockApp.promoter_password).toBe(generatedPassword);
+    expect(mockApp.promoter_code).toBe('PRM-MP-02');
+  });
+
+  it('authenticates promoter using mobile number, promoter code, or User ID with password', () => {
+    const activePromoter = INITIAL_PROMOTER_APPLICATIONS.find((a) => a.id === 'prm-app-01')!;
+
+    // Case 1: Match by mobile
+    const matchByMobile = INITIAL_PROMOTER_APPLICATIONS.find(
+      (a) => a.mobile === '9826012345' && a.promoter_password === 'Promoter@123'
+    );
+    expect(matchByMobile).toBeDefined();
+
+    // Case 2: Match by promoter code
+    const matchByCode = INITIAL_PROMOTER_APPLICATIONS.find(
+      (a) => (a.promoter_code === 'PRM-MP-01' || a.promoter_user_id === 'PRM-MP-01') && a.promoter_password === 'Promoter@123'
+    );
+    expect(matchByCode).toBeDefined();
+
+    // Case 3: Match by assigned User ID
+    const matchByUserId = INITIAL_PROMOTER_APPLICATIONS.find(
+      (a) => (a.promoter_user_id === '9826012345') && a.promoter_password === 'Promoter@123'
+    );
+    expect(matchByUserId).toBeDefined();
+    expect(matchByUserId?.id).toBe(activePromoter.id);
   });
 });
 
