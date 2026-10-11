@@ -27,13 +27,15 @@ import {
   CheckCircle,
   CreditCard,
   Printer,
-  Bike
+  Bike,
+  Tag
 } from 'lucide-react';
 import { NewFeaturesSection } from './NewFeaturesSection';
 import { SafarGoLogo } from '../common/SafarGoLogo';
 import { WalletRechargeModal } from './WalletRechargeModal';
 import { AgentKycModal } from './AgentKycModal';
 import { AgentPosterModal } from './AgentPosterModal';
+import { AgentOffersModal } from './AgentOffersModal';
 
 interface AgentDashboardProps {
   onNavigate: (tab: string) => void;
@@ -45,6 +47,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
   const [showRechargeModal, setShowRechargeModal] = useState(false);
   const [isKycModalOpen, setIsKycModalOpen] = useState(false);
   const [isPosterModalOpen, setIsPosterModalOpen] = useState(false);
+  const [isOffersModalOpen, setIsOffersModalOpen] = useState(false);
 
   // Current calendar month in Asia/Kolkata
   const now = new Date();
@@ -227,6 +230,41 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
           <span>रेफरल डैशबोर्ड देखें</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
+      </div>
+
+      {/* 🎟️ Active Promo Codes & Discounts Banner for Agents */}
+      <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-indigo-950 rounded-2xl p-4 sm:p-5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg border border-emerald-500/30">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center shrink-0 shadow-md">
+            <Tag className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-[10px] bg-emerald-400 text-slate-950 px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
+                ऑफर एवं कूपन्स (Promo Offers)
+              </span>
+              <span className="text-xs font-bold text-amber-300">
+                💰 प्रति टिकट अतिरिक्त नकद इंसेंटिव!
+              </span>
+            </div>
+            <h3 className="font-black text-sm sm:text-base">
+              सक्रिय प्रोमो कोड्स: यात्रियों को ₹50 तक छूट दिलाएं और अतिरिक्त नकद बोनस कमाएं!
+            </h3>
+            <p className="text-xs text-emerald-200">
+              SAFAR50, MPEXPRESS आदि प्रोमो कोड्स 1-क्लिक व्हाट्सएप से अपने यात्रियों को शेयर करें या बुकिंग में लगाएं।
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+          <button
+            onClick={() => setIsOffersModalOpen(true)}
+            className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs rounded-xl transition flex items-center gap-1.5 shadow-md cursor-pointer"
+          >
+            <Tag className="w-3.5 h-3.5" />
+            <span>प्रोमो कोड्स देखें व शेयर करें</span>
+          </button>
+        </div>
       </div>
 
       {/* Social Media Viral Creator & Reels Offer Banner */}
@@ -731,6 +769,13 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
       <AgentPosterModal
         isOpen={isPosterModalOpen}
         onClose={() => setIsPosterModalOpen(false)}
+      />
+
+      {/* Agent Offers & Promo Codes Modal */}
+      <AgentOffersModal
+        isOpen={isOffersModalOpen}
+        onClose={() => setIsOffersModalOpen(false)}
+        onApplyInBooking={(code) => onNavigate('new-booking')}
       />
 
     </div>

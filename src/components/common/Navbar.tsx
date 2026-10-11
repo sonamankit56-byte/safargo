@@ -30,7 +30,8 @@ import {
   ShieldCheck,
   Bike,
   Award,
-  Store
+  Store,
+  Tag
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -302,8 +303,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                       : 'text-purple-300 hover:text-white hover:bg-slate-800'
                   }`}
                 >
-                  <Sparkles className="w-4 h-4 text-purple-400" />
-                  वायरल प्रमोशन
+                  <Tag className="w-4 h-4 text-emerald-400" />
+                  <span>प्रोमो कोड व ऑफर्स</span>
                 </button>
 
                 <button
@@ -836,7 +837,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                     currentTab === 'admin-promotions' ? 'bg-purple-600 text-white' : 'text-purple-300 hover:bg-slate-800'
                   }`}
                 >
-                  <Sparkles className="w-4 h-4 text-purple-400" /> वायरल प्रमोशन
+                  <Tag className="w-4 h-4 text-purple-400" /> 🎟️ प्रोमो कोड व ऑफर्स
                 </button>
                 <button
                   onClick={() => handleTabChange('admin-agents')}

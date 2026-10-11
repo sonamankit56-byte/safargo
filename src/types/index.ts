@@ -407,6 +407,35 @@ export interface PromotionClaim {
 }
 
 // =====================================================================
+// PROMO CODES & DISCOUNT OFFERS SYSTEM (ADMIN & AGENTS)
+// =====================================================================
+export type PromoDiscountType = 'flat' | 'percentage';
+export type PromoApplicableService = 'all' | 'bus_booking' | 'quick_delivery';
+export type PromoApplicableTo = 'all_agents' | 'specific_agent' | 'all_customers';
+
+export interface PromoCode {
+  id: string;
+  code: string; // e.g. "SAFAR50", "DIWALI100"
+  title: string; // e.g. "त्यौहार स्पेशल ₹50 फ्लैट छूट"
+  description: string;
+  discount_type: PromoDiscountType;
+  discount_value: number; // Flat ₹ or % value
+  max_discount_amount?: number; // Cap on percentage discount
+  min_order_amount: number; // Minimum booking or cart amount
+  applicable_service: PromoApplicableService;
+  applicable_to: PromoApplicableTo;
+  assigned_agent_id?: string; // Optional specific agent link
+  assigned_agent_name?: string;
+  agent_extra_incentive: number; // Extra bonus earned by agent per redemption (₹)
+  usage_limit: number;
+  used_count: number;
+  valid_from: string;
+  valid_until: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+// =====================================================================
 // PROMOTER PARTNER PROGRAM (ONLY 5 SLOTS, ₹15,000 SALARY, 500 TARGET)
 // =====================================================================
 

@@ -24,8 +24,11 @@ import {
   ShieldCheck,
   Zap,
   Check,
-  X
+  X,
+  Package
 } from 'lucide-react';
+import { OrderPlacedCelebrationModal } from './OrderPlacedCelebrationModal';
+import { FlipkartOrderTrackingView } from './FlipkartOrderTrackingView';
 
 export const QuickDeliveryHub: React.FC = () => {
   const { currentUser } = useAuth();
@@ -48,6 +51,11 @@ export const QuickDeliveryHub: React.FC = () => {
   const [customItemsText, setCustomItemsText] = useState('');
   const [distanceKm, setDistanceKm] = useState<number>(1.5);
   const [cartItems, setCartItems] = useState<{ id: string; name: string; price: number; qty: number }[]>([]);
+
+  // Celebration Modal & Dedicated Flipkart Tracking State
+  const [celebrationOrder, setCelebrationOrder] = useState<QuickDeliveryOrder | null>(null);
+  const [isTrackingViewOpen, setIsTrackingViewOpen] = useState(false);
+  const [activeTrackingOrderId, setActiveTrackingOrderId] = useState<string | null>(null);
 
   // Distance Fee Calculator Helper
   const calculatePricing = (km: number) => {
@@ -123,8 +131,19 @@ export const QuickDeliveryHub: React.FC = () => {
     if (order) {
       setCustomItemsText('');
       setCartItems([]);
+      setCelebrationOrder(order);
     }
   };
+
+  if (isTrackingViewOpen) {
+    return (
+      <FlipkartOrderTrackingView
+        orderId={activeTrackingOrderId}
+        onBack={() => setIsTrackingViewOpen(false)}
+        onSelectOrder={(id) => setActiveTrackingOrderId(id)}
+      />
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -597,6 +616,19 @@ export const QuickDeliveryHub: React.FC = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Dedicated Flipkart Tracker CTA */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTrackingOrderId(order.id);
+                      setIsTrackingViewOpen(true);
+                    }}
+                    className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
+                  >
+                    <Package className="w-3.5 h-3.5 text-amber-400" />
+                    <span>📦 फ्लिपकार्ट स्टाइल लाइव ट्रैक करें (Full Tracking)</span>
+                  </button>
                 </div>
               ))
             )}
@@ -604,6 +636,17 @@ export const QuickDeliveryHub: React.FC = () => {
         </div>
 
       </div>
+
+      {/* Big Order Placed Celebration Modal */}
+      <OrderPlacedCelebrationModal
+        isOpen={!!celebrationOrder}
+        order={celebrationOrder}
+        onClose={() => setCelebrationOrder(null)}
+        onTrackOrder={(id) => {
+          setActiveTrackingOrderId(id);
+          setIsTrackingViewOpen(true);
+        }}
+      />
 
     </div>
   );

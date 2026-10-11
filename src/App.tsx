@@ -25,6 +25,7 @@ import { AdminPromoterManagement } from './components/admin/AdminPromoterManagem
 import { PromoterDashboard } from './components/promoter/PromoterDashboard';
 import { PromoterApplicationModal } from './components/promoter/PromoterApplicationModal';
 import { QuickDeliveryHub } from './components/delivery/QuickDeliveryHub';
+import { FlipkartOrderTrackingView } from './components/delivery/FlipkartOrderTrackingView';
 import { AgentDeliveryDesk } from './components/agent/AgentDeliveryDesk';
 import { CustomerPortal } from './components/customer/CustomerPortal';
 import { ShopkeeperPortal } from './components/shop/ShopkeeperPortal';
@@ -43,6 +44,7 @@ const AppContent: React.FC = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register'>('login');
   const [isPromoterModalOpen, setIsPromoterModalOpen] = useState(false);
+  const [selectedTrackOrderId, setSelectedTrackOrderId] = useState<string | null>(null);
 
   const handleOpenAuth = (initialTab: 'login' | 'register' = 'login') => {
     setAuthInitialTab(initialTab);
@@ -78,7 +80,13 @@ const AppContent: React.FC = () => {
 
       {/* Main Content View Container */}
       <main className="flex-1 pb-16">
-        {currentTab === 'quick-delivery' ? (
+        {currentTab === 'track-order' ? (
+          <FlipkartOrderTrackingView
+            orderId={selectedTrackOrderId}
+            onBack={() => setCurrentTab('quick-delivery')}
+            onSelectOrder={(id) => setSelectedTrackOrderId(id)}
+          />
+        ) : currentTab === 'quick-delivery' ? (
           <QuickDeliveryHub />
         ) : currentTab === 'promoter-program' ? (
           <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">

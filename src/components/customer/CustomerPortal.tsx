@@ -27,9 +27,11 @@ import {
   MessageSquare,
   Search,
   Sparkles,
-  Award
+  Award,
+  Package
 } from 'lucide-react';
 import { MP_NETWORK_CITIES } from '../../lib/mockData';
+import { FlipkartOrderTrackingView } from '../delivery/FlipkartOrderTrackingView';
 
 interface CustomerPortalProps {
   onNavigateTab?: (tab: string) => void;
@@ -42,6 +44,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onNavigateTab })
 
   const [activeTab, setActiveTab] = useState<'bookings' | 'nearby_agents' | 'deliveries' | 'profile'>('bookings');
   const [selectedPhotoModal, setSelectedPhotoModal] = useState<string | null>(null);
+  const [trackingDeliveryId, setTrackingDeliveryId] = useState<string | null>(null);
 
   // Search & filter state for nearby agents
   const [agentSearchCity, setAgentSearchCity] = useState<string>('All');
@@ -106,6 +109,15 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onNavigateTab })
       success('Address Updated', 'डिलीवरी पता सुरक्षित हो गया है।');
     }
   };
+
+  if (trackingDeliveryId) {
+    return (
+      <FlipkartOrderTrackingView
+        orderId={trackingDeliveryId}
+        onBack={() => setTrackingDeliveryId(null)}
+      />
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-fadeIn">
@@ -720,6 +732,15 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onNavigateTab })
                       <strong className="text-slate-800">{order.partner_shop_name || 'नजदीकी लोकल दुकान'}</strong>
                     </div>
                   </div>
+
+                  {/* Flipkart-Style Tracking CTA */}
+                  <button
+                    onClick={() => setTrackingDeliveryId(order.id)}
+                    className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
+                  >
+                    <Package className="w-3.5 h-3.5 text-amber-400" />
+                    <span>📦 फ्लिपकार्ट स्टाइल लाइव ट्रैक करें (Full 5-Step View)</span>
+                  </button>
                 </div>
               ))}
             </div>

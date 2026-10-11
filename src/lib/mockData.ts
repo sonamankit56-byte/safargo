@@ -14,7 +14,8 @@ import {
   ShopSubscriptionPlan,
   PartnerShop,
   AgentCallLog,
-  QuickDeliveryOrder
+  QuickDeliveryOrder,
+  PromoCode
 } from '../types';
 
 export const INITIAL_SETTINGS: AdminSettings = {
@@ -1275,5 +1276,87 @@ export const INITIAL_QUICK_DELIVERY_ORDERS: QuickDeliveryOrder[] = [
     created_at: '2026-10-11T13:10:00Z'
   }
 ];
+
+// =====================================================================
+// INITIAL PROMO CODES & OFFERS (ADMIN CREATED & AGENT ACCESSIBLE)
+// =====================================================================
+export const INITIAL_PROMO_CODES: PromoCode[] = [
+  {
+    id: 'promo-01',
+    code: 'SAFAR50',
+    title: 'महा बचत स्पेशल: बस टिकट पर ₹50 फ्लैट छूट',
+    description: 'सभी यात्रियों के लिए वैध। न्यूनतम ₹300 टिकट पर तुरंत ₹50 छूट + एजेंट को प्रति टिकट ₹15 अतिरिक्त बोनस!',
+    discount_type: 'flat',
+    discount_value: 50,
+    min_order_amount: 300,
+    applicable_service: 'bus_booking',
+    applicable_to: 'all_agents',
+    agent_extra_incentive: 15,
+    usage_limit: 500,
+    used_count: 64,
+    valid_from: '2026-10-01T00:00:00Z',
+    valid_until: '2026-11-30T23:59:59Z',
+    is_active: true,
+    created_at: '2026-10-01T10:00:00Z',
+  },
+  {
+    id: 'promo-02',
+    code: 'BLINK15',
+    title: '15-मिनट क्विक डिलीवरी लॉन्च ऑफर',
+    description: 'सफ़ारगो 15-मिनट डिलीवरी पर ₹15 की तत्काल छूट। नजदीकी किराना व मेडिकल सामान घर मंगवाएं।',
+    discount_type: 'flat',
+    discount_value: 15,
+    min_order_amount: 100,
+    applicable_service: 'quick_delivery',
+    applicable_to: 'all_customers',
+    agent_extra_incentive: 10,
+    usage_limit: 300,
+    used_count: 42,
+    valid_from: '2026-10-05T00:00:00Z',
+    valid_until: '2026-12-31T23:59:59Z',
+    is_active: true,
+    created_at: '2026-10-05T12:00:00Z',
+  },
+  {
+    id: 'promo-03',
+    code: 'MPEXPRESS',
+    title: 'मध्य प्रदेश एक्सप्रेस 10% बंपर डिस्काउंट',
+    description: 'भोपाल, इंदौर, गुना, विदिशा, सागर रूट्स पर 10% तक (अधिकतम ₹100) विशेष डिस्काउंट + एजेंट को ₹20 इंसेंटिव!',
+    discount_type: 'percentage',
+    discount_value: 10,
+    max_discount_amount: 100,
+    min_order_amount: 400,
+    applicable_service: 'bus_booking',
+    applicable_to: 'all_agents',
+    agent_extra_incentive: 20,
+    usage_limit: 1000,
+    used_count: 158,
+    valid_from: '2026-10-08T00:00:00Z',
+    valid_until: '2026-11-15T23:59:59Z',
+    is_active: true,
+    created_at: '2026-10-08T09:30:00Z',
+  },
+  {
+    id: 'promo-04',
+    code: 'KULDEEP25',
+    title: 'कुलदीप धाकड़ (अशोक नगर) स्पेशल एजेंट प्रोमो',
+    description: 'अशोक नगर बस स्टैंड सेंटर हेतु अधिकृत एजेंट प्रोमो कोड। ₹25 फ्लैट छूट + कुलदीप जी को ₹25 डायरेक्ट इंसेंटिव।',
+    discount_type: 'flat',
+    discount_value: 25,
+    min_order_amount: 250,
+    applicable_service: 'all',
+    applicable_to: 'specific_agent',
+    assigned_agent_id: 'usr-agent-08',
+    assigned_agent_name: 'कुलदीप धाकड़',
+    agent_extra_incentive: 25,
+    usage_limit: 200,
+    used_count: 19,
+    valid_from: '2026-10-10T00:00:00Z',
+    valid_until: '2026-12-15T23:59:59Z',
+    is_active: true,
+    created_at: '2026-10-10T14:00:00Z',
+  }
+];
+
 
 

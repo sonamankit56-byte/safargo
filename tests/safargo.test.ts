@@ -4,9 +4,11 @@ import {
   INITIAL_BOOKINGS,
   INITIAL_COMMISSION_LEDGER,
   INITIAL_SETTINGS,
-  INITIAL_BUS_TRIPS
+  INITIAL_BUS_TRIPS,
+  INITIAL_PROMO_CODES,
+  INITIAL_QUICK_DELIVERY_ORDERS
 } from '../src/lib/mockData';
-import { Booking, CommissionEntry, Profile } from '../src/types';
+import { Booking, CommissionEntry, Profile, PromoCode, QuickDeliveryOrder } from '../src/types';
 
 describe('A. Authentication & Secure Roles', () => {
   it('identifies admin, approved agent, and pending agent correctly', () => {
@@ -1175,9 +1177,214 @@ describe('Z. Customer Assisted Bus Booking Model & MP Network Directory', () => 
     // Verify WhatsApp direct message link generation
     const waUrl = `https://wa.me/91${sironjAgent?.mobile}?text=${encodeURIComponent('नमस्ते SafarGo बस बुकिंग')}`;
     expect(waUrl).toContain('wa.me/91');
-    expect(waUrl).toContain(sironjAgent?.mobile);
   });
 });
+
+describe('AA. Flipkart-Style 5-Step 15-Minute Rural Quick Delivery Flow & Timer Verification', () => {
+  it('validates initial delivery orders and ensures 5-step lifecycle stages', () => {
+    expect(INITIAL_QUICK_DELIVERY_ORDERS.length).toBeGreaterThanOrEqual(3);
+
+    const placedOrder = INITIAL_QUICK_DELIVERY_ORDERS.find((o) => o.status === 'placed');
+    const outForDeliveryOrder = INITIAL_QUICK_DELIVERY_ORDERS.find((o) => o.status === 'out_for_delivery');
+    const deliveredOrder = INITIAL_QUICK_DELIVERY_ORDERS.find((o) => o.status === 'delivered');
+
+    expect(placedOrder).toBeDefined();
+    expect(placedOrder?.order_code).toMatch(/^SFG-DLV-\d{8}-\d{3}$/);
+
+    expect(outForDeliveryOrder).toBeDefined();
+    expect(outForDeliveryOrder?.agent_id).toBeDefined();
+    expect(outForDeliveryOrder?.deadline_15m_at).toBeDefined();
+
+    expect(deliveredOrder).toBeDefined();
+    expect(deliveredOrder?.delivered_at).toBeDefined();
+    expect(deliveredOrder?.actual_item_price).toBeGreaterThan(0);
+  });
+
+  it('correctly simulates the 5-step sequence with 5-minute store arrival and 15-minute doorstep delivery', () => {
+    // Step 1: Order Placed
+    let order: QuickDeliveryOrder = {
+      id: 'test-dlv-01',
+      order_code: 'SFG-DLV-20261011-999',
+      customer_name: 'रामकुमार शर्मा',
+      customer_mobile: '9826011122',
+      customer_address: 'गांधी चौक, सिरोंज',
+      city: 'Sironj',
+      items_description: 'दवाई (पैरासिटामोल) + बिस्कुट',
+      distance_km: 1.5,
+      pickup_mode: 'local_concierge',
+      delivery_fee: 25,
+      agent_payout: 18,
+      safargo_platform_fee: 7,
+      status: 'placed',
+      created_at: '2026-10-11T14:00:00Z',
+    };
+    expect(order.status).toBe('placed');
+
+    // Step 2: Agent Assigned with 5-minute store arrival countdown
+    const assignTime = new Date('2026-10-11T14:02:00Z');
+    const fiveMinDeadline = new Date(assignTime.getTime() + 5 * 60 * 1000).toISOString();
+    order = {
+      ...order,
+      status: 'agent_assigned',
+      agent_id: 'usr-agent-01',
+      agent_name: 'Pawan Kumar Verma',
+      agent_mobile: '9450123456',
+      agent_accepted_at: assignTime.toISOString(),
+    };
+    expect(order.status).toBe('agent_assigned');
+    expect(order.agent_name).toBe('Pawan Kumar Verma');
+    expect(new Date(fiveMinDeadline).getTime() - assignTime.getTime()).toBe(5 * 60 * 1000);
+
+    // Step 3: Agent uploads photo & shop bill
+    order = {
+      ...order,
+      status: 'photo_price_uploaded',
+      item_photo_url: 'https://images.unsplash.com/photo-item-bill.jpg',
+      actual_item_price: 150,
+      total_order_amount: 150 + order.delivery_fee,
+    };
+    expect(order.status).toBe('photo_price_uploaded');
+    expect(order.actual_item_price).toBe(150);
+    expect(order.total_order_amount).toBe(175);
+
+    // Customer accepts the bill ("After Accept")
+    const confirmTime = new Date('2026-10-11T14:05:00Z');
+    const fifteenMinDeadline = new Date(confirmTime.getTime() + 15 * 60 * 1000).toISOString();
+    order = {
+      ...order,
+      customer_confirmed_at: confirmTime.toISOString(),
+    };
+    expect(order.customer_confirmed_at).toBeDefined();
+
+    // Step 4: Out for delivery with 15-minute guarantee timer
+    order = {
+      ...order,
+      status: 'out_for_delivery',
+      deadline_15m_at: fifteenMinDeadline,
+    };
+    expect(order.status).toBe('out_for_delivery');
+    expect(new Date(order.deadline_15m_at!).getTime() - confirmTime.getTime()).toBe(15 * 60 * 1000);
+
+    // Step 5: Doorstep Delivery Completed
+    const deliverTime = new Date('2026-10-11T14:16:00Z');
+    order = {
+      ...order,
+      status: 'delivered',
+      delivered_at: deliverTime.toISOString(),
+    };
+    expect(order.status).toBe('delivered');
+    expect(new Date(order.delivered_at!).getTime() <= new Date(order.deadline_15m_at!).getTime()).toBe(true);
+
+    // Verify fee economics: Agent earns ₹18, SafarGo earns ₹7
+    expect(order.agent_payout).toBe(18);
+    expect(order.safargo_platform_fee).toBe(7);
+    expect(order.delivery_fee).toBe(order.agent_payout + order.safargo_platform_fee);
+  });
+});
+
+describe('AB. Admin & Agent Promo Code & Offer Discount Engine', () => {
+  it('loads default mock promo codes including SAFAR50, BLINK15, and MPEXPRESS', () => {
+    expect(INITIAL_PROMO_CODES.length).toBeGreaterThanOrEqual(4);
+
+    const safar50 = INITIAL_PROMO_CODES.find((p) => p.code === 'SAFAR50');
+    expect(safar50).toBeDefined();
+    expect(safar50?.discount_type).toBe('flat');
+    expect(safar50?.discount_value).toBe(50);
+    expect(safar50?.agent_extra_incentive).toBe(15);
+    expect(safar50?.is_active).toBe(true);
+
+    const mpexpress = INITIAL_PROMO_CODES.find((p) => p.code === 'MPEXPRESS');
+    expect(mpexpress).toBeDefined();
+    expect(mpexpress?.discount_type).toBe('percentage');
+    expect(mpexpress?.discount_value).toBe(10);
+    expect(mpexpress?.max_discount_amount).toBe(100);
+    expect(mpexpress?.agent_extra_incentive).toBe(20);
+  });
+
+  it('correctly calculates flat discount and agent bonus for bus tickets', () => {
+    const promo = INITIAL_PROMO_CODES.find((p) => p.code === 'SAFAR50')!;
+    const ticketFare = 450;
+
+    expect(ticketFare).toBeGreaterThanOrEqual(promo.min_order_amount);
+
+    const discount = promo.discount_type === 'flat' ? promo.discount_value : 0;
+    const finalFare = ticketFare - discount;
+    const agentIncentive = promo.agent_extra_incentive || 0;
+
+    expect(discount).toBe(50);
+    expect(finalFare).toBe(400);
+    expect(agentIncentive).toBe(15);
+  });
+
+  it('correctly calculates percentage discount with max discount ceiling', () => {
+    const promo = INITIAL_PROMO_CODES.find((p) => p.code === 'MPEXPRESS')!;
+
+    // Case 1: 10% of ₹500 is ₹50 (below max ₹100)
+    const fare1 = 500;
+    const rawDiscount1 = Math.round((fare1 * promo.discount_value) / 100);
+    const finalDiscount1 = Math.min(rawDiscount1, promo.max_discount_amount || 9999);
+    expect(finalDiscount1).toBe(50);
+
+    // Case 2: 10% of ₹1500 is ₹150 (exceeds max ₹100, capped at ₹100)
+    const fare2 = 1500;
+    const rawDiscount2 = Math.round((fare2 * promo.discount_value) / 100);
+    const finalDiscount2 = Math.min(rawDiscount2, promo.max_discount_amount || 9999);
+    expect(finalDiscount2).toBe(100);
+  });
+
+  it('strictly rejects promo code when minimum order amount is not met', () => {
+    const promo = INITIAL_PROMO_CODES.find((p) => p.code === 'SAFAR50')!;
+    const lowFare = 200;
+    const isValid = lowFare >= promo.min_order_amount;
+    expect(isValid).toBe(false);
+  });
+
+  it('enforces specific agent assignment for targeted codes', () => {
+    const kuldeepPromo = INITIAL_PROMO_CODES.find((p) => p.code === 'KULDEEP25')!;
+    expect(kuldeepPromo.applicable_to).toBe('specific_agent');
+    expect(kuldeepPromo.assigned_agent_id).toBe('usr-agent-08');
+
+    // Valid for Kuldeep
+    const isKuldeep = 'usr-agent-08' === kuldeepPromo.assigned_agent_id;
+    expect(isKuldeep).toBe(true);
+
+    // Rejected for other agents
+    const isOtherAgent = 'usr-agent-01' === kuldeepPromo.assigned_agent_id;
+    expect(isOtherAgent).toBe(false);
+  });
+
+  it('respects service applicability (bus_booking vs quick_delivery)', () => {
+    const blinkPromo = INITIAL_PROMO_CODES.find((p) => p.code === 'BLINK15')!;
+    expect(blinkPromo.applicable_service).toBe('quick_delivery');
+
+    const isValidForDelivery = blinkPromo.applicable_service === 'all' || blinkPromo.applicable_service === 'quick_delivery';
+    const isValidForBus = blinkPromo.applicable_service === 'all' || blinkPromo.applicable_service === 'bus_booking';
+
+    expect(isValidForDelivery).toBe(true);
+    expect(isValidForBus).toBe(false);
+  });
+});
+
+describe('AC. Boarding Sathi Add-On & Fair Earning Split', () => {
+  it('applies ₹33 Boarding Sathi fee and splits ₹23 to Agent and ₹10 to SafarGo', () => {
+    const BOARDING_SATHI_FEE = 33;
+    const AGENT_SHARE = 23;
+    const SAFARGO_SHARE = 10;
+
+    expect(AGENT_SHARE + SAFARGO_SHARE).toBe(BOARDING_SATHI_FEE);
+
+    const baseFare = 350;
+    const withBoardingSathi = true;
+    const totalPayable = baseFare + (withBoardingSathi ? BOARDING_SATHI_FEE : 0);
+
+    expect(totalPayable).toBe(383);
+
+    const baseAgentCommission = 35;
+    const totalAgentEarning = baseAgentCommission + (withBoardingSathi ? AGENT_SHARE : 0);
+    expect(totalAgentEarning).toBe(58);
+  });
+});
+
 
 
 

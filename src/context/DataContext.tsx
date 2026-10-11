@@ -22,7 +22,8 @@ import {
   PartnerShopItem,
   AgentCallLog,
   QuickDeliveryOrder,
-  DeliveryOrderStatus
+  DeliveryOrderStatus,
+  PromoCode
 } from '../types';
 import {
   INITIAL_BOOKINGS,
@@ -39,6 +40,7 @@ import {
   INITIAL_PARTNER_SHOPS,
   INITIAL_AGENT_CALL_LOGS,
   INITIAL_QUICK_DELIVERY_ORDERS,
+  INITIAL_PROMO_CODES,
   SHOP_SUBSCRIPTION_PLANS
 } from '../lib/mockData';
 import { useAuth } from './AuthContext';
@@ -175,6 +177,24 @@ interface DataContextType {
   completeDeliveryOrder: (orderId: string) => Promise<boolean>;
   cancelDeliveryOrder: (orderId: string, reason?: string) => Promise<boolean>;
 
+  // Promo Codes & Special Offers System (Admin & Agents)
+  promoCodes: PromoCode[];
+  createPromoCode: (data: Omit<PromoCode, 'id' | 'used_count' | 'created_at'>) => Promise<PromoCode | null>;
+  togglePromoCodeStatus: (id: string) => Promise<boolean>;
+  deletePromoCode: (id: string) => Promise<boolean>;
+  applyPromoCode: (
+    code: string,
+    service: 'bus_booking' | 'quick_delivery',
+    amount: number,
+    agentId?: string
+  ) => {
+    success: boolean;
+    discountAmount: number;
+    agentBonus: number;
+    message: string;
+    promo?: PromoCode;
+  };
+
   // Commission Celebration Modal Trigger
   celebrationBooking: Booking | null;
   dismissCelebration: () => void;
@@ -195,6 +215,7 @@ const STORAGE_KEY_PROMOTERS = 'safargo_promoter_apps_v1';
 const STORAGE_KEY_PARTNER_SHOPS = 'safargo_partner_shops_v1';
 const STORAGE_KEY_CALL_LOGS = 'safargo_call_logs_v1';
 const STORAGE_KEY_QUICK_DELIVERIES = 'safargo_quick_deliveries_v1';
+const STORAGE_KEY_PROMO_CODES = 'safargo_promo_codes_v1';
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
@@ -355,6 +376,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return INITIAL_QUICK_DELIVERY_ORDERS;
   });
 
+  const [promoCodes, setPromoCodes] = useState<PromoCode[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_PROMO_CODES);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return INITIAL_PROMO_CODES;
+  });
+
   // Track seen confirmation IDs so animation only plays once per confirmed booking
   const [seenConfirmations, setSeenConfirmations] = useState<string[]>(() => {
     try {
@@ -428,6 +459,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_QUICK_DELIVERIES, JSON.stringify(quickDeliveryOrders));
   }, [quickDeliveryOrders]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_PROMO_CODES, JSON.stringify(promoCodes));
+  }, [promoCodes]);
 
   // Real Database Sync: Load initial live data from Supabase when configured
   useEffect(() => {
@@ -2344,6 +2379,151 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
+  // =====================================================================
+  // PROMO CODES & SPECIAL OFFERS METHODS (ADMIN & AGENTS)
+  // =====================================================================
+  const createPromoCode = async (
+    promoData: Omit<PromoCode, 'id' | 'used_count' | 'created_at'>
+  ): Promise<PromoCode | null> => {
+    if (!isAdmin) {
+      error('अनधिकृत', 'केवल एडमिन ही प्रोमो कोड व ऑफर्स बना सकते हैं।');
+      return null;
+    }
+
+    const cleanCode = promoData.code.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+    if (!cleanCode) {
+      error('गलत प्रोमो कोड', 'कृपया मान्य प्रोमो कोड दर्ज करें।');
+      return null;
+    }
+
+    if (promoCodes.some((p) => p.code === cleanCode)) {
+      error('कोड पहले से मौजूद है', `कोड "${cleanCode}" पहले से बना हुआ है। कृपया नया कोड चुनें।`);
+      return null;
+    }
+
+    const nowIso = new Date().toISOString();
+    const newPromo: PromoCode = {
+      ...promoData,
+      id: `promo-${Date.now()}`,
+      code: cleanCode,
+      used_count: 0,
+      created_at: nowIso,
+    };
+
+    setPromoCodes((prev) => [newPromo, ...prev]);
+    addAuditLog('create_promo_code', 'promo_codes', newPromo.id, {
+      code: newPromo.code,
+      discount: newPromo.discount_value,
+      agentBonus: newPromo.agent_extra_incentive,
+    });
+
+    success(
+      'प्रोमो कोड व ऑफर लाइव हुआ! 🎟️',
+      `कोड: "${newPromo.code}" सफलतापूर्वक बनाया गया। ${
+        newPromo.agent_extra_incentive > 0
+          ? `एजेंट को +₹${newPromo.agent_extra_incentive} का अतिरिक्त बोनस मिलेगा!`
+          : ''
+      }`
+    );
+    return newPromo;
+  };
+
+  const togglePromoCodeStatus = async (id: string): Promise<boolean> => {
+    setPromoCodes((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, is_active: !p.is_active } : p))
+    );
+    success('प्रोमो कोड स्टेटस बदला', 'ऑफर स्टेटस सफलतापूर्वक अपडेट हुआ।');
+    return true;
+  };
+
+  const deletePromoCode = async (id: string): Promise<boolean> => {
+    setPromoCodes((prev) => prev.filter((p) => p.id !== id));
+    success('प्रोमो कोड हटाया गया', 'ऑफर को लिस्ट से हटा दिया गया है।');
+    return true;
+  };
+
+  const applyPromoCode = (
+    code: string,
+    service: 'bus_booking' | 'quick_delivery',
+    amount: number,
+    agentId?: string
+  ): {
+    success: boolean;
+    discountAmount: number;
+    agentBonus: number;
+    message: string;
+    promo?: PromoCode;
+  } => {
+    const cleanCode = code.trim().toUpperCase();
+    const promo = promoCodes.find((p) => p.code === cleanCode);
+
+    if (!promo) {
+      return { success: false, discountAmount: 0, agentBonus: 0, message: 'अमान्य प्रोमो कोड!' };
+    }
+
+    if (!promo.is_active) {
+      return { success: false, discountAmount: 0, agentBonus: 0, message: 'यह प्रोमो कोड वर्तमान में निष्क्रिय (Inactive) है।' };
+    }
+
+    const now = new Date();
+    if (promo.valid_until && new Date(promo.valid_until) < now) {
+      return { success: false, discountAmount: 0, agentBonus: 0, message: 'यह प्रोमो कोड समाप्त (Expired) हो चुका है।' };
+    }
+
+    if (promo.usage_limit > 0 && promo.used_count >= promo.usage_limit) {
+      return { success: false, discountAmount: 0, agentBonus: 0, message: 'इस प्रोमो कोड की अधिकतम उपयोग सीमा पूरी हो चुकी है।' };
+    }
+
+    if (amount < promo.min_order_amount) {
+      return {
+        success: false,
+        discountAmount: 0,
+        agentBonus: 0,
+        message: `न्यूनतम ₹${promo.min_order_amount} के ऑर्डर पर ही यह कोड लागू होगा।`,
+      };
+    }
+
+    if (promo.applicable_service !== 'all' && promo.applicable_service !== service) {
+      return {
+        success: false,
+        discountAmount: 0,
+        agentBonus: 0,
+        message: `यह कोड केवल ${promo.applicable_service === 'bus_booking' ? 'बस बुकिंग' : '15-मिनट डिलीवरी'} के लिए मान्य है।`,
+      };
+    }
+
+    if (promo.applicable_to === 'specific_agent' && promo.assigned_agent_id) {
+      if (agentId && agentId !== promo.assigned_agent_id) {
+        return {
+          success: false,
+          discountAmount: 0,
+          agentBonus: 0,
+          message: `यह कोड केवल अधिकृत एजेंट (${promo.assigned_agent_name || 'विशिष्ट एजेंट'}) के लिए मान्य है।`,
+        };
+      }
+    }
+
+    let discount = 0;
+    if (promo.discount_type === 'flat') {
+      discount = promo.discount_value;
+    } else {
+      discount = Math.round((amount * promo.discount_value) / 100);
+      if (promo.max_discount_amount && discount > promo.max_discount_amount) {
+        discount = promo.max_discount_amount;
+      }
+    }
+
+    discount = Math.min(discount, amount);
+
+    return {
+      success: true,
+      discountAmount: discount,
+      agentBonus: promo.agent_extra_incentive || 0,
+      message: `प्रोमो कोड "${promo.code}" लागू हुआ! ₹${discount} की छूट मिली।`,
+      promo,
+    };
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -2404,6 +2584,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         customerConfirmDeliveryOrder,
         completeDeliveryOrder,
         cancelDeliveryOrder,
+        promoCodes,
+        createPromoCode,
+        togglePromoCodeStatus,
+        deletePromoCode,
+        applyPromoCode,
         settings,
         updateSettings,
         updateAnnouncement,
@@ -2419,7 +2604,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </DataContext.Provider>
   );
-
 };
 
 export const useData = () => {

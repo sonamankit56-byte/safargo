@@ -1,8 +1,8 @@
-import React, { useState, useId } from 'react';
+import React, { useState, useId, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
-import { SeatCategory, Passenger, Booking } from '../../types';
+import { SeatCategory, Passenger, Booking, PromoCode } from '../../types';
 import { BookingSuccessModal } from './BookingSuccessModal';
 import { WalletRechargeModal } from './WalletRechargeModal';
 import { MP_NETWORK_CITIES } from '../../lib/mockData';
@@ -25,13 +25,15 @@ import {
   Check,
   Copy,
   ShieldCheck,
-  ArrowRight
+  ArrowRight,
+  Tag,
+  Gift,
+  Percent
 } from 'lucide-react';
 
-
 export const ManualBookingForm: React.FC = () => {
-  const { isApprovedAgent, isAdmin } = useAuth();
-  const { createBooking, agentWalletBalance, settings } = useData();
+  const { isApprovedAgent, isAdmin, currentUser } = useAuth();
+  const { createBooking, agentWalletBalance, settings, promoCodes, applyPromoCode } = useData();
   const { error, warning, success } = useToast();
 
   const [customerName, setCustomerName] = useState('');
@@ -98,8 +100,55 @@ export const ManualBookingForm: React.FC = () => {
     });
   };
 
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<{
+    promo: PromoCode;
+    discountAmount: number;
+    agentBonus: number;
+  } | null>(null);
+
+  // Filter promos available to this agent for bus booking
+  const availablePromos = useMemo(() => {
+    return promoCodes.filter(
+      (p) =>
+        p.is_active &&
+        (p.applicable_service === 'all' || p.applicable_service === 'bus_booking') &&
+        (p.applicable_to === 'all_agents' ||
+          p.applicable_to === 'all_customers' ||
+          p.assigned_agent_id === currentUser?.id)
+    );
+  }, [promoCodes, currentUser]);
+
+  const rawBookingFare = estimatedFare * passengerCount;
   const boardingSathiFee = boardingSathiOpted ? 33 : 0;
-  const totalAmount = (estimatedFare * passengerCount) + boardingSathiFee;
+  const promoDiscount = appliedPromo ? appliedPromo.discountAmount : 0;
+  const totalAmount = Math.max(0, rawBookingFare + boardingSathiFee - promoDiscount);
+
+  const handleApplyPromo = (codeToApply?: string) => {
+    const code = (codeToApply || promoCodeInput).trim().toUpperCase();
+    if (!code) {
+      error('Promo Code Required', 'कृपया प्रोमो कोड दर्ज करें।');
+      return;
+    }
+
+    const res = applyPromoCode(code, 'bus_booking', rawBookingFare, currentUser?.id);
+    if (res.success && res.promo) {
+      setAppliedPromo({
+        promo: res.promo,
+        discountAmount: res.discountAmount,
+        agentBonus: res.agentBonus,
+      });
+      setPromoCodeInput(res.promo.code);
+      success('कूपन लागू हुआ! 🎉', res.message);
+    } else {
+      error('कूपन अमान्य', res.message);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null);
+    setPromoCodeInput('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,7 +228,10 @@ export const ManualBookingForm: React.FC = () => {
         boarding_sathi_agent_payout: boardingSathiOpted ? 23 : 0,
         boarding_sathi_platform_fee: boardingSathiOpted ? 10 : 0,
         boarding_sathi_status: boardingSathiOpted ? 'pending' : undefined,
-        agent_notes: agentNotes.trim(),
+        agent_notes: [
+          agentNotes.trim(),
+          appliedPromo ? `[कूपन लागू: ${appliedPromo.promo.code} | यात्री छूट: ₹${appliedPromo.discountAmount} | एजेंट बोनस: +₹${appliedPromo.agentBonus}]` : ''
+        ].filter(Boolean).join(' | '),
         idempotency_key: idempotencyKey,
         payment_mode: paymentMode,
         payment_utr: paymentMode === 'safargo_qr' ? paymentUtr.trim() : undefined,
@@ -203,6 +255,8 @@ export const ManualBookingForm: React.FC = () => {
         setPassengerCount(1);
         setPassengers([{ id: 'p-1', name: '', age: 28, gender: 'male' }]);
         setBoardingSathiOpted(false);
+        setAppliedPromo(null);
+        setPromoCodeInput('');
       }
     } finally {
       setIsSubmitting(false);
@@ -606,8 +660,101 @@ export const ManualBookingForm: React.FC = () => {
                 </label>
                 <div className="px-3 py-2.5 rounded-xl border border-emerald-300 bg-emerald-50 text-base font-black text-emerald-700">
                   ₹{totalAmount.toLocaleString('en-IN')}
+                  {appliedPromo && (
+                    <span className="text-[10px] text-emerald-600 block font-normal">
+                      (₹{rawBookingFare} मूल - ₹{promoDiscount} छूट {boardingSathiOpted ? '+ ₹33 साथी' : ''})
+                    </span>
+                  )}
                 </div>
               </div>
+            </div>
+
+            {/* 🎟️ Promo Code & Offer Discount Box for Agents */}
+            <div className="mt-4 p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <Tag className="w-4 h-4 text-indigo-600" />
+                  <span>🎟️ प्रोमो कोड / डिस्काउंट ऑफर लगाएं (Apply Promo Code)</span>
+                </span>
+                {appliedPromo && (
+                  <button
+                    type="button"
+                    onClick={handleRemovePromo}
+                    className="text-[11px] font-bold text-rose-600 hover:text-rose-700 underline cursor-pointer"
+                  >
+                    कूपन हटाएं (Remove)
+                  </button>
+                )}
+              </div>
+
+              {!appliedPromo ? (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={promoCodeInput}
+                      onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
+                      placeholder="उदा. SAFAR50, MPEXPRESS"
+                      className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono font-bold text-xs uppercase focus:ring-2 focus:ring-indigo-500 outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleApplyPromo()}
+                      className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer"
+                    >
+                      लागू करें (Apply)
+                    </button>
+                  </div>
+
+                  {/* Quick-Click Available Promo Badges for Agent */}
+                  {availablePromos.length > 0 && (
+                    <div className="pt-1">
+                      <span className="text-[10px] text-slate-400 block mb-1">
+                        उपलब्ध ऑफर्स (क्लिक करके तुरंत लागू करें):
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {availablePromos.map((p: PromoCode) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => handleApplyPromo(p.code)}
+                            className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+                          >
+                            <span>{p.code}</span>
+                            <span className="text-[10px] text-emerald-600 font-black">
+                              (-₹{p.discount_type === 'flat' ? p.discount_value : `${p.discount_value}%`})
+                            </span>
+                            {p.agent_extra_incentive > 0 && (
+                              <span className="text-[9px] bg-amber-200 text-amber-900 px-1 py-0.2 rounded font-black">
+                                +₹{p.agent_extra_incentive} बोनस
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between text-emerald-900 font-bold">
+                    <span className="flex items-center gap-1.5">
+                      <Check className="w-4 h-4 text-emerald-600" />
+                      <span>कूपन "{appliedPromo.promo.code}" सफलतापूर्वक लागू हुआ!</span>
+                    </span>
+                    <span className="text-emerald-700 font-black text-sm">
+                      -₹{appliedPromo.discountAmount} छूट
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-emerald-800">{appliedPromo.promo.title}</p>
+                  {appliedPromo.agentBonus > 0 && (
+                    <div className="pt-1 text-[11px] font-black text-amber-900 flex items-center gap-1">
+                      <Gift className="w-3.5 h-3.5 text-amber-600" />
+                      <span>एजेंट अतिरिक्त बोनस: +₹{appliedPromo.agentBonus} (कन्फर्मेशन पर क्रेडिट होगा)</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* 🛡️ Boarding Sathi (बोर्डिंग साथी) Service Toggle */}
