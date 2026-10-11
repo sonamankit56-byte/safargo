@@ -78,8 +78,30 @@ export interface Profile {
   kyc_verified_by?: string;
   kyc_rejection_reason?: string;
 
+  // Security, Free OTP, Device & IP Tracking
+  security_mpin?: string;
+  last_login_ip?: string;
+  last_login_device?: string;
+  last_login_at?: string;
+  security_2fa_enabled?: boolean;
+
   created_at: string;
   updated_at: string;
+}
+
+export interface PendingLoginOtp {
+  id: string;
+  agent_id: string;
+  agent_name: string;
+  agent_mobile: string;
+  agent_email: string;
+  otp_code: string;
+  ip_address: string;
+  device_info: string;
+  created_at: string;
+  expires_at: string;
+  is_verified: boolean;
+  status: 'pending' | 'verified' | 'expired' | 'admin_approved';
 }
 
 export interface Booking {

@@ -28,9 +28,10 @@ import {
   Building2,
   Smartphone
 } from 'lucide-react';
+import { AdminSecurityDesk } from './AdminSecurityDesk';
 
 export interface AdminAgentManagementProps {
-  initialTab?: 'agents' | 'kyc_desk';
+  initialTab?: 'agents' | 'kyc_desk' | 'security_otp_desk';
 }
 
 export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ initialTab = 'agents' }) => {
@@ -40,11 +41,12 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ init
     rejectAgent,
     suspendAgent,
     approveAgentKyc,
-    rejectAgentKyc
+    rejectAgentKyc,
+    pendingLoginOtps
   } = useAuth();
   const { bookings, commissions, settings } = useData();
 
-  const [activeTab, setActiveTab] = useState<'agents' | 'kyc_desk'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'agents' | 'kyc_desk' | 'security_otp_desk'>(initialTab);
 
   React.useEffect(() => {
     if (initialTab) {
@@ -66,6 +68,11 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ init
   const pendingKycCount = agents.filter(
     (a) => a.kyc_status && a.kyc_status.toLowerCase().trim() === 'pending'
   ).length;
+
+  const nowIsoStr = new Date().toISOString();
+  const activeOtpCount = pendingLoginOtps
+    ? pendingLoginOtps.filter((o) => o.status === 'pending' && o.expires_at > nowIsoStr).length
+    : 0;
 
   const filteredAgents = agents.filter((a) => {
     return (
@@ -153,6 +160,23 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ init
           {pendingKycCount > 0 && (
             <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-900 animate-pulse">
               {pendingKycCount} Pending
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('security_otp_desk')}
+          className={`px-5 py-2.5 rounded-2xl font-black text-xs transition flex items-center gap-2 relative ${
+            activeTab === 'security_otp_desk'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <span>सुरक्षा एवं OTP डेस्क (Security)</span>
+          {activeOtpCount > 0 && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-400 text-slate-900 animate-pulse">
+              {activeOtpCount} Active
             </span>
           )}
         </button>
@@ -747,6 +771,9 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ init
           )}
         </div>
       )}
+
+      {/* TAB 3: SECURITY & LIVE OTP DESK */}
+      {activeTab === 'security_otp_desk' && <AdminSecurityDesk />}
 
       {/* Document Zoom Modal */}
       {selectedDoc && (

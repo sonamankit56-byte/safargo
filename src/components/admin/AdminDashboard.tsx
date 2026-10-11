@@ -18,7 +18,8 @@ import {
   Bus,
   FileCheck,
   Sparkles,
-  CreditCard
+  CreditCard,
+  ShieldCheck
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -27,7 +28,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOpenBooking }) => {
-  const { allProfiles, approveAgent, approveAgentKyc } = useAuth();
+  const { allProfiles, approveAgent, approveAgentKyc, pendingLoginOtps } = useAuth();
   const { bookings, commissions, salaryRecords, settings, promotionClaims } = useData();
 
   const now = new Date();
@@ -119,6 +120,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
     return promotionClaims.filter((c) => c.status === 'pending').length;
   }, [promotionClaims]);
 
+  const activeOtpCount = useMemo(() => {
+    const nowIsoStr = new Date().toISOString();
+    return pendingLoginOtps
+      ? pendingLoginOtps.filter((o) => o.status === 'pending' && o.expires_at > nowIsoStr).length
+      : 0;
+  }, [pendingLoginOtps]);
+
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-8">
       
@@ -137,6 +145,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => onNavigate('admin-security-desk')}
+            className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-lg transition ${
+              activeOtpCount > 0
+                ? 'bg-emerald-500 hover:bg-emerald-600 text-slate-950 animate-pulse'
+                : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>सुरक्षा एवं OTP ({activeOtpCount})</span>
+          </button>
           <button
             onClick={() => onNavigate('admin-kyc-desk')}
             className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-lg transition ${
@@ -177,8 +196,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
       </div>
 
       {/* Primary Key Metrics Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4">
         
+        <button
+          onClick={() => onNavigate('admin-security-desk')}
+          className={`p-4 rounded-2xl border text-left transition ${
+            activeOtpCount > 0
+              ? 'bg-emerald-50/80 border-emerald-300 shadow-sm hover:border-emerald-500 hover:bg-emerald-100/50'
+              : 'bg-white border-slate-200 shadow-sm hover:border-slate-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-slate-500 block uppercase">Live OTP Desk</span>
+            {activeOtpCount > 0 && (
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+            )}
+          </div>
+          <span className="text-2xl font-black text-emerald-600 mt-1 block">
+            {activeOtpCount}
+          </span>
+          <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
+            {activeOtpCount > 0 ? 'सक्रिय OTP →' : 'Zero-Cost 2FA'}
+          </span>
+        </button>
+
         <button
           onClick={() => onNavigate('admin-kyc-desk')}
           className={`p-4 rounded-2xl border text-left transition ${

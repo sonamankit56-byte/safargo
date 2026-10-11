@@ -5,6 +5,7 @@ import { useToast } from '../../context/ToastContext';
 import { SeatCategory, Passenger, Booking } from '../../types';
 import { BookingSuccessModal } from './BookingSuccessModal';
 import { WalletRechargeModal } from './WalletRechargeModal';
+import { MP_NETWORK_CITIES } from '../../lib/mockData';
 import {
   Bus,
   User,
@@ -306,6 +307,62 @@ export const ManualBookingForm: React.FC = () => {
               <span>2. Journey Details (सफर का विवरण)</span>
             </div>
 
+            {/* MP Quick Route selection */}
+            <div className="mb-4 bg-orange-50/70 border border-orange-200/80 rounded-2xl p-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                <span className="text-xs font-black text-orange-950 flex items-center gap-1.5">
+                  <span>🇮🇳 मध्य प्रदेश प्रमुख रूट्स (1-क्लिक ऑटो-फिल):</span>
+                </span>
+                <span className="text-[10px] text-orange-700 font-bold bg-white px-2.5 py-0.5 rounded-full border border-orange-200 shadow-2xs">
+                  19 कनेक्टेड शहर व कस्बे
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { from: 'Bhopal', to: 'Indore', label: 'भोपाल ➔ इंदौर' },
+                  { from: 'Indore', to: 'Pune', label: 'इंदौर ➔ पुणे' },
+                  { from: 'Sironj', to: 'Bhopal', label: 'सिरोंज ➔ भोपाल' },
+                  { from: 'Guna', to: 'Bhopal', label: 'गुना ➔ भोपाल' },
+                  { from: 'Ashok Nagar', to: 'Bhopal', label: 'अशोक नगर ➔ भोपाल' },
+                  { from: 'Chanderi', to: 'Jhansi', label: 'चंदेरी ➔ झांसी' },
+                  { from: 'Kurwai', to: 'Bina', label: 'कुरवाई ➔ बीना' },
+                  { from: 'Lateri', to: 'Bhopal', label: 'लटेरी ➔ भोपाल' },
+                  { from: 'Vidisha', to: 'Bhopal', label: 'विदिशा ➔ भोपाल' },
+                  { from: 'Bina', to: 'Bhopal', label: 'बीना ➔ भोपाल' },
+                  { from: 'Shivpuri', to: 'Agra', label: 'शिवपुरी ➔ आगरा' },
+                  { from: 'Ratlam', to: 'Indore', label: 'रतलाम ➔ इंदौर' },
+                  { from: 'Khandwa', to: 'Pune', label: 'खंडवा ➔ पुणे' },
+                  { from: 'Lalitpur', to: 'Indore', label: 'ललितपुर ➔ इंदौर' },
+                  { from: 'Jhansi', to: 'Indore', label: 'झांसी ➔ इंदौर' },
+                  { from: 'Bhopal', to: 'Jaipur', label: 'भोपाल ➔ जयपुर' },
+                  { from: 'Etawah', to: 'Indore', label: 'इटावा ➔ इंदौर' },
+                ].map((r, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setFromCity(r.from);
+                      setToCity(r.to);
+                      setBoardingPoint(`${r.from} Main Bus Stand`);
+                      setDropPoint(`${r.to} Central Stand`);
+                    }}
+                    className="px-2.5 py-1 text-xs font-semibold bg-white hover:bg-orange-500 hover:text-white text-slate-700 rounded-lg border border-orange-200/90 hover:border-orange-500 transition shadow-2xs"
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Datalist for all 19 MP Cities */}
+            <datalist id="mp-booking-cities">
+              {MP_NETWORK_CITIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </datalist>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -314,10 +371,11 @@ export const ManualBookingForm: React.FC = () => {
                 <input
                   type="text"
                   required
+                  list="mp-booking-cities"
                   value={fromCity}
                   onChange={(e) => setFromCity(e.target.value)}
-                  placeholder="e.g. Lucknow / Sitapur / Delhi"
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm outline-none transition"
+                  placeholder="उदा. Bhopal / Indore / Sironj / Guna"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm outline-none transition font-medium"
                 />
               </div>
 
@@ -328,10 +386,11 @@ export const ManualBookingForm: React.FC = () => {
                 <input
                   type="text"
                   required
+                  list="mp-booking-cities"
                   value={toCity}
                   onChange={(e) => setToCity(e.target.value)}
-                  placeholder="e.g. Delhi / Jaipur / Varanasi"
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm outline-none transition"
+                  placeholder="उदा. Pune / Jaipur / Jhansi / Lalitpur"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm outline-none transition font-medium"
                 />
               </div>
 
@@ -409,7 +468,7 @@ export const ManualBookingForm: React.FC = () => {
                   required
                   value={boardingPoint}
                   onChange={(e) => setBoardingPoint(e.target.value)}
-                  placeholder="e.g. Alambagh Bus Stand / Bypass Chauraha"
+                  placeholder="उदा. Nadra Stand Bhopal / Sironj Main Bus Stand / Guna Bypass"
                   className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm outline-none transition"
                 />
               </div>
@@ -422,7 +481,7 @@ export const ManualBookingForm: React.FC = () => {
                   type="text"
                   value={dropPoint}
                   onChange={(e) => setDropPoint(e.target.value)}
-                  placeholder="e.g. Anand Vihar / ISBT Kashmere Gate"
+                  placeholder="उदा. Swargate Pune / Sindhi Camp Jaipur / Jhansi Stand"
                   className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm outline-none transition"
                 />
               </div>

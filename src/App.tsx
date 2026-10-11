@@ -18,6 +18,7 @@ import { AdminBusTripManagement } from './components/admin/AdminBusTripManagemen
 import { AdminCommissionAndSalary } from './components/admin/AdminCommissionAndSalary';
 import { AdminSettings } from './components/admin/AdminSettings';
 import { AdminAuditLogs } from './components/admin/AdminAuditLogs';
+import { AdminSecurityDesk } from './components/admin/AdminSecurityDesk';
 import { AgentViralPromotions } from './components/agent/AgentViralPromotions';
 import { AdminPromotionManagement } from './components/admin/AdminPromotionManagement';
 import { AuthModal } from './components/auth/AuthModal';
@@ -90,6 +91,7 @@ const AppContent: React.FC = () => {
             )}
             {currentTab === 'admin-agents' && <AdminAgentManagement />}
             {currentTab === 'admin-kyc-desk' && <AdminAgentManagement initialTab="kyc_desk" />}
+            {currentTab === 'admin-security-desk' && <AdminSecurityDesk />}
             {currentTab === 'admin-trips' && <AdminBusTripManagement />}
             {currentTab === 'admin-promotions' && <AdminPromotionManagement />}
             {currentTab === 'admin-salary' && <AdminCommissionAndSalary />}

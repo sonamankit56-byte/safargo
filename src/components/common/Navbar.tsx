@@ -26,7 +26,8 @@ import {
   Wallet,
   Sparkles,
   CheckCircle,
-  CreditCard
+  CreditCard,
+  ShieldCheck
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -36,7 +37,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpenAuth }) => {
-  const { currentUser, role, isApprovedAgent, isAdmin, logout, allProfiles } = useAuth();
+  const { currentUser, role, isApprovedAgent, isAdmin, logout, allProfiles, pendingLoginOtps } = useAuth();
   const { agentWalletBalance } = useData();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -48,6 +49,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
           (p.role === 'agent' || (!p.role && p.agent_status)) &&
           p.kyc_status?.toLowerCase().trim() === 'pending'
       ).length
+    : 0;
+
+  const nowIso = new Date().toISOString();
+  const activeOtpCount = pendingLoginOtps
+    ? pendingLoginOtps.filter((o) => o.status === 'pending' && o.expires_at > nowIso).length
     : 0;
 
 
@@ -227,6 +233,23 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                   {pendingKycCount > 0 && (
                     <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-900 animate-pulse">
                       {pendingKycCount}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => handleTabChange('admin-security-desk')}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition ${
+                    currentTab === 'admin-security-desk'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'text-emerald-300 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>Security & OTP</span>
+                  {activeOtpCount > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-400 text-slate-900 animate-pulse">
+                      {activeOtpCount}
                     </span>
                   )}
                 </button>
@@ -576,6 +599,21 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                   {pendingKycCount > 0 && (
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-900 animate-pulse">
                       {pendingKycCount} Pending
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => handleTabChange('admin-security-desk')}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-between ${
+                    currentTab === 'admin-security-desk' ? 'bg-emerald-600 text-white' : 'text-emerald-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" /> Security & OTP (सुरक्षा)
+                  </span>
+                  {activeOtpCount > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-400 text-slate-900 animate-pulse">
+                      {activeOtpCount} Active
                     </span>
                   )}
                 </button>

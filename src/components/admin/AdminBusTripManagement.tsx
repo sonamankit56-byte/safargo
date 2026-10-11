@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { BusTrip } from '../../types';
+import { MP_NETWORK_CITIES } from '../../lib/mockData';
 import {
   Bus,
   PlusCircle,
@@ -233,15 +234,23 @@ export const AdminBusTripManagement: React.FC = () => {
                   />
                 </div>
 
+                {/* MP Cities datalist for Admin */}
+                <datalist id="mp-admin-cities">
+                  {MP_NETWORK_CITIES.map((c) => (
+                    <option key={c} value={c} />
+                  ))}
+                </datalist>
+
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Source City (कहाँ से)</label>
                   <input
                     type="text"
                     required
+                    list="mp-admin-cities"
                     value={source}
                     onChange={(e) => setSource(e.target.value)}
-                    placeholder="e.g. Lucknow"
-                    className="w-full p-2.5 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="उदा. Bhopal / Indore / Sironj / Guna"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-orange-500 font-medium"
                   />
                 </div>
 
@@ -250,10 +259,11 @@ export const AdminBusTripManagement: React.FC = () => {
                   <input
                     type="text"
                     required
+                    list="mp-admin-cities"
                     value={destination}
                     onChange={(e) => setDestination(e.target.value)}
-                    placeholder="e.g. Delhi (Kashmere Gate)"
-                    className="w-full p-2.5 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="उदा. Pune / Jaipur / Jhansi / Lalitpur / Agra"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-orange-500 font-medium"
                   />
                 </div>
 

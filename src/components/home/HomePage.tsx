@@ -35,6 +35,7 @@ import { StatusBadge } from '../common/StatusBadge';
 import { PrintTicketModal } from '../common/PrintTicketModal';
 import { SafarGoLogo } from '../common/SafarGoLogo';
 import { PromotionClaimModal } from '../promotions/PromotionClaimModal';
+import { MP_NETWORK_CITIES, POPULAR_MP_ROUTES } from '../../lib/mockData';
 
 interface HomePageProps {
   onOpenAuth: (initialTab?: 'login' | 'register') => void;
@@ -49,8 +50,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab })
   const [widgetTab, setWidgetTab] = useState<'routes' | 'track_pnr'>('routes');
 
   // Search routes state
-  const [searchSource, setSearchSource] = useState('Lucknow');
-  const [searchDestination, setSearchDestination] = useState('Delhi');
+  const [searchSource, setSearchSource] = useState('Bhopal');
+  const [searchDestination, setSearchDestination] = useState('Indore');
   const [searchDate, setSearchDate] = useState('2026-10-12');
   const [filteredTrips, setFilteredTrips] = useState(busTrips);
 
@@ -164,10 +165,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab })
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-800/90 border border-slate-700/80 shadow-md">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
               <span className="text-xs font-bold text-orange-400">
-                🇮🇳 ग्रामीण भारत का नंबर 1 बस बुकिंग एवं आजीविका मंच
+                🇮🇳 मध्य प्रदेश (MP) का नंबर 1 बस बुकिंग एवं CSC आजीविका मंच
               </span>
               <span className="text-slate-500">|</span>
-              <span className="text-xs text-slate-300 font-medium">CSC & Jan Seva Kendra Network</span>
+              <span className="text-xs text-slate-300 font-medium">Bhopal • Indore • Vidisha • Guna Network</span>
             </div>
 
             {/* Main Punchy Hindi Headline */}
@@ -179,9 +180,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab })
             </h1>
 
             {/* Subtitle */}
-            <p className="text-sm sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed font-normal">
-              <strong>"अब हर सफर होगा आसान"</strong> — बिना किसी बड़े निवेश के अपने जन सेवा केंद्र या दुकान से स्लीपर व सीटर बस टिकट बुक करें। 
-              प्रत्येक टिकट पर <span className="text-emerald-400 font-bold">₹19.34 कमीशन</span>, 150 बुकिंग पर <span className="text-amber-300 font-bold">₹5,000 मासिक मानदेय</span> और <span className="text-orange-400 font-bold">₹50 रेफरल बोनस</span>!
+            <p className="text-sm sm:text-lg text-slate-300 max-w-3xl mx-auto leading-relaxed font-normal">
+              <strong>"अब हर सफर होगा आसान"</strong> — भोपाल, इंदौर, गुना, अशोक नगर, चंदेरी, सिरोंज, कुरवाई, लटेरी, विदिशा, बीना, शिवपुरी, रतलाम, खंडवा, ललितपुर, झांसी, आगरा, इटावा, जयपुर व पुणे के लिए अधिकृत बस बुकिंग नेटवर्क। प्रत्येक टिकट पर <span className="text-emerald-400 font-bold">₹19.34 कमीशन</span>, 150 बुकिंग पर <span className="text-amber-300 font-bold">₹5,000 मासिक मानदेय</span> और <span className="text-orange-400 font-bold">₹50 रेफरल बोनस</span>!
             </p>
 
             {/* CTA Buttons */}
@@ -308,7 +308,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab })
             </div>
             
             <p className="text-xs text-slate-500 max-w-xs">
-              गाँव के यात्रियों के लिए दिल्ली, लखनऊ, जयपुर, वाराणसी, पटना आदि रूटों की बस सीटें खोजें
+              मध्य प्रदेश व कनेक्टेड रूट: इंदौर, भोपाल, पुणे, जयपुर, सिरोंज, गुना, अशोक नगर, चंदेरी, झांसी आदि की बस सीटें खोजें
             </p>
           </div>
 
@@ -345,39 +345,102 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab })
               {/* Quick Route Pills */}
               <div>
                 <span className="text-xs font-bold text-slate-600 block mb-2">
-                  त्वरित लोकप्रिय मार्ग (Quick Select Corridors):
+                  मध्य प्रदेश एवं कनेक्टेड मुख्य मार्ग (MP Top Corridors):
                 </span>
                 <div className="flex flex-wrap gap-2 text-xs">
                   <button
                     type="button"
-                    onClick={() => handleSelectQuickRoute('Lucknow', 'Delhi')}
-                    className="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                    onClick={() => handleSelectQuickRoute('Bhopal', 'Indore')}
+                    className="px-3 py-1.5 rounded-xl border border-orange-200 bg-orange-50/70 hover:bg-orange-100 font-bold text-orange-950 transition"
                   >
-                    लखनऊ ➔ दिल्ली (₹650+)
+                    भोपाल ➔ इंदौर (₹350+)
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleSelectQuickRoute('Varanasi', 'Jaipur')}
-                    className="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                    onClick={() => handleSelectQuickRoute('Indore', 'Pune')}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
                   >
-                    वाराणसी ➔ जयपुर (₹850+)
+                    इंदौर ➔ पुणे (₹850+)
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleSelectQuickRoute('Gorakhpur', 'Lucknow')}
-                    className="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                    onClick={() => handleSelectQuickRoute('Bhopal', 'Jaipur')}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
                   >
-                    गोरखपुर ➔ लखनऊ (₹450+)
+                    भोपाल ➔ जयपुर (₹750+)
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleSelectQuickRoute('Patna', 'Delhi')}
-                    className="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                    onClick={() => handleSelectQuickRoute('Sironj', 'Bhopal')}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
                   >
-                    पटना ➔ दिल्ली (₹900+)
+                    सिरोंज ➔ भोपाल (₹220+)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectQuickRoute('Guna', 'Bhopal')}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                  >
+                    गुना ➔ भोपाल (₹320+)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectQuickRoute('Ashok Nagar', 'Bhopal')}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                  >
+                    अशोक नगर ➔ भोपाल (₹340+)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectQuickRoute('Chanderi', 'Jhansi')}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                  >
+                    चंदेरी ➔ झांसी (₹180+)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectQuickRoute('Kurwai', 'Bina')}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                  >
+                    कुरवाई ➔ बीना (₹90+)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectQuickRoute('Lateri', 'Bhopal')}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                  >
+                    लटेरी ➔ भोपाल (₹250+)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectQuickRoute('Shivpuri', 'Agra')}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                  >
+                    शिवपुरी ➔ आगरा (₹450+)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectQuickRoute('Ratlam', 'Indore')}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                  >
+                    रतलाम ➔ इंदौर (₹250+)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectQuickRoute('Khandwa', 'Pune')}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                  >
+                    खंडवा ➔ पुणे (₹750+)
                   </button>
                 </div>
               </div>
+
+              {/* Datalist for MP Cities Auto-suggest */}
+              <datalist id="mp-home-cities">
+                {MP_NETWORK_CITIES.map((city) => (
+                  <option key={city} value={city} />
+                ))}
+              </datalist>
 
               {/* Search Inputs Form */}
               <form onSubmit={handleSearchRoutes} className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
@@ -388,10 +451,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab })
                     <input
                       type="text"
                       required
+                      list="mp-home-cities"
                       value={searchSource}
                       onChange={(e) => setSearchSource(e.target.value)}
                       className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-orange-500 text-sm"
-                      placeholder="उदा. Lucknow"
+                      placeholder="उदा. Bhopal / Sironj / Guna"
                     />
                   </div>
                 </div>
@@ -403,10 +467,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab })
                     <input
                       type="text"
                       required
+                      list="mp-home-cities"
                       value={searchDestination}
                       onChange={(e) => setSearchDestination(e.target.value)}
                       className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-orange-500 text-sm"
-                      placeholder="उदा. Delhi"
+                      placeholder="उदा. Indore / Pune / Jaipur"
                     />
                   </div>
                 </div>

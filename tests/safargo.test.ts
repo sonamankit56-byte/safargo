@@ -303,8 +303,8 @@ describe('J. Forgot Password & Authentication Security', () => {
 describe('K. Homepage & Bus Route Inventory', () => {
   it('contains popular rural bus routes with seater and sleeper fares', () => {
     const trip = INITIAL_BUS_TRIPS[0];
-    expect(trip.source).toBe('Lucknow');
-    expect(trip.destination).toBe('Delhi (Kashmere Gate)');
+    expect(trip.source).toBe('Bhopal');
+    expect(trip.destination).toBe('Indore');
     expect(trip.seater_fare).toBeGreaterThan(0);
     expect(trip.sleeper_fare).toBeGreaterThan(0);
     expect(trip.available_seater).toBeGreaterThan(0);

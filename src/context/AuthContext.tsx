@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Profile, UserRole, AgentStatus } from '../types';
+import { Profile, UserRole, AgentStatus, PendingLoginOtp } from '../types';
 import { INITIAL_PROFILES } from '../lib/mockData';
 import { useToast } from './ToastContext';
 import { db } from '../lib/supabaseService';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { getClientDeviceString, fetchClientIpAddress, generateSecureOtpCode } from '../lib/securityUtils';
 
 interface AuthContextType {
   currentUser: Profile | null;
@@ -12,6 +13,14 @@ interface AuthContextType {
   isApprovedAgent: boolean;
   isAdmin: boolean;
   login: (emailOrMobile: string, password?: string) => Promise<boolean>;
+  pendingLoginOtps: PendingLoginOtp[];
+  initiateAgentLogin: (
+    emailOrMobile: string,
+    password?: string
+  ) => Promise<{ success: boolean; pendingOtp?: PendingLoginOtp; isSuperAdmin?: boolean; message?: string }>;
+  verifyLoginOtp: (otpId: string, otpCode: string) => Promise<boolean>;
+  adminApproveLoginOtp: (otpId: string) => Promise<boolean>;
+  setSecurityMpin: (agentId: string, mpin: string) => Promise<boolean>;
   registerAgent: (details: {
     full_name: string;
     mobile: string;
@@ -48,6 +57,7 @@ interface AuthContextType {
 
 const STORAGE_KEY_PROFILES = 'safargo_profiles_v1';
 const STORAGE_KEY_CURRENT_USER = 'safargo_current_user_id_v1';
+const STORAGE_KEY_PENDING_OTPS = 'safargo_pending_login_otps_v1';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -109,7 +119,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }).catch((err) => console.error('Error fetching Supabase profiles:', err));
   }, []);
 
-  // Multi-tab sync: instantly catch KYC submissions from other tabs/windows
+  const [pendingLoginOtps, setPendingLoginOtps] = useState<PendingLoginOtp[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_PENDING_OTPS);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load pending otps', e);
+    }
+    return [];
+  });
+
+  // Persist pending login otps
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_PENDING_OTPS, JSON.stringify(pendingLoginOtps));
+  }, [pendingLoginOtps]);
+
+  // Multi-tab sync: instantly catch KYC submissions & OTP verification from other tabs/windows
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY_PROFILES && e.newValue) {
@@ -120,6 +145,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         } catch (err) {
           console.error('Storage sync error:', err);
+        }
+      }
+      if (e.key === STORAGE_KEY_PENDING_OTPS && e.newValue) {
+        try {
+          const updated = JSON.parse(e.newValue);
+          if (Array.isArray(updated)) {
+            setPendingLoginOtps(updated);
+          }
+        } catch (err) {
+          console.error('Pending OTP sync error:', err);
         }
       }
     };
@@ -158,6 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (emailOrMobile: string, password?: string): Promise<boolean> => {
     const term = emailOrMobile.trim().toLowerCase();
+    const deviceStr = getClientDeviceString();
 
     // Special check for primary Super Administrator
     if (term === 'jia647155@gmail.com') {
@@ -182,6 +218,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         error('Invalid Password', 'गलत पासवर्ड दर्ज किया गया है। कृपया सही पासवर्ड डालें या "Forgot Password" का उपयोग करें।');
         return false;
       }
+
+      const nowIso = new Date().toISOString();
+      const updated = profiles.map((p) =>
+        p.id === found.id
+          ? { ...p, last_login_device: deviceStr, last_login_at: nowIso }
+          : p
+      );
+      setProfiles(updated);
+
       setCurrentUserId(found.id);
       success(`Welcome back, ${found.full_name}!`, `लॉगिन सफल (${found.role === 'admin' ? 'एडमिन' : 'एजेंट'})`);
       return true;
@@ -189,6 +234,140 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       error('User Not Found', 'यह ईमेल या मोबाइल नंबर पंजीकृत नहीं है। कृपया नया एजेंट रजिस्ट्रेशन करें।');
       return false;
     }
+  };
+
+  const initiateAgentLogin = async (
+    emailOrMobile: string,
+    password?: string
+  ): Promise<{ success: boolean; pendingOtp?: PendingLoginOtp; isSuperAdmin?: boolean; message?: string }> => {
+    const term = emailOrMobile.trim().toLowerCase();
+
+    // Super Admin special direct authorization
+    if (term === 'jia647155@gmail.com') {
+      if (password && password !== 'Jia@2233') {
+        error('Invalid Password', 'गलत एडमिन पासवर्ड दर्ज किया गया है।');
+        return { success: false, message: 'Invalid password' };
+      }
+      const jia = profiles.find((p) => p.email.toLowerCase() === 'jia647155@gmail.com');
+      if (jia) {
+        setCurrentUserId(jia.id);
+        success('Welcome, Jia!', 'Logged in with Super Admin access.');
+        return { success: true, isSuperAdmin: true };
+      }
+    }
+
+    const found = profiles.find(
+      (p) => p.email.toLowerCase() === term || p.mobile.replace(/\D/g, '') === term.replace(/\D/g, '')
+    );
+
+    if (!found) {
+      error('User Not Found', 'यह ईमेल या मोबाइल नंबर पंजीकृत नहीं है। कृपया नया एजेंट रजिस्ट्रेशन करें।');
+      return { success: false, message: 'User not found' };
+    }
+
+    if (found.password && password && found.password !== password) {
+      error('Invalid Password', 'गलत पासवर्ड दर्ज किया गया है। कृपया सही पासवर्ड डालें या "Forgot Password" का उपयोग करें।');
+      return { success: false, message: 'Invalid password' };
+    }
+
+    // Capture real or fallback client IP & device
+    const clientIp = await fetchClientIpAddress();
+    const clientDevice = getClientDeviceString();
+    const otpCode = generateSecureOtpCode();
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 3 * 60 * 1000).toISOString(); // 3 mins validity
+
+    const newOtp: PendingLoginOtp = {
+      id: `otp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      agent_id: found.id,
+      agent_name: found.full_name,
+      agent_mobile: found.mobile,
+      agent_email: found.email,
+      otp_code: otpCode,
+      ip_address: clientIp,
+      device_info: clientDevice,
+      created_at: now.toISOString(),
+      expires_at: expiresAt,
+      is_verified: false,
+      status: 'pending',
+    };
+
+    setPendingLoginOtps((prev) => [newOtp, ...prev.filter((p) => p.agent_id !== found.id)]);
+    return { success: true, pendingOtp: newOtp };
+  };
+
+  const verifyLoginOtp = async (otpId: string, otpCode: string): Promise<boolean> => {
+    const target = pendingLoginOtps.find((o) => o.id === otpId);
+    if (!target) {
+      error('Session Expired', 'सुरक्षा सत्र नहीं मिला। कृपया पुनः लॉगिन करें।');
+      return false;
+    }
+
+    const nowIso = new Date().toISOString();
+    if (target.expires_at < nowIso) {
+      error('OTP Expired', 'सुरक्षा कोड की 3 मिनट की समय सीमा समाप्त हो गई है। कृपया नया कोड प्राप्त करें।');
+      return false;
+    }
+
+    if (target.otp_code.trim() !== otpCode.trim() && target.status !== 'admin_approved') {
+      error('Invalid OTP', 'गलत OTP कोड दर्ज किया गया है। कृपया सही 6-अंकों का कोड दर्ज करें।');
+      return false;
+    }
+
+    // Mark as verified
+    setPendingLoginOtps((prev) =>
+      prev.map((o) => (o.id === otpId ? { ...o, is_verified: true, status: 'verified' } : o))
+    );
+
+    // Update profile with audit log
+    const agentIndex = profiles.findIndex((p) => p.id === target.agent_id);
+    if (agentIndex !== -1) {
+      const updated = [...profiles];
+      updated[agentIndex] = {
+        ...updated[agentIndex],
+        last_login_ip: target.ip_address,
+        last_login_device: target.device_info,
+        last_login_at: nowIso,
+      };
+      setProfiles(updated);
+      if (isSupabaseConfigured) {
+        db.updateProfile(target.agent_id, {
+          last_login_ip: target.ip_address,
+          last_login_device: target.device_info,
+          last_login_at: nowIso,
+        }).catch(console.error);
+      }
+    }
+
+    setCurrentUserId(target.agent_id);
+    success(`स्वागत है, ${target.agent_name}!`, 'सुरक्षा OTP एवं डिवाइस सत्यापन सफल। सुरक्षित सत्र प्रारंभ हुआ।');
+    return true;
+  };
+
+  const adminApproveLoginOtp = async (otpId: string): Promise<boolean> => {
+    const target = pendingLoginOtps.find((o) => o.id === otpId);
+    if (!target) return false;
+
+    setPendingLoginOtps((prev) =>
+      prev.map((o) => (o.id === otpId ? { ...o, is_verified: true, status: 'admin_approved' } : o))
+    );
+    success('Approved by Admin', `${target.agent_name} के लॉगिन को एडमिन ने तुरंत स्वीकृति दे दी।`);
+    return true;
+  };
+
+  const setSecurityMpin = async (agentId: string, mpin: string): Promise<boolean> => {
+    const clean = mpin.replace(/\D/g, '').slice(0, 4);
+    if (clean.length !== 4) {
+      error('Invalid MPIN', 'सुरक्षा पिन ठीक 4 अंकों का होना चाहिए।');
+      return false;
+    }
+    const updated = profiles.map((p) => (p.id === agentId ? { ...p, security_mpin: clean } : p));
+    setProfiles(updated);
+    if (isSupabaseConfigured) {
+      db.updateProfile(agentId, { security_mpin: clean }).catch(console.error);
+    }
+    success('MPIN Saved', '4-अंकों का सुरक्षा पिन सुरक्षित रूप से सेव हो गया है।');
+    return true;
   };
 
   const resetPassword = async (emailOrMobile: string, newPassword: string): Promise<boolean> => {
@@ -560,6 +739,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isApprovedAgent,
         isAdmin,
         login,
+        pendingLoginOtps,
+        initiateAgentLogin,
+        verifyLoginOtp,
+        adminApproveLoginOtp,
+        setSecurityMpin,
         registerAgent,
         logout,
         updateProfile,
