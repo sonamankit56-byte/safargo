@@ -17,6 +17,12 @@ import {
   isFeatureHidden,
   PLATFORM_FEATURE_DEFINITIONS
 } from '../src/lib/featureFlags';
+import {
+  getTabFromPath,
+  getPathFromTab,
+  TAB_TO_PATH,
+  PATH_TO_TAB
+} from '../src/lib/routes';
 
 describe('A. Authentication & Secure Roles', () => {
   it('identifies admin, approved agent, and pending agent correctly', () => {
@@ -1600,6 +1606,74 @@ describe('AE. Master Platform Feature Visibility & Coming Soon Controls', () => 
     });
   });
 });
+
+describe('AF. Flipkart-Style Real Browser URL Routing & Multi-Page Navigation Engine', () => {
+  it('maps all core platform paths to correct tabs', () => {
+    expect(getTabFromPath('/')).toBe('home');
+    expect(getTabFromPath('/quick-delivery')).toBe('quick-delivery');
+    expect(getTabFromPath('/track-order')).toBe('track-order');
+    expect(getTabFromPath('/promoter')).toBe('promoter-program');
+    expect(getTabFromPath('/promoter/dashboard')).toBe('promoter-dashboard');
+    expect(getTabFromPath('/customer')).toBe('customer-portal');
+    expect(getTabFromPath('/shop')).toBe('shopkeeper-portal');
+  });
+
+  it('maps all agent work routes to respective agent tabs', () => {
+    expect(getTabFromPath('/agent')).toBe('dashboard');
+    expect(getTabFromPath('/agent/dashboard')).toBe('dashboard');
+    expect(getTabFromPath('/agent/new-booking')).toBe('new-booking');
+    expect(getTabFromPath('/agent/my-bookings')).toBe('my-bookings');
+    expect(getTabFromPath('/agent/commission')).toBe('commission');
+    expect(getTabFromPath('/agent/refer-earn')).toBe('refer-earn');
+    expect(getTabFromPath('/agent/viral-promotions')).toBe('viral-promotions');
+    expect(getTabFromPath('/agent/deliveries')).toBe('agent-deliveries');
+    expect(getTabFromPath('/agent/profile')).toBe('agent-profile');
+  });
+
+  it('maps all super admin operations routes to respective admin tabs', () => {
+    expect(getTabFromPath('/admin')).toBe('admin-dashboard');
+    expect(getTabFromPath('/admin/dashboard')).toBe('admin-dashboard');
+    expect(getTabFromPath('/admin/promoters')).toBe('admin-promoters');
+    expect(getTabFromPath('/admin/bookings')).toBe('admin-bookings');
+    expect(getTabFromPath('/admin/agents')).toBe('admin-agents');
+    expect(getTabFromPath('/admin/kyc-desk')).toBe('admin-kyc-desk');
+    expect(getTabFromPath('/admin/security-desk')).toBe('admin-security-desk');
+    expect(getTabFromPath('/admin/trips')).toBe('admin-trips');
+    expect(getTabFromPath('/admin/promotions')).toBe('admin-promotions');
+    expect(getTabFromPath('/admin/salary')).toBe('admin-salary');
+    expect(getTabFromPath('/admin/settings')).toBe('admin-settings');
+    expect(getTabFromPath('/admin/logs')).toBe('admin-logs');
+  });
+
+  it('maps platform tabs to real browser URLs with getPathFromTab', () => {
+    expect(getPathFromTab('home')).toBe('/');
+    expect(getPathFromTab('quick-delivery')).toBe('/quick-delivery');
+    expect(getPathFromTab('track-order')).toBe('/track-order');
+    expect(getPathFromTab('promoter-program')).toBe('/promoter');
+    expect(getPathFromTab('promoter-dashboard')).toBe('/promoter/dashboard');
+    expect(getPathFromTab('dashboard')).toBe('/agent/dashboard');
+    expect(getPathFromTab('new-booking')).toBe('/agent/new-booking');
+    expect(getPathFromTab('customer-portal')).toBe('/customer');
+    expect(getPathFromTab('shopkeeper-portal')).toBe('/shop');
+    expect(getPathFromTab('admin-settings')).toBe('/admin/settings');
+    expect(getPathFromTab('admin-promoters')).toBe('/admin/promoters');
+  });
+
+  it('normalizes trailing slashes safely', () => {
+    expect(getTabFromPath('/promoter/')).toBe('promoter-program');
+    expect(getTabFromPath('/quick-delivery/')).toBe('quick-delivery');
+    expect(getTabFromPath('/agent/new-booking/')).toBe('new-booking');
+  });
+
+  it('supports Flipkart-style deep order tracking with orderId URL parameters', () => {
+    expect(getTabFromPath('/track-order/ORD-982601')).toBe('track-order');
+
+    const sampleUrl = 'https://safargo.in/track-order?orderId=ORD-982601';
+    const parsedParams = new URL(sampleUrl).searchParams;
+    expect(parsedParams.get('orderId')).toBe('ORD-982601');
+  });
+});
+
 
 
 

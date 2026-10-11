@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { BrowserRouter, useNavigate, useLocation } from 'react-router-dom';
 import { ToastProvider } from './context/ToastContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider, useData } from './context/DataContext';
@@ -33,18 +34,37 @@ import { AuthModal } from './components/auth/AuthModal';
 import { AnnouncementBanner } from './components/common/AnnouncementBanner';
 import { HomePage } from './components/home/HomePage';
 import { SafarGoLogo } from './components/common/SafarGoLogo';
+import { getTabFromPath, getPathFromTab } from './lib/routes';
 import { Bus, ShieldCheck, Heart, UserPlus, LogIn, ExternalLink } from 'lucide-react';
 
 const AppContent: React.FC = () => {
   const { currentUser, role, isAdmin, isPromoter } = useAuth();
   const { celebrationBooking, dismissCelebration, bookings } = useData();
 
-  const [currentTab, setCurrentTab] = useState<string>('home');
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Derive active tab directly from browser URL bar
+  const currentTab = getTabFromPath(location.pathname);
+
+  // Update browser URL bar when a tab is selected
+  const setCurrentTab = (tab: string) => {
+    const targetPath = getPathFromTab(tab);
+    if (location.pathname !== targetPath) {
+      navigate(targetPath);
+    }
+  };
+
   const [selectedReviewBookingId, setSelectedReviewBookingId] = useState<string | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register' | 'promoter_login'>('login');
   const [isPromoterModalOpen, setIsPromoterModalOpen] = useState(false);
   const [selectedTrackOrderId, setSelectedTrackOrderId] = useState<string | null>(null);
+
+  // Extract orderId from URL query string if present (e.g. /track-order?orderId=ORD-123)
+  const searchParams = new URLSearchParams(location.search);
+  const queryOrderId = searchParams.get('orderId');
+  const activeTrackOrderId = queryOrderId || selectedTrackOrderId;
 
   const handleOpenAuth = (initialTab: 'login' | 'register' | 'promoter_login' = 'login') => {
     setAuthInitialTab(initialTab);
@@ -62,34 +82,42 @@ const AppContent: React.FC = () => {
     // Detect fresh login: transitioned from unauthenticated (null) to authenticated
     if (!prevId && currentId && currentUser) {
       if (role === 'promoter') {
-        setCurrentTab('promoter-dashboard');
+        navigate('/promoter/dashboard');
       } else if (role === 'admin' || isAdmin) {
-        setCurrentTab('admin-dashboard');
+        navigate('/admin/dashboard');
       } else if (role === 'agent') {
-        setCurrentTab('dashboard');
+        navigate('/agent/dashboard');
       } else if (role === 'customer') {
-        setCurrentTab('customer-portal');
+        navigate('/customer');
       } else if (role === 'shopkeeper') {
-        setCurrentTab('shopkeeper-portal');
+        navigate('/shop');
       }
     } else if (prevId && !currentId) {
       // User logged out: redirect to homepage
-      setCurrentTab('home');
+      navigate('/');
     }
-  }, [currentUser, role, isAdmin]);
+  }, [currentUser, role, isAdmin, navigate]);
 
-  // Strict Role-Based Route Guard: Non-admins can NEVER view admin tabs
+  // Strict Role-Based Route Guard: Protect admin, agent, promoter areas
   useEffect(() => {
-    if (currentTab.startsWith('admin-')) {
+    if (location.pathname.startsWith('/admin')) {
       if (!currentUser || role !== 'admin' || !isAdmin) {
-        if (role === 'customer') setCurrentTab('customer-portal');
-        else if (role === 'shopkeeper') setCurrentTab('shopkeeper-portal');
-        else if (role === 'agent') setCurrentTab('dashboard');
-        else if (role === 'promoter') setCurrentTab('promoter-dashboard');
-        else setCurrentTab('home');
+        if (role === 'customer') navigate('/customer', { replace: true });
+        else if (role === 'shopkeeper') navigate('/shop', { replace: true });
+        else if (role === 'agent') navigate('/agent/dashboard', { replace: true });
+        else if (role === 'promoter') navigate('/promoter/dashboard', { replace: true });
+        else {
+          navigate('/', { replace: true });
+          handleOpenAuth('login');
+        }
+      }
+    } else if (location.pathname.startsWith('/agent') || location.pathname.startsWith('/promoter/dashboard')) {
+      if (!currentUser) {
+        navigate('/', { replace: true });
+        handleOpenAuth('login');
       }
     }
-  }, [currentTab, currentUser, role, isAdmin]);
+  }, [location.pathname, currentUser, role, isAdmin, navigate]);
 
   const selectedReviewBooking = bookings.find((b) => b.id === selectedReviewBookingId) || null;
 
@@ -109,9 +137,12 @@ const AppContent: React.FC = () => {
       <main className="flex-1 pb-16">
         {currentTab === 'track-order' ? (
           <FlipkartOrderTrackingView
-            orderId={selectedTrackOrderId}
+            orderId={activeTrackOrderId}
             onBack={() => setCurrentTab('quick-delivery')}
-            onSelectOrder={(id) => setSelectedTrackOrderId(id)}
+            onSelectOrder={(id) => {
+              setSelectedTrackOrderId(id);
+              navigate(`/track-order?orderId=${id}`);
+            }}
           />
         ) : currentTab === 'quick-delivery' ? (
           <QuickDeliveryHub />
@@ -165,61 +196,53 @@ const AppContent: React.FC = () => {
 
             <QuickDeliveryHub />
           </div>
-        ) : (!currentUser || currentTab === 'home') ? (
-          <HomePage
-            onOpenAuth={handleOpenAuth}
-            onOpenPromoterApply={() => setIsPromoterModalOpen(true)}
-            onNavigateTab={(tab) => {
-              if (tab === 'promoter-modal') {
-                setIsPromoterModalOpen(true);
-              } else if (!currentUser && (tab === 'dashboard' || tab === 'new-booking')) {
-                handleOpenAuth('login');
-              } else {
-                setCurrentTab(tab);
-              }
-            }}
-          />
-        ) : currentTab === 'customer-portal' || role === 'customer' ? (
+        ) : currentTab === 'promoter-dashboard' ? (
+          <PromoterDashboard />
+        ) : currentTab === 'customer-portal' ? (
           <CustomerPortal onNavigateTab={setCurrentTab} />
-        ) : currentTab === 'shopkeeper-portal' || role === 'shopkeeper' ? (
+        ) : currentTab === 'shopkeeper-portal' ? (
           <ShopkeeperPortal />
-        ) : role === 'promoter' ? (
-          <>
-            {currentTab === 'promoter-dashboard' && <PromoterDashboard />}
-            {currentTab !== 'promoter-dashboard' && <PromoterDashboard />}
-          </>
-        ) : role === 'agent' ? (
-          <>
-            {currentTab === 'dashboard' && <AgentDashboard onNavigate={setCurrentTab} />}
-            {currentTab === 'agent-deliveries' && <AgentDeliveryDesk />}
-            {currentTab === 'new-booking' && <ManualBookingForm />}
-            {currentTab === 'my-bookings' && <AgentBookingsList />}
-            {currentTab === 'commission' && <AgentCommissionLedger />}
-            {currentTab === 'refer-earn' && <ReferAndEarn />}
-            {currentTab === 'viral-promotions' && <AgentViralPromotions />}
-            {currentTab === 'agent-profile' && <AgentProfile />}
-          </>
-        ) : (currentUser && role === 'admin' && isAdmin) ? (
-          <>
-            {currentTab === 'admin-dashboard' && (
-              <AdminDashboard
-                onNavigate={setCurrentTab}
-                onOpenBooking={(id) => setSelectedReviewBookingId(id)}
-              />
-            )}
-            {currentTab === 'admin-promoters' && <AdminPromoterManagement />}
-            {currentTab === 'admin-bookings' && (
-              <AdminBookingsTable onOpenBooking={(id) => setSelectedReviewBookingId(id)} />
-            )}
-            {currentTab === 'admin-agents' && <AdminAgentManagement />}
-            {currentTab === 'admin-kyc-desk' && <AdminAgentManagement initialTab="kyc_desk" />}
-            {currentTab === 'admin-security-desk' && <AdminSecurityDesk />}
-            {currentTab === 'admin-trips' && <AdminBusTripManagement />}
-            {currentTab === 'admin-promotions' && <AdminPromotionManagement />}
-            {currentTab === 'admin-salary' && <AdminCommissionAndSalary />}
-            {currentTab === 'admin-settings' && <AdminSettings />}
-            {currentTab === 'admin-logs' && <AdminAuditLogs />}
-          </>
+        ) : currentTab === 'dashboard' ? (
+          <AgentDashboard onNavigate={setCurrentTab} />
+        ) : currentTab === 'agent-deliveries' ? (
+          <AgentDeliveryDesk />
+        ) : currentTab === 'new-booking' ? (
+          <ManualBookingForm />
+        ) : currentTab === 'my-bookings' ? (
+          <AgentBookingsList />
+        ) : currentTab === 'commission' ? (
+          <AgentCommissionLedger />
+        ) : currentTab === 'refer-earn' ? (
+          <ReferAndEarn />
+        ) : currentTab === 'viral-promotions' ? (
+          <AgentViralPromotions />
+        ) : currentTab === 'agent-profile' ? (
+          <AgentProfile />
+        ) : currentTab === 'admin-dashboard' ? (
+          <AdminDashboard
+            onNavigate={setCurrentTab}
+            onOpenBooking={(id) => setSelectedReviewBookingId(id)}
+          />
+        ) : currentTab === 'admin-promoters' ? (
+          <AdminPromoterManagement />
+        ) : currentTab === 'admin-bookings' ? (
+          <AdminBookingsTable onOpenBooking={(id) => setSelectedReviewBookingId(id)} />
+        ) : currentTab === 'admin-agents' ? (
+          <AdminAgentManagement />
+        ) : currentTab === 'admin-kyc-desk' ? (
+          <AdminAgentManagement initialTab="kyc_desk" />
+        ) : currentTab === 'admin-security-desk' ? (
+          <AdminSecurityDesk />
+        ) : currentTab === 'admin-trips' ? (
+          <AdminBusTripManagement />
+        ) : currentTab === 'admin-promotions' ? (
+          <AdminPromotionManagement />
+        ) : currentTab === 'admin-salary' ? (
+          <AdminCommissionAndSalary />
+        ) : currentTab === 'admin-settings' ? (
+          <AdminSettings />
+        ) : currentTab === 'admin-logs' ? (
+          <AdminAuditLogs />
         ) : (
           <HomePage
             onOpenAuth={handleOpenAuth}
@@ -388,6 +411,9 @@ const AppContent: React.FC = () => {
                   <button
                     onClick={() => {
                       if (role === 'admin') setCurrentTab('admin-dashboard');
+                      else if (role === 'promoter') setCurrentTab('promoter-dashboard');
+                      else if (role === 'customer') setCurrentTab('customer-portal');
+                      else if (role === 'shopkeeper') setCurrentTab('shopkeeper-portal');
                       else setCurrentTab('dashboard');
                     }}
                     className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition"
@@ -414,13 +440,15 @@ const AppContent: React.FC = () => {
 
 export function App() {
   return (
-    <ToastProvider>
-      <AuthProvider>
-        <DataProvider>
-          <AppContent />
-        </DataProvider>
-      </AuthProvider>
-    </ToastProvider>
+    <BrowserRouter>
+      <ToastProvider>
+        <AuthProvider>
+          <DataProvider>
+            <AppContent />
+          </DataProvider>
+        </AuthProvider>
+      </ToastProvider>
+    </BrowserRouter>
   );
 }
 
