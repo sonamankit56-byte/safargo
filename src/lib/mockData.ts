@@ -49,12 +49,30 @@ export const INITIAL_SETTINGS: AdminSettings = {
     updated_at: new Date().toISOString(),
   },
 
+  // Master Platform Feature Visibility Controls ('active' | 'coming_soon' | 'hidden')
+  feature_bus_booking_mode: 'active',
+  feature_quick_delivery_mode: 'active',
+  feature_promoter_program_mode: 'active',
+  feature_boarding_sathi_mode: 'active',
+  feature_shopkeeper_portal_mode: 'active',
+  feature_customer_portal_mode: 'active',
+  feature_creator_rewards_mode: 'active',
+  feature_promo_codes_mode: 'active',
+  feature_refer_earn_mode: 'active',
+  feature_live_tracking_mode: 'active',
+  feature_tatkal_service_mode: 'active',
+  feature_parcel_service_mode: 'active',
+  feature_train_enquiry_mode: 'coming_soon',
+  feature_hotel_service_mode: 'coming_soon',
+  feature_print_service_mode: 'active',
+
+  // Built-in feature toggles
   feature_refer_earn: true,
   feature_tatkal_service: true,
   feature_parcel_service: true,
   feature_train_enquiry: false,
   feature_hotel_service: false,
-  feature_print_service: false,
+  feature_print_service: true,
 
   custom_features: [
     {

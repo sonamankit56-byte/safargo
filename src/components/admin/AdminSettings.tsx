@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
-import { CustomFeature, FeatureIconName, AdminAnnouncement } from '../../types';
+import { CustomFeature, FeatureIconName, AdminAnnouncement, FeatureVisibilityMode, AdminSettings as AdminSettingsData } from '../../types';
 import { isSupabaseConfigured } from '../../lib/supabase';
+import { PLATFORM_FEATURE_DEFINITIONS, getFeatureMode } from '../../lib/featureFlags';
 import {
   Settings,
   Save,
@@ -40,7 +41,17 @@ import {
   Image as ImageIcon,
   Instagram,
   Youtube,
-  Clock
+  Clock,
+  Bus,
+  Bike,
+  Award,
+  Store,
+  User,
+  Users,
+  Tag,
+  Search,
+  CheckCircle2,
+  EyeOff
 } from 'lucide-react';
 
 export const AdminSettings: React.FC = () => {
@@ -126,14 +137,37 @@ export const AdminSettings: React.FC = () => {
   );
   const [isSavingAnn, setIsSavingAnn] = useState(false);
 
-  // FEATURE TOGGLES STATE
-  const [featRefer, setFeatRefer] = useState<boolean>(settings.feature_refer_earn ?? true);
-  const [featTatkal, setFeatTatkal] = useState<boolean>(settings.feature_tatkal_service ?? true);
-  const [featParcel, setFeatParcel] = useState<boolean>(settings.feature_parcel_service ?? true);
-  const [featTrain, setFeatTrain] = useState<boolean>(settings.feature_train_enquiry ?? false);
-  const [featHotel, setFeatHotel] = useState<boolean>(settings.feature_hotel_service ?? false);
-  const [featPrint, setFeatPrint] = useState<boolean>(settings.feature_print_service ?? false);
+  // MASTER FEATURE VISIBILITY MODES STATE (ACTIVE / COMING SOON / HIDDEN)
+  const [featureModes, setFeatureModes] = useState<Record<string, FeatureVisibilityMode>>(() => {
+    const initial: Record<string, FeatureVisibilityMode> = {};
+    PLATFORM_FEATURE_DEFINITIONS.forEach((feat) => {
+      initial[feat.key] = getFeatureMode(settings, feat.key as string, 'active');
+    });
+    return initial;
+  });
+  const [featureCategoryFilter, setFeatureCategoryFilter] = useState<'all' | 'core' | 'delivery' | 'promoter' | 'marketing' | 'services'>('all');
   const [isSavingToggles, setIsSavingToggles] = useState(false);
+
+  const handleUpdateFeatureMode = (key: string, mode: FeatureVisibilityMode) => {
+    setFeatureModes((prev) => ({ ...prev, [key]: mode }));
+  };
+
+  const handleBulkSetFeatureModes = (mode: FeatureVisibilityMode) => {
+    setFeatureModes((prev) => {
+      const updated = { ...prev };
+      PLATFORM_FEATURE_DEFINITIONS.forEach((feat) => {
+        updated[feat.key] = mode;
+      });
+      return updated;
+    });
+    if (mode === 'active') {
+      info('सभी सक्रिय', 'सभी 15 फीचर्स को "सक्रिय (Live)" मोड में सेट किया गया। नीचे सेव बटन दबाएं।');
+    } else if (mode === 'coming_soon') {
+      info('सभी जल्द आ रहा है', 'सभी 15 फीचर्स को "जल्द आ रहा है (Coming Soon)" में सेट किया गया।');
+    } else {
+      info('सभी गायब', 'सभी 15 फीचर्स को वेबसाइट से छुपाने (Hidden) के लिए सेट किया गया।');
+    }
+  };
 
   // CUSTOM FEATURE BUILDER MODAL STATE
   const [isFeatureModalOpen, setIsFeatureModalOpen] = useState(false);
@@ -276,19 +310,24 @@ export const AdminSettings: React.FC = () => {
     info('टेम्पलेट लागू', 'प्री-सेट घोषणा लोड हो गई है। सेव बटन दबाकर लाइव करें।');
   };
 
-  // HANDLE FEATURE TOGGLES SAVE
+  // HANDLE MASTER FEATURE MODES SAVE
   const handleSaveFeatureToggles = async () => {
     setIsSavingToggles(true);
     try {
-      await updateSettings({
-        feature_refer_earn: featRefer,
-        feature_tatkal_service: featTatkal,
-        feature_parcel_service: featParcel,
-        feature_train_enquiry: featTrain,
-        feature_hotel_service: featHotel,
-        feature_print_service: featPrint,
-      });
-      success('मॉड्यूल्स अपडेटेड', 'प्लेटफ़ॉर्म सुविधाओं के टॉगल सुरक्षित कर दिए गए हैं।');
+      const payload: Partial<AdminSettingsData> = {
+        ...featureModes,
+        feature_refer_earn: featureModes['feature_refer_earn_mode'] === 'active',
+        feature_tatkal_service: featureModes['feature_tatkal_service_mode'] === 'active',
+        feature_parcel_service: featureModes['feature_parcel_service_mode'] === 'active',
+        feature_train_enquiry: featureModes['feature_train_enquiry_mode'] === 'active',
+        feature_hotel_service: featureModes['feature_hotel_service_mode'] === 'active',
+        feature_print_service: featureModes['feature_print_service_mode'] === 'active',
+      };
+      await updateSettings(payload);
+      success(
+        'मास्टर फंक्शनैलिटी सेटिंग्स सुरक्षित!',
+        'वेबसाइट पर सभी 15 फीचर्स के दृश्यता विकल्प (Live / Coming Soon / Hidden) तुरंत लागू हो गए हैं।'
+      );
     } finally {
       setIsSavingToggles(false);
     }
@@ -1129,148 +1168,245 @@ export const AdminSettings: React.FC = () => {
       {activeTab === 'features' && (
         <div className="space-y-6">
           
-          {/* 1. Built-in Feature Toggles */}
+          {/* 1. Master Platform Feature Visibility Controls */}
           <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8 space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
-                  <Sliders className="w-4 h-4" />
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-md">
+                  <Sliders className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-slate-900">
-                    1. प्लेटफॉर्म मॉड्यूल्स ऑन/ऑफ (Built-in Platform Modules)
+                  <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
+                    <span>1. मास्टर फंक्शनैलिटी विजिबिलिटी कंट्रोल</span>
+                    <span className="text-xs bg-orange-100 text-orange-800 font-bold px-2 py-0.5 rounded-full">
+                      15 फीचर्स
+                    </span>
                   </h2>
                   <p className="text-xs text-slate-500">
-                    एजेंट डैशबोर्ड पर दिखाने या छुपाने के लिए इन सुविधाओं को टॉगल करें
+                    किसी भी फीचर को 1-क्लिक में <strong>सक्रिय (Live)</strong> रखें, <strong>'जल्द आ रहा है' (Coming Soon)</strong> बैज दें, या <strong>वेबसाइट से पूरी तरह गायब (Hidden)</strong> करें।
                   </p>
                 </div>
               </div>
 
-              <button
-                onClick={handleSaveFeatureToggles}
-                disabled={isSavingToggles}
-                className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5"
-              >
-                <Save className="w-3.5 h-3.5" />
-                {isSavingToggles ? 'Saving...' : 'टॉगल सेव करें'}
-              </button>
+              <div className="flex items-center gap-2 self-start md:self-auto">
+                <button
+                  type="button"
+                  onClick={handleSaveFeatureToggles}
+                  disabled={isSavingToggles}
+                  className="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{isSavingToggles ? 'सेव हो रहा है...' : 'परिवर्तन तुरंत सेव करें (Save Live)'}</span>
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              
-              {/* Refer & Earn Toggle */}
-              <div className="p-3.5 rounded-2xl border border-slate-200 flex items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                    <Gift className="w-4 h-4 text-amber-500" />
-                    रेफर और कमाएं (₹50 बोनस)
-                  </div>
-                  <p className="text-[11px] text-slate-500">
-                    एजेंटों को अन्य दोस्तों को आमंत्रित कर ₹50 नकद कमाने का अवसर दें
-                  </p>
+            {/* Quick Bulk Action Buttons & Live Stats */}
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+              {/* Stats Counters */}
+              <div className="flex flex-wrap items-center gap-3 text-xs">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 font-bold border border-emerald-200">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>सक्रिय (Live): {Object.values(featureModes).filter((m) => m === 'active').length}</span>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={featRefer}
-                  onChange={(e) => setFeatRefer(e.target.checked)}
-                  className="w-4 h-4 accent-orange-500"
-                />
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-100 text-amber-800 font-bold border border-amber-200">
+                  <Clock className="w-3.5 h-3.5 text-amber-600" />
+                  <span>जल्द आ रहा है: {Object.values(featureModes).filter((m) => m === 'coming_soon').length}</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-100 text-rose-800 font-bold border border-rose-200">
+                  <EyeOff className="w-3.5 h-3.5 text-rose-600" />
+                  <span>वेबसाइट से गायब: {Object.values(featureModes).filter((m) => m === 'hidden').length}</span>
+                </div>
               </div>
 
-              {/* Tatkal Bus Toggle */}
-              <div className="p-3.5 rounded-2xl border border-slate-200 flex items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                    <Zap className="w-4 h-4 text-rose-500" />
-                    तत्काल / इमरजेंसी बस सहायता
-                  </div>
-                  <p className="text-[11px] text-slate-500">
-                    अति आवश्यक व तुरंत यात्रा के लिए स्पेशल हेल्पडेस्क WhatsApp बटन
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={featTatkal}
-                  onChange={(e) => setFeatTatkal(e.target.checked)}
-                  className="w-4 h-4 accent-orange-500"
-                />
+              {/* Bulk Quick Click Buttons */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[11px] font-bold text-slate-500">त्वरित एक्शन:</span>
+                <button
+                  type="button"
+                  onClick={() => handleBulkSetFeatureModes('active')}
+                  className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-emerald-50 text-emerald-700 font-bold text-[11px] border border-emerald-300 transition shadow-2xs cursor-pointer"
+                >
+                  🟢 सभी लाइव
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleBulkSetFeatureModes('coming_soon')}
+                  className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-amber-50 text-amber-700 font-bold text-[11px] border border-amber-300 transition shadow-2xs cursor-pointer"
+                >
+                  🟡 सभी जल्द आ रहा है
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleBulkSetFeatureModes('hidden')}
+                  className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-rose-50 text-rose-700 font-bold text-[11px] border border-rose-300 transition shadow-2xs cursor-pointer"
+                >
+                  🔴 सभी गायब (Hide All)
+                </button>
               </div>
+            </div>
 
-              {/* Parcel Service Toggle */}
-              <div className="p-3.5 rounded-2xl border border-slate-200 flex items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                    <Package className="w-4 h-4 text-indigo-500" />
-                    बस पार्सल व माल ढुलाई बुकिंग
-                  </div>
-                  <p className="text-[11px] text-slate-500">
-                    दुकानदारों व ग्रामीणों के लिए बस डिक्की पार्सल बुकिंग सहायता
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={featParcel}
-                  onChange={(e) => setFeatParcel(e.target.checked)}
-                  className="w-4 h-4 accent-orange-500"
-                />
-              </div>
+            {/* Category Filter Pills */}
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              {[
+                { id: 'all', label: 'सभी 15 फीचर्स' },
+                { id: 'core', label: '🚌 कोर नेटवर्क' },
+                { id: 'delivery', label: '⚡ 15-मिनट डिलीवरी व शॉप' },
+                { id: 'promoter', label: '🤝 प्रमोटर प्रोग्राम' },
+                { id: 'marketing', label: '🎁 मार्केटिंग व प्रोमो' },
+                { id: 'services', label: '🧰 अतिरिक्त सेवाएं' }
+              ].map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setFeatureCategoryFilter(cat.id as any)}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition text-xs cursor-pointer ${
+                    featureCategoryFilter === cat.id
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
 
-              {/* Train Enquiry Toggle */}
-              <div className="p-3.5 rounded-2xl border border-slate-200 flex items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                    <Train className="w-4 h-4 text-sky-500" />
-                    रेलवे वेटिंग कनेक्टिंग बस
-                  </div>
-                  <p className="text-[11px] text-slate-500">
-                    ट्रेन कन्फर्म न होने पर रेलवे स्टेशन से आगे के लिए बस विकल्प
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={featTrain}
-                  onChange={(e) => setFeatTrain(e.target.checked)}
-                  className="w-4 h-4 accent-orange-500"
-                />
-              </div>
+            {/* 15 Feature Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {PLATFORM_FEATURE_DEFINITIONS.filter(
+                (feat) => featureCategoryFilter === 'all' || feat.category === featureCategoryFilter
+              ).map((feat) => {
+                const currentMode = featureModes[feat.key] || 'active';
+                return (
+                  <div
+                    key={feat.key}
+                    className={`p-4 rounded-2xl border transition-all flex flex-col justify-between space-y-3.5 ${
+                      currentMode === 'active'
+                        ? 'bg-emerald-50/20 border-emerald-200/90 shadow-2xs'
+                        : currentMode === 'coming_soon'
+                        ? 'bg-amber-50/30 border-amber-300 shadow-2xs'
+                        : 'bg-slate-50 border-slate-200 opacity-75'
+                    }`}
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                              currentMode === 'active'
+                                ? 'bg-emerald-600 text-white'
+                                : currentMode === 'coming_soon'
+                                ? 'bg-amber-500 text-slate-950'
+                                : 'bg-slate-300 text-slate-700'
+                            }`}
+                          >
+                            {feat.iconName === 'Bus' && <Bus className="w-4 h-4" />}
+                            {feat.iconName === 'Bike' && <Bike className="w-4 h-4" />}
+                            {feat.iconName === 'Award' && <Award className="w-4 h-4" />}
+                            {feat.iconName === 'Users' && <Users className="w-4 h-4" />}
+                            {feat.iconName === 'Store' && <Store className="w-4 h-4" />}
+                            {feat.iconName === 'User' && <User className="w-4 h-4" />}
+                            {feat.iconName === 'Sparkles' && <Sparkles className="w-4 h-4" />}
+                            {feat.iconName === 'Tag' && <Tag className="w-4 h-4" />}
+                            {feat.iconName === 'Gift' && <Gift className="w-4 h-4" />}
+                            {feat.iconName === 'Search' && <Search className="w-4 h-4" />}
+                            {feat.iconName === 'Zap' && <Zap className="w-4 h-4" />}
+                            {feat.iconName === 'Package' && <Package className="w-4 h-4" />}
+                            {feat.iconName === 'Train' && <Train className="w-4 h-4" />}
+                            {feat.iconName === 'Building' && <Building className="w-4 h-4" />}
+                            {feat.iconName === 'Printer' && <Printer className="w-4 h-4" />}
+                          </div>
+                          <div>
+                            <h3 className="font-extrabold text-xs text-slate-900 leading-tight">
+                              {feat.hindiName}
+                            </h3>
+                            <span className="text-[10px] text-slate-500 block">
+                              {feat.name}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
 
-              {/* Hotel / Stay Toggle */}
-              <div className="p-3.5 rounded-2xl border border-slate-200 flex items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                    <Building className="w-4 h-4 text-emerald-500" />
-                    होटल व धर्मशाला बुकिंग
-                  </div>
-                  <p className="text-[11px] text-slate-500">
-                    तीर्थ स्थलों व प्रमुख शहरों में यात्रियों के लिए कमरा बुकिंग डेस्क
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={featHotel}
-                  onChange={(e) => setFeatHotel(e.target.checked)}
-                  className="w-4 h-4 accent-orange-500"
-                />
-              </div>
+                      <p className="text-[11px] text-slate-600 leading-relaxed min-h-[32px]">
+                        {feat.description}
+                      </p>
+                    </div>
 
-              {/* CSC Print Toggle */}
-              <div className="p-3.5 rounded-2xl border border-slate-200 flex items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                    <Printer className="w-4 h-4 text-slate-600" />
-                    CSC डिजिटल प्रिंट व लैमिनेशन
+                    <div className="space-y-2 pt-2 border-t border-slate-200/70">
+                      {/* 3-State Segmented Control */}
+                      <div className="grid grid-cols-3 gap-1 bg-slate-200/70 p-1 rounded-xl">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateFeatureMode(feat.key as string, 'active')}
+                          className={`py-1.5 px-1 rounded-lg text-[10px] font-black transition flex items-center justify-center gap-1 cursor-pointer ${
+                            currentMode === 'active'
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'text-slate-700 hover:bg-white/60'
+                          }`}
+                        >
+                          <span>🟢 सक्रिय</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateFeatureMode(feat.key as string, 'coming_soon')}
+                          className={`py-1.5 px-1 rounded-lg text-[10px] font-black transition flex items-center justify-center gap-1 cursor-pointer ${
+                            currentMode === 'coming_soon'
+                              ? 'bg-amber-400 text-slate-950 shadow-xs'
+                              : 'text-slate-700 hover:bg-white/60'
+                          }`}
+                        >
+                          <span>⏳ जल्द आ रहा</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateFeatureMode(feat.key as string, 'hidden')}
+                          className={`py-1.5 px-1 rounded-lg text-[10px] font-black transition flex items-center justify-center gap-1 cursor-pointer ${
+                            currentMode === 'hidden'
+                              ? 'bg-rose-600 text-white shadow-xs'
+                              : 'text-slate-700 hover:bg-white/60'
+                          }`}
+                        >
+                          <span>🚫 गायब</span>
+                        </button>
+                      </div>
+
+                      {/* Live Status Hint Pill */}
+                      <div className="text-[10px] font-bold text-center">
+                        {currentMode === 'active' && (
+                          <span className="text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md inline-block w-full">
+                            ✓ वेबसाइट पर 100% लाइव व सक्रिय
+                          </span>
+                        )}
+                        {currentMode === 'coming_soon' && (
+                          <span className="text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md inline-block w-full">
+                            ⏳ 'जल्द आ रहा है' बैज व नोटिफिकेशन मोडल
+                          </span>
+                        )}
+                        {currentMode === 'hidden' && (
+                          <span className="text-rose-700 bg-rose-100 px-2 py-0.5 rounded-md inline-block w-full">
+                            🚫 वेबसाइट, मेन्यू व फॉर्म से गायब
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-[11px] text-slate-500">
-                    टिकट व पहचान पत्र कलर प्रिंटिंग सहायता डेस्क
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={featPrint}
-                  onChange={(e) => setFeatPrint(e.target.checked)}
-                  className="w-4 h-4 accent-orange-500"
-                />
-              </div>
+                );
+              })}
+            </div>
+
+            {/* Bottom Save Button */}
+            <div className="pt-4 border-t border-slate-100 flex items-center justify-end">
+              <button
+                type="button"
+                onClick={handleSaveFeatureToggles}
+                disabled={isSavingToggles}
+                className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer"
+              >
+                <Save className="w-4 h-4" />
+                <span>{isSavingToggles ? 'सेव हो रहा है...' : 'परिवर्तन तुरंत सेव करें (Save Feature Settings)'}</span>
+              </button>
             </div>
           </div>
 

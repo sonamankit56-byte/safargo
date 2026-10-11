@@ -140,30 +140,12 @@ export const PromoterTrackStatusWidget: React.FC<PromoterTrackStatusWidgetProps>
           </button>
         </div>
 
-        {/* Demo Quick Select Buttons */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
-          <span className="text-slate-400 font-semibold text-[11px]">त्वरित टेस्ट नंबर:</span>
-          <button
-            type="button"
-            onClick={() => handleQuickDemoClick('9826012345')}
-            className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold transition cursor-pointer"
-          >
-            9826012345 (🎉 धर्मेंद्र - ऑनबोर्डेड पार्टनर)
-          </button>
-          <button
-            type="button"
-            onClick={() => handleQuickDemoClick('9752011223')}
-            className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-[11px] font-bold transition cursor-pointer"
-          >
-            9752011223 (विकास - इंटरव्यू पास)
-          </button>
-          <button
-            type="button"
-            onClick={() => handleQuickDemoClick('9685033445')}
-            className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-[11px] font-bold transition cursor-pointer"
-          >
-            9685033445 (दीपेश - इंटरव्यू शेड्यूल्ड)
-          </button>
+        {/* Official User Guidance Hint */}
+        <div className="flex items-center gap-2 pt-1 text-xs text-slate-500">
+          <ShieldCheck className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+          <span className="text-[11px]">
+            सफ़ारगो प्रमोटर आवेदन के समय प्रयुक्त अपना 10-अंकों का आधिकारिक मोबाइल नंबर दर्ज करें।
+          </span>
         </div>
       </form>
 

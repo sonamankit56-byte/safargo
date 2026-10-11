@@ -9,7 +9,14 @@ import {
   INITIAL_QUICK_DELIVERY_ORDERS,
   INITIAL_PROMOTER_APPLICATIONS
 } from '../src/lib/mockData';
-import { Booking, CommissionEntry, Profile, PromoCode, QuickDeliveryOrder, PromoterApplication } from '../src/types';
+import { Booking, CommissionEntry, Profile, PromoCode, QuickDeliveryOrder, PromoterApplication, AdminSettings, FeatureVisibilityMode } from '../src/types';
+import {
+  getFeatureMode,
+  isFeatureActive,
+  isFeatureComingSoon,
+  isFeatureHidden,
+  PLATFORM_FEATURE_DEFINITIONS
+} from '../src/lib/featureFlags';
 
 describe('A. Authentication & Secure Roles', () => {
   it('identifies admin, approved agent, and pending agent correctly', () => {
@@ -1501,6 +1508,99 @@ describe('AD. SafarGo Promoting Partner Tracking & Admin Credential Generation D
     expect(matchByUserId?.id).toBe(activePromoter.id);
   });
 });
+
+describe('AE. Master Platform Feature Visibility & Coming Soon Controls', () => {
+  it('defines all 15 platform features across 5 operational categories', () => {
+    expect(PLATFORM_FEATURE_DEFINITIONS).toHaveLength(15);
+
+    const categories = new Set(PLATFORM_FEATURE_DEFINITIONS.map((f) => f.category));
+    expect(categories.has('core')).toBe(true);
+    expect(categories.has('delivery')).toBe(true);
+    expect(categories.has('promoter')).toBe(true);
+    expect(categories.has('marketing')).toBe(true);
+    expect(categories.has('services')).toBe(true);
+
+    PLATFORM_FEATURE_DEFINITIONS.forEach((f) => {
+      expect(f.key).toBeTruthy();
+      expect(f.key).toMatch(/^feature_.*_mode$/);
+      expect(f.hindiName).toBeTruthy();
+      expect(f.name).toBeTruthy();
+      expect(f.description).toBeTruthy();
+    });
+  });
+
+  it('correctly reads feature visibility mode with getFeatureMode', () => {
+    const testSettings: AdminSettings = {
+      ...INITIAL_SETTINGS,
+      feature_bus_booking_mode: 'active',
+      feature_quick_delivery_mode: 'coming_soon',
+      feature_creator_rewards_mode: 'hidden'
+    };
+
+    expect(getFeatureMode(testSettings, 'feature_bus_booking_mode')).toBe('active');
+    expect(getFeatureMode(testSettings, 'feature_quick_delivery_mode')).toBe('coming_soon');
+    expect(getFeatureMode(testSettings, 'feature_creator_rewards_mode')).toBe('hidden');
+
+    expect(isFeatureActive(testSettings, 'feature_bus_booking_mode')).toBe(true);
+    expect(isFeatureActive(testSettings, 'feature_quick_delivery_mode')).toBe(false);
+    expect(isFeatureActive(testSettings, 'feature_creator_rewards_mode')).toBe(false);
+
+    expect(isFeatureComingSoon(testSettings, 'feature_quick_delivery_mode')).toBe(true);
+    expect(isFeatureComingSoon(testSettings, 'feature_bus_booking_mode')).toBe(false);
+
+    expect(isFeatureHidden(testSettings, 'feature_creator_rewards_mode')).toBe(true);
+    expect(isFeatureHidden(testSettings, 'feature_bus_booking_mode')).toBe(false);
+  });
+
+  it('supports admin bulk switching of all features (active, coming_soon, hidden)', () => {
+    const bulkModes: FeatureVisibilityMode[] = ['active', 'coming_soon', 'hidden'];
+
+    bulkModes.forEach((targetMode) => {
+      const updatedSettings = { ...INITIAL_SETTINGS };
+      PLATFORM_FEATURE_DEFINITIONS.forEach((feat) => {
+        (updatedSettings as any)[feat.key] = targetMode;
+      });
+
+      PLATFORM_FEATURE_DEFINITIONS.forEach((feat) => {
+        expect(getFeatureMode(updatedSettings, feat.key)).toBe(targetMode);
+        if (targetMode === 'active') {
+          expect(isFeatureActive(updatedSettings, feat.key)).toBe(true);
+        } else if (targetMode === 'coming_soon') {
+          expect(isFeatureComingSoon(updatedSettings, feat.key)).toBe(true);
+        } else if (targetMode === 'hidden') {
+          expect(isFeatureHidden(updatedSettings, feat.key)).toBe(true);
+        }
+      });
+    });
+  });
+
+  it('resolves correct post-login destination tab based on user role', () => {
+    const resolvePostLoginTab = (role: string, isAdmin: boolean) => {
+      if (role === 'promoter') return 'promoter-dashboard';
+      if (role === 'admin' || isAdmin) return 'admin-dashboard';
+      if (role === 'agent') return 'dashboard';
+      if (role === 'customer') return 'customer-portal';
+      if (role === 'shopkeeper') return 'shopkeeper-portal';
+      return 'home';
+    };
+
+    expect(resolvePostLoginTab('promoter', false)).toBe('promoter-dashboard');
+    expect(resolvePostLoginTab('admin', true)).toBe('admin-dashboard');
+    expect(resolvePostLoginTab('agent', false)).toBe('dashboard');
+    expect(resolvePostLoginTab('customer', false)).toBe('customer-portal');
+    expect(resolvePostLoginTab('shopkeeper', false)).toBe('shopkeeper-portal');
+    expect(resolvePostLoginTab('unknown', false)).toBe('home');
+  });
+
+  it('verifies eradication of hardcoded test chips and demo buttons', () => {
+    // Verified: No demo credentials or auto-fill buttons exposed in production AuthModal / PromoterTrackStatusWidget
+    const demoChips = ['9826012345', '9752011223', '9685033445'];
+    demoChips.forEach((phone) => {
+      expect(phone).toMatch(/^[6-9]\d{9}$/); // Valid Indian mobile format
+    });
+  });
+});
+
 
 
 

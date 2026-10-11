@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ToastProvider } from './context/ToastContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider, useData } from './context/DataContext';
@@ -50,6 +50,33 @@ const AppContent: React.FC = () => {
     setAuthInitialTab(initialTab);
     setIsAuthModalOpen(true);
   };
+
+  // Auto-redirect to role-specific dashboard upon fresh login or logout
+  const previousUserIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const prevId = previousUserIdRef.current;
+    const currentId = currentUser?.id || null;
+    previousUserIdRef.current = currentId;
+
+    // Detect fresh login: transitioned from unauthenticated (null) to authenticated
+    if (!prevId && currentId && currentUser) {
+      if (role === 'promoter') {
+        setCurrentTab('promoter-dashboard');
+      } else if (role === 'admin' || isAdmin) {
+        setCurrentTab('admin-dashboard');
+      } else if (role === 'agent') {
+        setCurrentTab('dashboard');
+      } else if (role === 'customer') {
+        setCurrentTab('customer-portal');
+      } else if (role === 'shopkeeper') {
+        setCurrentTab('shopkeeper-portal');
+      }
+    } else if (prevId && !currentId) {
+      // User logged out: redirect to homepage
+      setCurrentTab('home');
+    }
+  }, [currentUser, role, isAdmin]);
 
   // Strict Role-Based Route Guard: Non-admins can NEVER view admin tabs
   useEffect(() => {

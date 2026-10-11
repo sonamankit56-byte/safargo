@@ -31,8 +31,11 @@ import {
   Bike,
   Award,
   Store,
-  Tag
+  Tag,
+  Clock
 } from 'lucide-react';
+import { ComingSoonModal } from './ComingSoonModal';
+import { getFeatureMode } from '../../lib/featureFlags';
 
 interface NavbarProps {
   currentTab: string;
@@ -42,10 +45,20 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpenAuth }) => {
   const { currentUser, role, isApprovedAgent, isAdmin, isPromoter, logout, allProfiles, pendingLoginOtps } = useAuth();
-  const { agentWalletBalance } = useData();
+  const { settings, agentWalletBalance } = useData();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [comingSoonModal, setComingSoonModal] = useState<{
+    isOpen: boolean;
+    name: string;
+    desc?: string;
+  }>({ isOpen: false, name: '' });
+
+  const qdMode = getFeatureMode(settings, 'feature_quick_delivery_mode');
+  const prmMode = getFeatureMode(settings, 'feature_promoter_program_mode');
+  const custMode = getFeatureMode(settings, 'feature_customer_portal_mode');
+  const shopMode = getFeatureMode(settings, 'feature_shopkeeper_portal_mode');
 
   const pendingKycCount = allProfiles
     ? allProfiles.filter(
@@ -99,33 +112,64 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
             </button>
 
             {/* 15-Minute Rural Quick Delivery */}
-            <button
-              onClick={() => handleTabChange(role === 'agent' ? 'agent-deliveries' : 'quick-delivery')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition ${
-                currentTab === 'quick-delivery' || currentTab === 'agent-deliveries'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-emerald-300 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <Bike className="w-4 h-4 text-emerald-400" />
-              <span>15-मिनट डिलीवरी</span>
-              <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-400 text-slate-900">
-                ⚡ MP
-              </span>
-            </button>
+            {qdMode !== 'hidden' && (
+              <button
+                onClick={() => {
+                  if (qdMode === 'coming_soon') {
+                    setComingSoonModal({
+                      isOpen: true,
+                      name: '15-मिनट क्विक डिलीवरी (Rural Blinkit)',
+                      desc: 'सिरोंज, कुरवाई, लटेरी, चंदेरी, गुना, बीना आदि कस्बों में 15 मिनट डिलीवरी सेवा बहुत जल्द शुरू हो रही है!'
+                    });
+                  } else {
+                    handleTabChange(role === 'agent' ? 'agent-deliveries' : 'quick-delivery');
+                  }
+                }}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition cursor-pointer ${
+                  currentTab === 'quick-delivery' || currentTab === 'agent-deliveries'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-emerald-300 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <Bike className="w-4 h-4 text-emerald-400" />
+                <span>15-मिनट डिलीवरी</span>
+                <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${
+                  qdMode === 'coming_soon' ? 'bg-amber-400 text-slate-950 animate-pulse' : 'bg-emerald-400 text-slate-900'
+                }`}>
+                  {qdMode === 'coming_soon' ? '⏳ जल्द' : '⚡ MP'}
+                </span>
+              </button>
+            )}
 
             {/* Promoter Partner Program */}
-            <button
-              onClick={() => handleTabChange(role === 'promoter' ? 'promoter-dashboard' : role === 'admin' ? 'admin-promoters' : 'promoter-program')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition ${
-                currentTab === 'promoter-program' || currentTab === 'promoter-dashboard' || currentTab === 'admin-promoters'
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-indigo-300 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <Award className="w-4 h-4 text-amber-400" />
-              <span>{role === 'promoter' ? 'प्रमोटर डैशबोर्ड' : role === 'admin' ? 'प्रमोटर (5 स्लॉट)' : 'प्रमोटर (₹15,000)'}</span>
-            </button>
+            {prmMode !== 'hidden' && (
+              <button
+                onClick={() => {
+                  if (prmMode === 'coming_soon' && role !== 'promoter' && role !== 'admin') {
+                    setComingSoonModal({
+                      isOpen: true,
+                      name: 'सफ़ारगो प्रमोटर पार्टनर प्रोग्राम',
+                      desc: 'सुपर एडमिन के नीचे 5 एक्सक्लूसिव पद व ₹15,000 मासिक वेतन प्रोग्राम का अगला चरण जल्द शुरू हो रहा है!'
+                    });
+                  } else {
+                    handleTabChange(role === 'promoter' ? 'promoter-dashboard' : role === 'admin' ? 'admin-promoters' : 'promoter-program');
+                  }
+                }}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition cursor-pointer ${
+                  currentTab === 'promoter-program' || currentTab === 'promoter-dashboard' || currentTab === 'admin-promoters'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-indigo-300 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <Award className="w-4 h-4 text-amber-400" />
+                <span>{role === 'promoter' ? 'प्रमोटर डैशबोर्ड' : role === 'admin' ? 'प्रमोटर (5 स्लॉट)' : 'प्रमोटर (₹15,000)'}</span>
+                {prmMode === 'coming_soon' && role !== 'promoter' && role !== 'admin' && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-amber-400 text-slate-950">
+                    ⏳ जल्द
+                  </span>
+                )}
+              </button>
+            )}
 
             {currentUser && role === 'promoter' && (
               <button
@@ -418,14 +462,31 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                   <span>लॉगिन करें</span>
                 </button>
 
-                <button
-                  onClick={() => onOpenAuth('promoter_login')}
-                  className="px-3 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-xs rounded-xl transition flex items-center gap-1.5 shadow-sm active:scale-95 border border-amber-300"
-                  title="विशेष प्रमोटिंग पार्टनर लॉगिन पोर्टल (₹15,000/माह)"
-                >
-                  <Award className="w-3.5 h-3.5 text-slate-950" />
-                  <span>🤝 प्रमोटर लॉगिन</span>
-                </button>
+                {prmMode !== 'hidden' && (
+                  <button
+                    onClick={() => {
+                      if (prmMode === 'coming_soon') {
+                        setComingSoonModal({
+                          isOpen: true,
+                          name: 'प्रमोटिंग पार्टनर प्रोग्राम (₹15,000/माह)',
+                          desc: 'प्रमोटिंग पार्टनर प्रोग्राम व लॉगिन पोर्टल बहुत जल्द लाइव किया जा रहा है!'
+                        });
+                      } else {
+                        onOpenAuth('promoter_login');
+                      }
+                    }}
+                    className="px-3 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-xs rounded-xl transition flex items-center gap-1.5 shadow-sm active:scale-95 border border-amber-300 cursor-pointer"
+                    title="विशेष प्रमोटिंग पार्टनर लॉगिन पोर्टल (₹15,000/माह)"
+                  >
+                    <Award className="w-3.5 h-3.5 text-slate-950" />
+                    <span>🤝 प्रमोटर लॉगिन</span>
+                    {prmMode === 'coming_soon' && (
+                      <span className="text-[9px] font-extrabold bg-slate-950 text-amber-300 px-1 rounded">
+                        जल्द
+                      </span>
+                    )}
+                  </button>
+                )}
 
                 <button
                   onClick={() => onOpenAuth('register')}
@@ -617,23 +678,63 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
               <Home className="w-4 h-4" /> Home
             </button>
 
-            <button
-              onClick={() => handleTabChange(role === 'agent' ? 'agent-deliveries' : 'quick-delivery')}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
-                currentTab === 'quick-delivery' || currentTab === 'agent-deliveries' ? 'bg-emerald-600 text-white' : 'text-emerald-300 hover:bg-slate-800'
-              }`}
-            >
-              <Bike className="w-4 h-4 text-emerald-400" /> 15-मिनट डिलीवरी (Rural Blinkit)
-            </button>
+            {qdMode !== 'hidden' && (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  if (qdMode === 'coming_soon') {
+                    setComingSoonModal({
+                      isOpen: true,
+                      name: '15-मिनट क्विक डिलीवरी (Rural Blinkit)',
+                      desc: '15 मिनट डिलीवरी सेवा बहुत जल्द शुरू हो रही है!'
+                    });
+                  } else {
+                    handleTabChange(role === 'agent' ? 'agent-deliveries' : 'quick-delivery');
+                  }
+                }}
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-between ${
+                  currentTab === 'quick-delivery' || currentTab === 'agent-deliveries' ? 'bg-emerald-600 text-white' : 'text-emerald-300 hover:bg-slate-800'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <Bike className="w-4 h-4 text-emerald-400" /> 15-मिनट डिलीवरी (Rural Blinkit)
+                </span>
+                {qdMode === 'coming_soon' && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-amber-400 text-slate-950">
+                    ⏳ जल्द
+                  </span>
+                )}
+              </button>
+            )}
 
-            <button
-              onClick={() => handleTabChange(role === 'promoter' ? 'promoter-dashboard' : role === 'admin' ? 'admin-promoters' : 'promoter-program')}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
-                currentTab === 'promoter-program' || currentTab === 'promoter-dashboard' || currentTab === 'admin-promoters' ? 'bg-indigo-600 text-white' : 'text-indigo-300 hover:bg-slate-800'
-              }`}
-            >
-              <Award className="w-4 h-4 text-amber-400" /> प्रमोटर पार्टनर (₹15,000/माह)
-            </button>
+            {prmMode !== 'hidden' && (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  if (prmMode === 'coming_soon' && role !== 'promoter' && role !== 'admin') {
+                    setComingSoonModal({
+                      isOpen: true,
+                      name: 'सफ़ारगो प्रमोटर पार्टनर प्रोग्राम',
+                      desc: 'प्रमोटर पार्टनर प्रोग्राम का अगला चरण जल्द शुरू हो रहा है!'
+                    });
+                  } else {
+                    handleTabChange(role === 'promoter' ? 'promoter-dashboard' : role === 'admin' ? 'admin-promoters' : 'promoter-program');
+                  }
+                }}
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-between ${
+                  currentTab === 'promoter-program' || currentTab === 'promoter-dashboard' || currentTab === 'admin-promoters' ? 'bg-indigo-600 text-white' : 'text-indigo-300 hover:bg-slate-800'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <Award className="w-4 h-4 text-amber-400" /> प्रमोटर पार्टनर (₹15,000/माह)
+                </span>
+                {prmMode === 'coming_soon' && role !== 'promoter' && role !== 'admin' && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-amber-400 text-slate-950">
+                    ⏳ जल्द
+                  </span>
+                )}
+              </button>
+            )}
 
             {!currentUser ? (
               <div className="pt-2 border-t border-slate-800 space-y-2 px-1">
@@ -647,16 +748,31 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                   <LogIn className="w-4 h-4 text-orange-400" />
                   लॉगिन करें
                 </button>
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onOpenAuth('promoter_login');
-                  }}
-                  className="w-full py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm border border-amber-300"
-                >
-                  <Award className="w-4 h-4 text-slate-950" />
-                  🤝 प्रमोटर लॉगिन (₹15,000/माह)
-                </button>
+                {prmMode !== 'hidden' && (
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      if (prmMode === 'coming_soon') {
+                        setComingSoonModal({
+                          isOpen: true,
+                          name: 'प्रमोटिंग पार्टनर प्रोग्राम',
+                          desc: 'प्रमोटर पार्टनर पोर्टल बहुत जल्द लाइव हो रहा है!'
+                        });
+                      } else {
+                        onOpenAuth('promoter_login');
+                      }
+                    }}
+                    className="w-full py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm border border-amber-300 cursor-pointer"
+                  >
+                    <Award className="w-4 h-4 text-slate-950" />
+                    <span>🤝 प्रमोटर लॉगिन (₹15,000/माह)</span>
+                    {prmMode === 'coming_soon' && (
+                      <span className="text-[9px] bg-slate-950 text-amber-300 px-1 rounded font-extrabold ml-1">
+                        जल्द
+                      </span>
+                    )}
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
@@ -951,6 +1067,15 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
       {isWalletModalOpen && (
         <WalletRechargeModal onClose={() => setIsWalletModalOpen(false)} />
       )}
+
+      {/* Coming Soon Notice Modal */}
+      <ComingSoonModal
+        isOpen={comingSoonModal.isOpen}
+        onClose={() => setComingSoonModal({ isOpen: false, name: '' })}
+        featureName={comingSoonModal.name}
+        featureDescription={comingSoonModal.desc}
+        supportWhatsapp={settings?.support_whatsapp}
+      />
     </header>
   );
 };

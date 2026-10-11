@@ -1235,21 +1235,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 />
               </div>
 
-              {/* Demo 1-Click Autofill Chip */}
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 flex items-center justify-between gap-2 text-xs">
-                <span className="text-[11px] text-amber-900 font-medium">
-                  डेमो प्रमोटर (धर्मेंद्र यादव - स्लॉट #1):
+              {/* Official Secure Notice */}
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 flex items-center gap-2 text-xs text-amber-950">
+                <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
+                <span className="text-[11px] font-medium">
+                  अधिकृत प्रमोटर अपने पंजीकृत मोबाइल नंबर, प्रमोटर कोड (उदा. PRM-MP-01) या यूजर आईडी और पासवर्ड से लॉगिन करें।
                 </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPromoterIdentifier('9826012345');
-                    setPromoterPassword('Promoter@123');
-                  }}
-                  className="px-2.5 py-1 bg-amber-400 hover:bg-amber-500 text-slate-950 font-black rounded-lg text-[10px] transition cursor-pointer shrink-0"
-                >
-                  ⚡ ऑटो भरें (9826012345)
-                </button>
               </div>
 
               <button

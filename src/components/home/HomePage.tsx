@@ -38,6 +38,8 @@ import { PrintTicketModal } from '../common/PrintTicketModal';
 import { SafarGoLogo } from '../common/SafarGoLogo';
 import { PromotionClaimModal } from '../promotions/PromotionClaimModal';
 import { PromoterTrackStatusWidget } from '../promoter/PromoterTrackStatusWidget';
+import { ComingSoonModal } from '../common/ComingSoonModal';
+import { getFeatureMode } from '../../lib/featureFlags';
 import { MP_NETWORK_CITIES, POPULAR_MP_ROUTES } from '../../lib/mockData';
 
 interface HomePageProps {
@@ -49,6 +51,18 @@ interface HomePageProps {
 export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, onOpenPromoterApply }) => {
   const { currentUser, role } = useAuth();
   const { settings, busTrips, bookings } = useData();
+
+  const [comingSoonModal, setComingSoonModal] = useState<{
+    isOpen: boolean;
+    name: string;
+    desc?: string;
+  }>({ isOpen: false, name: '' });
+
+  const prmMode = getFeatureMode(settings, 'feature_promoter_program_mode');
+  const qdMode = getFeatureMode(settings, 'feature_quick_delivery_mode');
+  const viralMode = getFeatureMode(settings, 'feature_creator_rewards_mode');
+  const busMode = getFeatureMode(settings, 'feature_bus_booking_mode');
+  const trackMode = getFeatureMode(settings, 'feature_live_tracking_mode');
 
   // Widget Mode: Routes vs PNR Tracker
   const [widgetTab, setWidgetTab] = useState<'routes' | 'track_pnr'>('routes');
@@ -298,51 +312,82 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
       {/* ======================================================== */}
       {/* 2. LIVE ROUTE SEARCH & FARE CHECKER WIDGET               */}
       {/* ======================================================== */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 sm:-mt-16 relative z-20">
-        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xl p-6 sm:p-8 space-y-6">
-          
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200">
-                Interactive Bus Route Finder
-              </span>
-              <h2 className="text-lg sm:text-2xl font-black text-slate-900 mt-1">
-                लोकप्रिय ग्रामीण रूट एवं अनुमानित बस किराया चेक करें
-              </h2>
-            </div>
+      {(busMode !== 'hidden' || trackMode !== 'hidden') && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 sm:-mt-16 relative z-20">
+          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xl p-6 sm:p-8 space-y-6">
             
-            <p className="text-xs text-slate-500 max-w-xs">
-              मध्य प्रदेश व कनेक्टेड रूट: इंदौर, भोपाल, पुणे, जयपुर, सिरोंज, गुना, अशोक नगर, चंदेरी, झांसी आदि की बस सीटें खोजें
-            </p>
-          </div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200">
+                  Interactive Bus Route Finder
+                </span>
+                <h2 className="text-lg sm:text-2xl font-black text-slate-900 mt-1">
+                  लोकप्रिय ग्रामीण रूट एवं अनुमानित बस किराया चेक करें
+                </h2>
+              </div>
+              
+              <p className="text-xs text-slate-500 max-w-xs">
+                मध्य प्रदेश व कनेक्टेड रूट: इंदौर, भोपाल, पुणे, जयपुर, सिरोंज, गुना, अशोक नगर, चंदेरी, झांसी आदि की बस सीटें खोजें
+              </p>
+            </div>
 
-          {/* Widget Sub-Tabs: Route Finder vs PNR Status */}
-          <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-2xl border border-slate-200 self-start text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => setWidgetTab('routes')}
-              className={`px-4 py-2 rounded-xl transition flex items-center gap-2 ${
-                widgetTab === 'routes'
-                  ? 'bg-white text-orange-600 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Bus className="w-3.5 h-3.5" />
-              1. बस रूट व किराया खोजें
-            </button>
-            <button
-              type="button"
-              onClick={() => setWidgetTab('track_pnr')}
-              className={`px-4 py-2 rounded-xl transition flex items-center gap-2 ${
-                widgetTab === 'track_pnr'
-                  ? 'bg-white text-orange-600 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Search className="w-3.5 h-3.5" />
-              2. यात्री PNR / टिकट स्टेटस चेक करें
-            </button>
-          </div>
+            {/* Widget Sub-Tabs: Route Finder vs PNR Status */}
+            <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-2xl border border-slate-200 self-start text-xs font-bold">
+              {busMode !== 'hidden' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (busMode === 'coming_soon') {
+                      setComingSoonModal({
+                        isOpen: true,
+                        name: 'बस रूट व किराया खोज (Bus Booking)',
+                        desc: 'विस्तृत बस रूट, समय सारिणी और सीट उपलब्धता सेवा जल्द ही शुरू की जा रही है।'
+                      });
+                    } else {
+                      setWidgetTab('routes');
+                    }
+                  }}
+                  className={`px-4 py-2 rounded-xl transition flex items-center gap-2 cursor-pointer ${
+                    widgetTab === 'routes'
+                      ? 'bg-white text-orange-600 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Bus className="w-3.5 h-3.5" />
+                  <span>1. बस रूट व किराया खोजें</span>
+                  {busMode === 'coming_soon' && (
+                    <span className="text-[9px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.5 rounded-full">जल्द आ रहा है</span>
+                  )}
+                </button>
+              )}
+              {trackMode !== 'hidden' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (trackMode === 'coming_soon') {
+                      setComingSoonModal({
+                        isOpen: true,
+                        name: 'यात्री PNR / लाइव ट्रैकिंग (Live Tracking)',
+                        desc: 'लाइव बस लोकेशन और PNR ट्रैकिंग सिस्टम बहुत जल्द शुरू हो रहा है।'
+                      });
+                    } else {
+                      setWidgetTab('track_pnr');
+                    }
+                  }}
+                  className={`px-4 py-2 rounded-xl transition flex items-center gap-2 cursor-pointer ${
+                    widgetTab === 'track_pnr'
+                      ? 'bg-white text-orange-600 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  <span>2. यात्री PNR / टिकट स्टेटस चेक करें</span>
+                  {trackMode === 'coming_soon' && (
+                    <span className="text-[9px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.5 rounded-full">जल्द आ रहा है</span>
+                  )}
+                </button>
+              )}
+            </div>
 
           {widgetTab === 'routes' ? (
             <>
@@ -716,271 +761,388 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
 
         </div>
       </section>
+      )}
 
       {/* ======================================================== */}
       {/* 2.4 SAFARGO PROMOTER PARTNER & 15-MINUTE QUICK DELIVERY  */}
       {/* ======================================================== */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          {/* Card 1: Promoter Partner Program (Only 5 Candidates, ₹15,000/Month, 100% Refund) */}
-          <div className="bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white border border-indigo-800/40 shadow-xl flex flex-col justify-between space-y-6 relative overflow-hidden">
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-400 text-slate-950 flex items-center gap-1.5 shadow-sm">
-                  <Award className="w-3.5 h-3.5" />
-                  केवल 5 पद (5 Slots Only)
-                </span>
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-emerald-300 border border-white/10">
-                  फिक्स्ड वेतन: ₹15,000 / माह
-                </span>
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  100% फीस रिफंड (₹648 वापस)
-                </span>
-              </div>
+      {(prmMode !== 'hidden' || qdMode !== 'hidden') && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* Card 1: Promoter Partner Program (Only 5 Candidates, ₹15,000/Month, 100% Refund) */}
+            {prmMode !== 'hidden' && (
+              <div className="bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white border border-indigo-800/40 shadow-xl flex flex-col justify-between space-y-6 relative overflow-hidden">
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-400 text-slate-950 flex items-center gap-1.5 shadow-sm">
+                      <Award className="w-3.5 h-3.5" />
+                      केवल 5 पद (5 Slots Only)
+                    </span>
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-emerald-300 border border-white/10">
+                      फिक्स्ड वेतन: ₹15,000 / माह
+                    </span>
+                    {prmMode === 'coming_soon' ? (
+                      <span className="px-3 py-1 rounded-full text-xs font-black bg-amber-400 text-slate-950 animate-pulse">
+                        ⏳ जल्द आ रहा है (Under Launch)
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        100% फीस रिफंड (₹648 वापस)
+                      </span>
+                    )}
+                  </div>
 
-              <h2 className="text-xl sm:text-2xl font-black text-white">
-                सफ़ारगो प्रमोटर पार्टनर प्रोग्राम
-              </h2>
+                  <h2 className="text-xl sm:text-2xl font-black text-white">
+                    सफ़ारगो प्रमोटर पार्टनर प्रोग्राम
+                  </h2>
 
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                सुपर एडमिन के नीचे कार्य करें! 500 SafarGo एजेंट जोड़ें (शर्त: प्रति एजेंट <strong>न्यूनतम 3 कन्फर्म बस बुकिंग अनिवार्य</strong>), लोकल दुकानों को मंथली सब्सक्रिप्शन पैकेज दें तथा अपने नेटवर्क के एजेंटों का रजिस्ट्रेशन व KYC अप्रूव करें।
-              </p>
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    सुपर एडमिन के नीचे कार्य करें! 500 SafarGo एजेंट जोड़ें (शर्त: प्रति एजेंट <strong>न्यूनतम 3 कन्फर्म बस बुकिंग अनिवार्य</strong>), लोकल दुकानों को मंथली सब्सक्रिप्शन पैकेज दें तथा अपने नेटवर्क के एजेंटों का रजिस्ट्रेशन व KYC अप्रूव करें।
+                  </p>
 
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
-                  <div className="text-slate-400 text-[11px]">आवेदन व ऑनबोर्डिंग</div>
-                  <div className="font-bold text-amber-400">₹149 + ₹499</div>
-                  <div className="text-[10px] text-emerald-300">लक्ष्य पर 100% रिफंड</div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                      <div className="text-slate-400 text-[11px]">आवेदन व ऑनबोर्डिंग</div>
+                      <div className="font-bold text-amber-400">₹149 + ₹499</div>
+                      <div className="text-[10px] text-emerald-300">लक्ष्य पर 100% रिफंड</div>
+                    </div>
+                    <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                      <div className="text-slate-400 text-[11px]">एजेंट मैनेजमेंट</div>
+                      <div className="font-bold text-white">KYC व अप्रूवल डेस्क</div>
+                      <div className="text-[10px] text-slate-300">दैनिक कॉलिंग ऑडिट</div>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
-                  <div className="text-slate-400 text-[11px]">एजेंट मैनेजमेंट</div>
-                  <div className="font-bold text-white">KYC व अप्रूवल डेस्क</div>
-                  <div className="text-[10px] text-slate-300">दैनिक कॉलिंग ऑडिट</div>
+
+                <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+                  {currentUser && role === 'promoter' ? (
+                    <button
+                      onClick={() => onNavigateTab('promoter-dashboard')}
+                      className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                      <span>आप अधिकृत प्रमोटर हैं — माई डैशबोर्ड खोलें (Open Dashboard)</span>
+                    </button>
+                  ) : prmMode === 'coming_soon' ? (
+                    <button
+                      onClick={() =>
+                        setComingSoonModal({
+                          isOpen: true,
+                          name: 'सफ़ारगो प्रमोटर पार्टनर प्रोग्राम',
+                          desc: 'सुपर एडमिन के नीचे 5 एक्सक्लूसिव पद व ₹15,000 मासिक वेतन का यह प्रोग्राम बहुत जल्द शुरू हो रहा है!'
+                        })
+                      }
+                      className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Clock className="w-4 h-4" />
+                      <span>⏳ प्रमोटर प्रोग्राम — जल्द आ रहा है (Notify Me)</span>
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => (onOpenPromoterApply ? onOpenPromoterApply() : onNavigateTab('promoter-modal'))}
+                        className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <Award className="w-4 h-4" />
+                        <span>प्रमोटर पद हेतु आवेदन करें (Apply ₹149 UTR)</span>
+                      </button>
+                      <button
+                        onClick={() => onOpenAuth('promoter_login')}
+                        className="px-5 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm border border-white/20 transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                      >
+                        <span>🤝 प्रमोटर लॉगिन</span>
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
-            </div>
+            )}
 
-            <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
-              <button
-                onClick={() => (onOpenPromoterApply ? onOpenPromoterApply() : onNavigateTab('promoter-modal'))}
-                className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Award className="w-4 h-4" />
-                <span>प्रमोटर पद हेतु आवेदन करें (Apply ₹149 UTR)</span>
-              </button>
-              <button
-                onClick={() => onOpenAuth('promoter_login')}
-                className="px-5 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm border border-white/20 transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
-              >
-                <span>🤝 प्रमोटर लॉगिन</span>
-              </button>
-            </div>
+            {/* Card 2: 15-Minute Rural Quick Delivery (Blinkit Model for MP Gap Towns) */}
+            {qdMode !== 'hidden' && (
+              <div className="bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 rounded-3xl p-6 sm:p-8 text-white border border-emerald-800/40 shadow-xl flex flex-col justify-between space-y-6 relative overflow-hidden">
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-400 text-slate-950 flex items-center gap-1.5 shadow-sm">
+                      <Bike className="w-3.5 h-3.5" />
+                      ब्लिंकिट का ग्रामीण विकल्प
+                    </span>
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-emerald-300 border border-white/10">
+                      15 मिनट डिलीवरी गारंटी
+                    </span>
+                    {qdMode === 'coming_soon' ? (
+                      <span className="px-3 py-1 rounded-full text-xs font-black bg-amber-400 text-slate-950 animate-pulse">
+                        ⏳ जल्द आ रहा है (Under Launch)
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        शुरुआत मात्र ₹25
+                      </span>
+                    )}
+                  </div>
+
+                  <h2 className="text-xl sm:text-2xl font-black text-white">
+                    सफ़ारगो 15-मिनट क्विक डिलीवरी
+                  </h2>
+
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    सिरोंज, कुरवाई, लटेरी, चंदेरी, गुना, बीना, विदिशा - जहाँ ब्लिंकिट नहीं है, वहाँ सफ़ारगो एजेंट 5 मिनट में नजदीकी दुकान से सामान व बिल की फोटो खींचकर भेजेंगे, पुष्टि होने पर 15 मिनट में घर पहुँचाएंगे!
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                      <div className="text-slate-400 text-[11px]">0 से 2 KM</div>
+                      <div className="font-bold text-emerald-400">₹25 कुल शुल्क</div>
+                      <div className="text-[10px] text-slate-300">₹18 एजेंट + ₹7 सफ़ारगो</div>
+                    </div>
+                    <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                      <div className="text-slate-400 text-[11px]">2 से 4 KM</div>
+                      <div className="font-bold text-emerald-400">₹45 कुल शुल्क</div>
+                      <div className="text-[10px] text-slate-300">₹34 एजेंट + ₹11 सफ़ारगो</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    onClick={() => {
+                      if (qdMode === 'coming_soon') {
+                        setComingSoonModal({
+                          isOpen: true,
+                          name: '15-मिनट क्विक डिलीवरी (Rural Blinkit)',
+                          desc: 'सिरोंज, कुरवाई, लटेरी, चंदेरी, गुना, बीना आदि कस्बों में 15 मिनट डिलीवरी सेवा बहुत जल्द शुरू हो रही है!'
+                        });
+                      } else {
+                        onNavigateTab('quick-delivery');
+                      }
+                    }}
+                    className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-700 hover:from-emerald-600 hover:to-teal-800 text-white font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Bike className="w-4 h-4" />
+                    <span>
+                      {qdMode === 'coming_soon'
+                        ? '⏳ 15-मिनट डिलीवरी — जल्द आ रही है (Notify Me)'
+                        : '15-मिनट डिलीवरी ऑर्डर हब खोलें (Order Now)'}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
+
           </div>
 
-          {/* Card 2: 15-Minute Rural Quick Delivery (Blinkit Model for MP Gap Towns) */}
-          <div className="bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 rounded-3xl p-6 sm:p-8 text-white border border-emerald-800/40 shadow-xl flex flex-col justify-between space-y-6 relative overflow-hidden">
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-400 text-slate-950 flex items-center gap-1.5 shadow-sm">
-                  <Bike className="w-3.5 h-3.5" />
-                  ब्लिंकिट का ग्रामीण विकल्प
-                </span>
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-emerald-300 border border-white/10">
-                  15 मिनट डिलीवरी गारंटी
-                </span>
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                  शुरुआत मात्र ₹25
-                </span>
-              </div>
-
-              <h2 className="text-xl sm:text-2xl font-black text-white">
-                सफ़ारगो 15-मिनट क्विक डिलीवरी
-              </h2>
-
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                सिरोंज, कुरवाई, लटेरी, चंदेरी, गुना, बीना, विदिशा - जहाँ ब्लिंकिट नहीं है, वहाँ सफ़ारगो एजेंट 5 मिनट में नजदीकी दुकान से सामान व बिल की फोटो खींचकर भेजेंगे, पुष्टि होने पर 15 मिनट में घर पहुँचाएंगे!
-              </p>
-
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
-                  <div className="text-slate-400 text-[11px]">0 से 2 KM</div>
-                  <div className="font-bold text-emerald-400">₹25 कुल शुल्क</div>
-                  <div className="text-[10px] text-slate-300">₹18 एजेंट + ₹7 सफ़ारगो</div>
-                </div>
-                <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
-                  <div className="text-slate-400 text-[11px]">2 से 4 KM</div>
-                  <div className="font-bold text-emerald-400">₹45 कुल शुल्क</div>
-                  <div className="text-[10px] text-slate-300">₹34 एजेंट + ₹11 सफ़ारगो</div>
-                </div>
-              </div>
+          {/* Promoting Partner Application Live Tracking System on Homepage */}
+          {prmMode !== 'hidden' && (
+            <div className="pt-4" id="promoter-track-section">
+              <PromoterTrackStatusWidget
+                onOpenApplyModal={() => (onOpenPromoterApply ? onOpenPromoterApply() : onNavigateTab('promoter-modal'))}
+                onOpenPromoterLogin={() => onOpenAuth('promoter_login')}
+                onNavigateTab={onNavigateTab}
+              />
             </div>
-
-            <div className="pt-2">
-              <button
-                onClick={() => onNavigateTab('quick-delivery')}
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-700 hover:from-emerald-600 hover:to-teal-800 text-white font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2"
-              >
-                <Bike className="w-4 h-4" />
-                <span>15-मिनट डिलीवरी ऑर्डर हब खोलें (Order Now)</span>
-              </button>
-            </div>
-          </div>
-
-        </div>
-
-        {/* Promoting Partner Application Live Tracking System on Homepage */}
-        <div className="pt-4" id="promoter-track-section">
-          <PromoterTrackStatusWidget
-            onOpenApplyModal={() => (onOpenPromoterApply ? onOpenPromoterApply() : onNavigateTab('promoter-modal'))}
-            onOpenPromoterLogin={() => onOpenAuth('promoter_login')}
-            onNavigateTab={onNavigateTab}
-          />
-        </div>
-      </section>
+          )}
+        </section>
+      )}
 
       {/* ======================================================== */}
       {/* 2.5 VIRAL CREATOR & REELS PROMOTION SECTION (नकद रिवॉर्ड) */}
       {/* ======================================================== */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 rounded-3xl p-6 sm:p-10 text-white border border-purple-800/50 shadow-2xl relative overflow-hidden">
-          
-          {/* Ambient Glows */}
-          <div className="absolute top-0 right-1/4 w-80 h-80 bg-pink-500/15 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-red-500/15 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="relative z-10 space-y-8">
+      {viralMode !== 'hidden' && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 rounded-3xl p-6 sm:p-10 text-white border border-purple-800/50 shadow-2xl relative overflow-hidden">
             
-            {/* Header Badge & Title */}
-            <div className="text-center max-w-3xl mx-auto space-y-3">
-              <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-gradient-to-r from-pink-500/20 to-red-500/20 border border-pink-500/30 text-xs font-black uppercase tracking-wider text-pink-300">
-                <Sparkles className="w-4 h-4 text-pink-400" />
-                <span>🚀 SafarGo वायरल क्रिएटर व प्रमोशन धमाका</span>
-                <span className="text-slate-500">|</span>
-                <span className="text-emerald-400">24 घंटे में पेमेंट</span>
-              </div>
+            {/* Ambient Glows */}
+            <div className="absolute top-0 right-1/4 w-80 h-80 bg-pink-500/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-red-500/15 rounded-full blur-3xl pointer-events-none" />
 
-              <h2 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight">
-                सोशल मीडिया पर वीडियो बनाएं, <br className="hidden sm:inline" />
-                <span className="bg-gradient-to-r from-pink-400 via-purple-300 to-amber-300 bg-clip-text text-transparent">
-                  व्यूज लाएं और पाएं सीधा नकद बोनस!
-                </span>
-              </h2>
-
-              <p className="text-xs sm:text-base text-slate-300 leading-relaxed font-normal max-w-2xl mx-auto">
-                Instagram Reel पर 1 Million Views पर <strong className="text-pink-300">₹{settings.promo_instagram_reward || 500}</strong> और YouTube Video पर 10,000 Views पर <strong className="text-red-300">₹{settings.promo_youtube_reward || 100}</strong>! 
-                जेनुइन और यूनिक व्यूज होने पर क्लेम सबमिट करें — 24 घंटे में गारंटीड वेरिफिकेशन और आपके वॉलेट/बैंक में भुगतान!
-              </p>
-            </div>
-
-            {/* Two Main Promotion Feature Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="relative z-10 space-y-8">
               
-              {/* Instagram Card */}
-              <div className="bg-slate-900/90 rounded-3xl p-6 sm:p-8 border border-pink-500/30 shadow-xl backdrop-blur-md flex flex-col justify-between space-y-6 hover:border-pink-400 transition-all group">
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-500 via-purple-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-pink-500/25">
-                      <Instagram className="w-7 h-7" />
-                    </div>
-
-                    <div className="text-right">
-                      <span className="inline-block px-3 py-1 rounded-full bg-pink-500/20 text-pink-300 text-xs font-black uppercase tracking-wider border border-pink-500/30">
-                        1 Million Views Target
-                      </span>
-                      <div className="text-2xl sm:text-3xl font-black text-white mt-1">
-                        ₹{settings.promo_instagram_reward || 500} <span className="text-xs font-bold text-pink-400">नकद बोनस</span>
-                      </div>
+              {/* Coming Soon Notice if viralMode is coming_soon */}
+              {viralMode === 'coming_soon' && (
+                <div className="p-4 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 backdrop-blur-xs">
+                  <div className="flex items-center gap-3">
+                    <span className="p-2 bg-amber-400 text-slate-950 rounded-xl font-black text-sm">⏳</span>
+                    <div>
+                      <h4 className="font-black text-amber-300 text-sm">सोशल मीडिया क्रिएटर रिवॉर्ड — जल्द आ रहा है (Under Launch)</h4>
+                      <p className="text-xs text-amber-100/80">यह प्रोग्राम अभी परीक्षण में है। जल्द ही आप Reel और YouTube Video क्लेम सबमिट कर सकेंगे।</p>
                     </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setComingSoonModal({
+                        isOpen: true,
+                        name: 'SafarGo वायरल क्रिएटर व प्रमोशन धमाका',
+                        desc: 'Instagram Reel व YouTube वीडियो प्रमोशन प्रोग्राम बहुत जल्द शुरू हो रहा है! लॉन्च होते ही नकद इनाम पाने के लिए WhatsApp नोटिफिकेशन ऑन करें।'
+                      })
+                    }
+                    className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shrink-0 cursor-pointer"
+                  >
+                    Notify Me
+                  </button>
+                </div>
+              )}
 
-                  <div>
-                    <h3 className="text-lg font-black text-white">
-                      📸 Instagram Reel वायरल रिवॉर्ड
-                    </h3>
-                    <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                      SafarGo बस बुकिंग सेवा या ऐप पर एक रियल व आकर्षक Reel पोस्ट करें। जब आपकी Reel पर <strong>10 लाख (1 Million) वास्तविक व यूनिक व्यूज</strong> आ जाएं, तो लिंक सबमिट करें।
-                    </p>
-                  </div>
-
-                  <div className="space-y-1.5 text-xs text-slate-300 bg-white/5 p-3.5 rounded-2xl border border-white/10">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>टारगेट: 10,00,000 (1M) Genuine & Unique Views</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-pink-400 shrink-0" />
-                      <span>SLA गारंटी: सबमिट के 24 घंटे में वेरिफिकेशन व पेमेंट</span>
-                    </div>
-                  </div>
+              {/* Header Badge & Title */}
+              <div className="text-center max-w-3xl mx-auto space-y-3">
+                <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-gradient-to-r from-pink-500/20 to-red-500/20 border border-pink-500/30 text-xs font-black uppercase tracking-wider text-pink-300">
+                  <Sparkles className="w-4 h-4 text-pink-400" />
+                  <span>🚀 SafarGo वायरल क्रिएटर व प्रमोशन धमाका</span>
+                  <span className="text-slate-500">|</span>
+                  <span className="text-emerald-400">24 घंटे में पेमेंट</span>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => handleOpenClaimModal('instagram')}
-                  className="w-full py-3.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 hover:from-pink-500 hover:to-purple-500 text-white font-black text-xs rounded-2xl shadow-lg transition flex items-center justify-center gap-2 active:scale-98"
-                >
-                  <Gift className="w-4 h-4" />
-                  <span>Instagram क्लेम सबमिट करें (₹{settings.promo_instagram_reward || 500})</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+                <h2 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight">
+                  सोशल मीडिया पर वीडियो बनाएं, <br className="hidden sm:inline" />
+                  <span className="bg-gradient-to-r from-pink-400 via-purple-300 to-amber-300 bg-clip-text text-transparent">
+                    व्यूज लाएं और पाएं सीधा नकद बोनस!
+                  </span>
+                </h2>
+
+                <p className="text-xs sm:text-base text-slate-300 leading-relaxed font-normal max-w-2xl mx-auto">
+                  Instagram Reel पर 1 Million Views पर <strong className="text-pink-300">₹{settings.promo_instagram_reward || 500}</strong> और YouTube Video पर 10,000 Views पर <strong className="text-red-300">₹{settings.promo_youtube_reward || 100}</strong>! 
+                  जेनुइन और यूनिक व्यूज होने पर क्लेम सबमिट करें — 24 घंटे में गारंटीड वेरिफिकेशन और आपके वॉलेट/बैंक में भुगतान!
+                </p>
               </div>
 
-              {/* YouTube Card */}
-              <div className="bg-slate-900/90 rounded-3xl p-6 sm:p-8 border border-red-500/30 shadow-xl backdrop-blur-md flex flex-col justify-between space-y-6 hover:border-red-400 transition-all group">
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 text-white flex items-center justify-center shadow-lg shadow-red-500/25">
-                      <Youtube className="w-7 h-7" />
+              {/* Two Main Promotion Feature Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Instagram Card */}
+                <div className="bg-slate-900/90 rounded-3xl p-6 sm:p-8 border border-pink-500/30 shadow-xl backdrop-blur-md flex flex-col justify-between space-y-6 hover:border-pink-400 transition-all group">
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-500 via-purple-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-pink-500/25">
+                        <Instagram className="w-7 h-7" />
+                      </div>
+
+                      <div className="text-right">
+                        <span className="inline-block px-3 py-1 rounded-full bg-pink-500/20 text-pink-300 text-xs font-black uppercase tracking-wider border border-pink-500/30">
+                          1 Million Views Target
+                        </span>
+                        <div className="text-2xl sm:text-3xl font-black text-white mt-1">
+                          ₹{settings.promo_instagram_reward || 500} <span className="text-xs font-bold text-pink-400">नकद बोनस</span>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="text-right">
-                      <span className="inline-block px-3 py-1 rounded-full bg-red-500/20 text-red-300 text-xs font-black uppercase tracking-wider border border-red-500/30">
-                        10,000 Views Target
-                      </span>
-                      <div className="text-2xl sm:text-3xl font-black text-white mt-1">
-                        ₹{settings.promo_youtube_reward || 100} <span className="text-xs font-bold text-red-400">नकद बोनस</span>
+                    <div>
+                      <h3 className="text-lg font-black text-white">
+                        📸 Instagram Reel वायरल रिवॉर्ड
+                      </h3>
+                      <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                        SafarGo बस बुकिंग सेवा या ऐप पर एक रियल व आकर्षक Reel पोस्ट करें। जब आपकी Reel पर <strong>10 लाख (1 Million) वास्तविक व यूनिक व्यूज</strong> आ जाएं, तो लिंक सबमिट करें।
+                      </p>
+                    </div>
+
+                    <div className="space-y-1.5 text-xs text-slate-300 bg-white/5 p-3.5 rounded-2xl border border-white/10">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>टारगेट: 10,00,000 (1M) Genuine & Unique Views</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-pink-400 shrink-0" />
+                        <span>SLA गारंटी: सबमिट के 24 घंटे में वेरिफिकेशन व पेमेंट</span>
                       </div>
                     </div>
                   </div>
 
-                  <div>
-                    <h3 className="text-lg font-black text-white">
-                      ▶️ YouTube Video / Shorts रिवॉर्ड
-                    </h3>
-                    <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                      SafarGo बस बुकिंग कैसे करें या अपनी यात्रा अनुभव पर YouTube Video या Short बनाएं। <strong>10,000 (10K) वास्तविक व्यूज</strong> पूरे होने पर तुरंत लिंक सबमिट करें।
-                    </p>
-                  </div>
-
-                  <div className="space-y-1.5 text-xs text-slate-300 bg-white/5 p-3.5 rounded-2xl border border-white/10">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>टारगेट: 10,00,0 (10K) Genuine Views (Video/Shorts)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-red-400 shrink-0" />
-                      <span>SLA गारंटी: सबमिट के 24 घंटे में वेरिफिकेशन व पेमेंट</span>
-                    </div>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (viralMode === 'coming_soon') {
+                        setComingSoonModal({
+                          isOpen: true,
+                          name: 'Instagram Reel वायरल रिवॉर्ड',
+                          desc: 'Instagram Reel क्लेम प्रोग्राम बहुत जल्द शुरू हो रहा है! 1 Million Views पर ₹500 पाने के लिए तैयार रहें।'
+                        });
+                      } else {
+                        handleOpenClaimModal('instagram');
+                      }
+                    }}
+                    className="w-full py-3.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 hover:from-pink-500 hover:to-purple-500 text-white font-black text-xs rounded-2xl shadow-lg transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
+                  >
+                    <Gift className="w-4 h-4" />
+                    <span>
+                      {viralMode === 'coming_soon'
+                        ? '⏳ Instagram क्लेम — जल्द आ रहा है'
+                        : `Instagram क्लेम सबमिट करें (₹${settings.promo_instagram_reward || 500})`}
+                    </span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => handleOpenClaimModal('youtube')}
-                  className="w-full py-3.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-xs rounded-2xl shadow-lg transition flex items-center justify-center gap-2 active:scale-98"
-                >
-                  <Gift className="w-4 h-4" />
-                  <span>YouTube क्लेम सबमिट करें (₹{settings.promo_youtube_reward || 100})</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+                {/* YouTube Card */}
+                <div className="bg-slate-900/90 rounded-3xl p-6 sm:p-8 border border-red-500/30 shadow-xl backdrop-blur-md flex flex-col justify-between space-y-6 hover:border-red-400 transition-all group">
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 text-white flex items-center justify-center shadow-lg shadow-red-500/25">
+                        <Youtube className="w-7 h-7" />
+                      </div>
+
+                      <div className="text-right">
+                        <span className="inline-block px-3 py-1 rounded-full bg-red-500/20 text-red-300 text-xs font-black uppercase tracking-wider border border-red-500/30">
+                          10,000 Views Target
+                        </span>
+                        <div className="text-2xl sm:text-3xl font-black text-white mt-1">
+                          ₹{settings.promo_youtube_reward || 100} <span className="text-xs font-bold text-red-400">नकद बोनस</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-black text-white">
+                        ▶️ YouTube Video / Shorts रिवॉर्ड
+                      </h3>
+                      <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                        SafarGo बस बुकिंग कैसे करें या अपनी यात्रा अनुभव पर YouTube Video या Short बनाएं। <strong>10,00,0 (10K) वास्तविक व्यूज</strong> पूरे होने पर तुरंत लिंक सबमिट करें।
+                      </p>
+                    </div>
+
+                    <div className="space-y-1.5 text-xs text-slate-300 bg-white/5 p-3.5 rounded-2xl border border-white/10">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>टारगेट: 10,000 (10K) Genuine Views (Video/Shorts)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-red-400 shrink-0" />
+                        <span>SLA गारंटी: सबमिट के 24 घंटे में वेरिफिकेशन व पेमेंट</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (viralMode === 'coming_soon') {
+                        setComingSoonModal({
+                          isOpen: true,
+                          name: 'YouTube Video / Shorts रिवॉर्ड',
+                          desc: 'YouTube Video क्लेम प्रोग्राम बहुत जल्द शुरू हो रहा है! 10K Views पर ₹100 पाने के लिए तैयार रहें।'
+                        });
+                      } else {
+                        handleOpenClaimModal('youtube');
+                      }
+                    }}
+                    className="w-full py-3.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-xs rounded-2xl shadow-lg transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
+                  >
+                    <Gift className="w-4 h-4" />
+                    <span>
+                      {viralMode === 'coming_soon'
+                        ? '⏳ YouTube क्लेम — जल्द आ रहा है'
+                        : `YouTube क्लेम सबमिट करें (₹${settings.promo_youtube_reward || 100})`}
+                    </span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+
               </div>
 
             </div>
-
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ======================================================== */}
       {/* 3. AGENT INSPIRATION STORIES IN HINDI (सफलता की कहानियाँ) */}
@@ -1418,6 +1580,14 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
         isOpen={isClaimModalOpen}
         onClose={() => setIsClaimModalOpen(false)}
         defaultPlatform={claimModalPlatform}
+      />
+
+      {/* Platform Feature Coming Soon Modal */}
+      <ComingSoonModal
+        isOpen={comingSoonModal.isOpen}
+        featureName={comingSoonModal.name}
+        featureDescription={comingSoonModal.desc}
+        onClose={() => setComingSoonModal({ isOpen: false, name: '' })}
       />
 
     </div>

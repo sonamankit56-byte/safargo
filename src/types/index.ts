@@ -285,6 +285,8 @@ export interface AdminAnnouncement {
   updated_at: string;
 }
 
+export type FeatureVisibilityMode = 'active' | 'coming_soon' | 'hidden';
+
 export interface AdminSettings {
   commission_rate: number;
   monthly_target: number;
@@ -310,7 +312,24 @@ export interface AdminSettings {
   // Announcement broadcast
   announcement: AdminAnnouncement;
 
-  // Built-in feature toggles
+  // Master Platform Feature Visibility Controls ('active' | 'coming_soon' | 'hidden')
+  feature_bus_booking_mode?: FeatureVisibilityMode;
+  feature_quick_delivery_mode?: FeatureVisibilityMode;
+  feature_promoter_program_mode?: FeatureVisibilityMode;
+  feature_boarding_sathi_mode?: FeatureVisibilityMode;
+  feature_shopkeeper_portal_mode?: FeatureVisibilityMode;
+  feature_customer_portal_mode?: FeatureVisibilityMode;
+  feature_creator_rewards_mode?: FeatureVisibilityMode;
+  feature_promo_codes_mode?: FeatureVisibilityMode;
+  feature_refer_earn_mode?: FeatureVisibilityMode;
+  feature_live_tracking_mode?: FeatureVisibilityMode;
+  feature_tatkal_service_mode?: FeatureVisibilityMode;
+  feature_parcel_service_mode?: FeatureVisibilityMode;
+  feature_train_enquiry_mode?: FeatureVisibilityMode;
+  feature_hotel_service_mode?: FeatureVisibilityMode;
+  feature_print_service_mode?: FeatureVisibilityMode;
+
+  // Built-in feature toggles (legacy boolean compatibility)
   feature_refer_earn: boolean;
   feature_tatkal_service: boolean;
   feature_parcel_service: boolean;
