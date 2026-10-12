@@ -674,7 +674,7 @@ export const QuickDeliveryHub: React.FC<QuickDeliveryHubProps> = ({ onOpenAuth }
                     </div>
                   )}
 
-                  {/* Dedicated Flipkart Tracker CTA */}
+                  {/* Dedicated SafarGo Order Tracker CTA */}
                   <button
                     type="button"
                     onClick={() => {
@@ -684,7 +684,7 @@ export const QuickDeliveryHub: React.FC<QuickDeliveryHubProps> = ({ onOpenAuth }
                     className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
                   >
                     <Package className="w-3.5 h-3.5 text-amber-400" />
-                    <span>📦 फ्लिपकार्ट स्टाइल लाइव ट्रैक करें (Full Tracking)</span>
+                    <span>📦 SafarGo लाइव ऑर्डर ट्रैक करें (Live Tracking)</span>
                   </button>
                 </div>
               ))

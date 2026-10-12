@@ -230,6 +230,16 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
             {currentUser && role === 'agent' && (
               <>
                 <button
+                  onClick={() => setIsWalletModalOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-md transition border border-emerald-400/40 cursor-pointer"
+                  title="एजेंट वॉलेट में पैसे जोड़ें या बैलेंस चेक करें"
+                >
+                  <Wallet className="w-4 h-4 text-amber-300" />
+                  <span>वॉलेट: ₹{(agentWalletBalance || 0).toLocaleString('en-IN')}</span>
+                  <span className="bg-white/20 text-[10px] px-1.5 py-0.2 rounded-full font-bold">+जोड़ें</span>
+                </button>
+
+                <button
                   onClick={() => handleTabChange('dashboard')}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition ${
                     currentTab === 'dashboard'
@@ -818,6 +828,22 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
               </div>
             ) : role === 'agent' ? (
               <>
+                <button
+                  onClick={() => {
+                    setIsWalletModalOpen(true);
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-black flex items-center justify-between bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md my-1 cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <Wallet className="w-4 h-4 text-amber-300" />
+                    <span>एजेंट वॉलेट (Wallet)</span>
+                  </div>
+                  <span className="bg-white/20 text-white px-2 py-0.5 rounded-lg text-xs">
+                    ₹{(agentWalletBalance || 0).toLocaleString('en-IN')} (+जोड़ें)
+                  </span>
+                </button>
+
                 <button
                   onClick={() => handleTabChange('dashboard')}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${

@@ -6,6 +6,8 @@ import { SeatCategory, Passenger, Booking, PromoCode, BusTrip } from '../../type
 import { BookingSuccessModal } from './BookingSuccessModal';
 import { WalletRechargeModal } from './WalletRechargeModal';
 import { RedBusSeatMapModal, SelectedSeatItem } from '../bus/RedBusSeatMapModal';
+import { AutoBusBookingCheckoutModal } from '../bus/AutoBusBookingCheckoutModal';
+import { AutoRedBusBookingView } from '../bus/AutoRedBusBookingView';
 import { MP_NETWORK_CITIES } from '../../lib/mockData';
 import { compressImage } from '../../lib/storageUtils';
 import {
@@ -71,6 +73,21 @@ export const ManualBookingForm: React.FC = () => {
 
   // Boarding Sathi Assistance Service State (+₹33 customer charge, +₹23 agent payout, ₹10 SafarGo share)
   const [boardingSathiOpted, setBoardingSathiOpted] = useState(false);
+
+  // Top Booking Mode: auto_redbus vs manual_counter
+  const [bookingMode, setBookingMode] = useState<'auto_redbus' | 'manual_counter'>('auto_redbus');
+  const [autoSearchSource, setAutoSearchSource] = useState('Bhopal');
+  const [autoSearchDest, setAutoSearchDest] = useState('Indore');
+  const [autoSearchDate, setAutoSearchDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [selectedAutoTripForSeat, setSelectedAutoTripForSeat] = useState<BusTrip | null>(null);
+  const [autoCheckoutData, setAutoCheckoutData] = useState<{
+    trip: BusTrip;
+    selectedSeats: SelectedSeatItem[];
+    totalFare: number;
+    seatCategory: SeatCategory;
+    boardingPoint: string;
+    dropPoint: string;
+  } | null>(null);
 
   // RedBus Interactive Seat Selection Modal State
   const [isSeatMapOpen, setIsSeatMapOpen] = useState(false);
@@ -303,7 +320,51 @@ export const ManualBookingForm: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto py-6 px-4">
-      {/* Important Disclaimer Banner */}
+      {/* Top Booking System Switcher: Automatic RedBus vs Manual Offline Slip */}
+      <div className="bg-slate-900 rounded-3xl p-2.5 border border-slate-800 shadow-xl mb-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setBookingMode('auto_redbus')}
+            className={`flex-1 sm:flex-initial px-5 py-3 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer ${
+              bookingMode === 'auto_redbus'
+                ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-600/30'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <Bus className="w-4 h-4 text-amber-300" />
+            <span>⚡ ऑटोमैटिक लाइव बुकिंग (RedBus स्टाइल)</span>
+            <span className="bg-white/20 text-[9px] px-1.5 py-0.2 rounded-full font-bold">नया / डिफ़ॉल्ट</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setBookingMode('manual_counter')}
+            className={`flex-1 sm:flex-initial px-5 py-3 rounded-2xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer ${
+              bookingMode === 'manual_counter'
+                ? 'bg-orange-600 text-white shadow-lg'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <Send className="w-4 h-4 text-orange-400" />
+            <span>📝 ऑफ़लाइन / मैनुअल टिकट काउंटर (Manual Desk)</span>
+          </button>
+        </div>
+
+        <div className="text-[11px] font-bold text-emerald-400 pr-3 hidden sm:flex items-center gap-1.5">
+          <ShieldCheck className="w-4 h-4" />
+          <span>सुरक्षित कमीशन: ₹19.34 / टिकट</span>
+        </div>
+      </div>
+
+      {bookingMode === 'auto_redbus' ? (
+        <AutoRedBusBookingView
+          onBookingSuccess={(confirmed) => setCreatedBooking(confirmed)}
+          onSwitchToManual={() => setBookingMode('manual_counter')}
+        />
+      ) : (
+        <>
+          {/* Important Disclaimer Banner */}
       <div className="space-y-3 mb-6">
         <div className="bg-emerald-950/90 text-white border-2 border-emerald-500/50 rounded-2xl p-5 flex items-start gap-4 shadow-lg">
           <div className="w-11 h-11 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-md">
@@ -1209,6 +1270,8 @@ export const ManualBookingForm: React.FC = () => {
           </div>
         </div>
       </form>
+        </>
+      )}
 
       {/* WhatsApp Success Modal */}
       {createdBooking && (

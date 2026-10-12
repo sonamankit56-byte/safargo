@@ -477,6 +477,61 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
         </div>
       </div>
 
+      {/* 💰 AGENT WALLET & 10-MINUTE RECHARGE DESK */}
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-7 text-white border border-indigo-500/30 shadow-xl space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center font-black shadow-lg shadow-emerald-500/20">
+              <Wallet className="w-6 h-6 text-slate-950" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] bg-emerald-400 text-slate-950 px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
+                  SafarGo Prepaid Wallet
+                </span>
+                <span className="text-xs text-slate-300">इंस्टेंट टिकट बुकिंग</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-white mt-0.5">
+                एजेंट वॉलेट बैलेंस: <span className="text-emerald-400">₹{(agentWalletBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              </h2>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => setShowRechargeModal(true)}
+              className="px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs shadow-lg transition flex items-center gap-2 cursor-pointer active:scale-95"
+            >
+              <Wallet className="w-4 h-4" />
+              <span>+ पैसे जोड़ें (Add Money)</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Live Pending Recharges Banner with 10-minute countdown */}
+        {agentWalletRecharges && agentWalletRecharges.some(r => r.status === 'pending') && (
+          <div className="bg-amber-500/15 border-2 border-amber-500/40 rounded-2xl p-4 text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-start gap-3">
+              <Clock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5 animate-pulse" />
+              <div>
+                <strong className="text-amber-300 font-bold block text-sm">
+                  आपकी वॉलेट रिचार्ज रिक्वेस्ट सबमिट हो गई है! 10 मिनट में पैसे आपके वॉलेट में जोड़ दिए जाएंगे।
+                </strong>
+                <span className="text-amber-200/90 text-xs">
+                  एडमिन द्वारा अप्रूव करने पर तुरंत राशि आपके वॉलेट में जुड़ जाएगी।
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowRechargeModal(true)}
+              className="px-3.5 py-1.5 bg-amber-400 text-slate-950 font-black rounded-lg text-xs self-start sm:self-auto hover:bg-amber-300 transition"
+            >
+              काउंटडाउन देखें ➔
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Target & Fixed Salary Progress Card */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-md">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">

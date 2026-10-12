@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import {
@@ -13,7 +13,9 @@ import {
   AlertCircle,
   ArrowRight,
   QrCode,
-  CheckCircle2
+  CheckCircle2,
+  Clock,
+  Sparkles
 } from 'lucide-react';
 import { SafarGoLogo } from '../common/SafarGoLogo';
 import { compressImage } from '../../lib/storageUtils';
@@ -23,7 +25,7 @@ interface WalletRechargeModalProps {
 }
 
 export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClose }) => {
-  const { settings, requestWalletRecharge, agentWalletBalance } = useData();
+  const { settings, requestWalletRecharge, agentWalletBalance, agentWalletRecharges } = useData();
   const { error, success } = useToast();
 
   const minAmount = settings.min_wallet_recharge || 2000;
@@ -34,6 +36,24 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
+  const [countdownSeconds, setCountdownSeconds] = useState(600); // 10 minutes = 600 seconds
+
+  // 10-minute countdown timer
+  useEffect(() => {
+    if (!isSubmittedSuccess || countdownSeconds <= 0) return;
+    const interval = setInterval(() => {
+      setCountdownSeconds((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isSubmittedSuccess, countdownSeconds]);
+
+  // Check if admin approved this recharge request in real time
+  const activeSubmittedRecharge = agentWalletRecharges?.find(
+    (r) =>
+      r.utr_number?.trim() === utrNumber.trim() ||
+      (r.amount === (parseFloat(amount) || 0) && r.status === 'approved' && new Date(r.created_at).getTime() > Date.now() - 3600000)
+  );
+  const isApprovedByAdmin = activeSubmittedRecharge?.status === 'approved';
 
   const upiId = settings.safargo_upi_id || 'safargo.booking@icici';
   const parsedAmount = parseFloat(amount) || 0;
@@ -95,6 +115,7 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
       );
       if (ok) {
         setIsSubmittedSuccess(true);
+        setCountdownSeconds(600); // Reset to 10 minutes
       }
     } finally {
       setIsSubmitting(false);
@@ -102,26 +123,68 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
   };
 
   if (isSubmittedSuccess) {
+    const minutes = Math.floor(countdownSeconds / 60);
+    const seconds = countdownSeconds % 60;
+    const timerFormatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs animate-in fade-in">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in">
         <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 my-8 p-6 sm:p-8 text-center space-y-6">
-          <div className="w-20 h-20 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
-            <CheckCircle2 className="w-10 h-10" />
-          </div>
+          
+          {isApprovedByAdmin ? (
+            /* Admin Approved Immediately */
+            <div className="space-y-4">
+              <div className="w-20 h-20 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner animate-bounce">
+                <CheckCircle2 className="w-10 h-10" />
+              </div>
+              <div className="space-y-1">
+                <span className="text-[11px] font-black uppercase tracking-wider px-3 py-1 bg-emerald-500 text-white rounded-full inline-block shadow-sm">
+                  🎉 एडमिन द्वारा तुरंत स्वीकृत (Instant Approved)
+                </span>
+                <h2 className="text-2xl font-black text-slate-900">
+                  ₹{parsedAmount.toLocaleString('en-IN')} आपके वॉलेट में जुड़ चुके हैं!
+                </h2>
+                <p className="text-xs text-slate-600">
+                  वर्तमान कुल वॉलेट बैलेंस: <strong className="text-emerald-600 text-sm">₹{agentWalletBalance.toFixed(2)}</strong>
+                </p>
+              </div>
+            </div>
+          ) : (
+            /* Pending Approval with 10-Minute Countdown Timer */
+            <div className="space-y-4">
+              <div className="w-20 h-20 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
+                <Clock className="w-10 h-10 animate-pulse" />
+              </div>
 
-          <div className="space-y-2">
-            <span className="text-[11px] font-black uppercase tracking-wider px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full inline-block">
-              अनुरोध SafarGo एडमिन को भेजा गया ✓
-            </span>
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900">
-              आपका पैसा कुछ ही देर में आपके वॉलेट में होगा!
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md mx-auto">
-              एडमिन द्वारा आपका <strong>UTR ({utrNumber})</strong> एवं पेमेंट रसीद सत्यापित की जा रही है। सत्यापन संपन्न होते ही राशि आपके वॉलेट में तुरंत जोड़ दी जाएगी।
-            </p>
-          </div>
+              <div className="space-y-2">
+                <span className="text-[11px] font-black uppercase tracking-wider px-3 py-1 bg-amber-100 text-amber-800 rounded-full inline-block border border-amber-300">
+                  अनुरोध SafarGo एडमिन को भेजा गया ✓
+                </span>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900">
+                  आपकी वॉलेट रिचार्ज रिक्वेस्ट सबमिट हो गई है!
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-700 font-semibold max-w-md mx-auto">
+                  ⚡ 10 मिनट में पैसे आपके वॉलेट में जोड़ दिए जाएंगे।
+                </p>
+              </div>
 
-          <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 text-left space-y-2.5 text-xs">
+              {/* 10-Minute Countdown Clock Banner */}
+              <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white rounded-2xl p-4 border border-slate-800 shadow-md">
+                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 flex items-center justify-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-amber-400" />
+                  <span>10-मिनट टाइमर (काउंटडाउन चालू):</span>
+                </div>
+                <div className="text-4xl font-black font-mono tracking-widest text-amber-400">
+                  {timerFormatted}
+                </div>
+                <p className="text-[11px] text-slate-300 mt-1">
+                  एडमिन द्वारा UTR सत्यापित करते ही <strong>पैसे तुरंत वॉलेट में आ जाएंगे</strong>।
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 text-left space-y-2 text-xs">
             <div className="flex justify-between items-center text-slate-600">
               <span>अनुरोध राशि (Amount):</span>
               <strong className="text-slate-900 text-base font-black">₹{parsedAmount.toLocaleString('en-IN')}</strong>
@@ -135,10 +198,16 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
               <span className="font-bold text-slate-800">{paymentMethod === 'upi_qr' ? 'SafarGo UPI QR' : 'बैंक ट्रांसफर'}</span>
             </div>
             <div className="flex justify-between items-center text-slate-600 pt-2 border-t border-slate-200">
-              <span>स्थिति:</span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 flex items-center gap-1">
-                ⏳ सत्यापन प्रक्रियाधीन (Under Review)
-              </span>
+              <span>स्थिति (Status):</span>
+              {isApprovedByAdmin ? (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 flex items-center gap-1">
+                  ✓ स्वीकृत व क्रेडिट (Approved)
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 flex items-center gap-1">
+                  ⏳ 10 मिनट के अंदर सत्यापन (Under Review)
+                </span>
+              )}
             </div>
           </div>
 
@@ -146,7 +215,7 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
             onClick={onClose}
             className="w-full py-3.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-extrabold text-sm rounded-xl shadow-lg transition active:scale-95 cursor-pointer"
           >
-            समझ गया / डैशबोर्ड पर जाएं (Done)
+            {isApprovedByAdmin ? 'शानदार / डैशबोर्ड पर जाएं (Done)' : 'डैशबोर्ड पर जाएं (Done)'}
           </button>
         </div>
       </div>

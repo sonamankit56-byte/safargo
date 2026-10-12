@@ -735,13 +735,13 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onNavigateTab })
                     </div>
                   </div>
 
-                  {/* Flipkart-Style Tracking CTA */}
+                  {/* SafarGo Live Tracking CTA */}
                   <button
                     onClick={() => setTrackingDeliveryId(order.id)}
                     className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
                   >
                     <Package className="w-3.5 h-3.5 text-amber-400" />
-                    <span>📦 फ्लिपकार्ट स्टाइल लाइव ट्रैक करें (Full 5-Step View)</span>
+                    <span>📦 SafarGo लाइव ऑर्डर ट्रैक करें (Full 5-Step View)</span>
                   </button>
                 </div>
               ))}

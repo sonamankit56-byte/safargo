@@ -19,7 +19,8 @@ import {
   FileCheck,
   Sparkles,
   CreditCard,
-  ShieldCheck
+  ShieldCheck,
+  Wallet
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -29,7 +30,7 @@ interface AdminDashboardProps {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOpenBooking }) => {
   const { allProfiles, approveAgent, approveAgentKyc, pendingLoginOtps } = useAuth();
-  const { bookings, commissions, salaryRecords, settings, promotionClaims } = useData();
+  const { bookings, commissions, salaryRecords, settings, promotionClaims, walletRecharges, approveWalletRecharge, rejectWalletRecharge } = useData();
 
   const now = new Date();
   const todayStr = now.toISOString().split('T')[0];
@@ -310,6 +311,84 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
           <span className="font-bold text-orange-700">₹{metrics.salaryPayable.toLocaleString('en-IN')}</span>
         </div>
       </div>
+
+      {/* 💰 Urgent Pending Wallet Recharges (1-Click Instant Approval) */}
+      {walletRecharges && walletRecharges.filter(r => r.status === 'pending').length > 0 && (
+        <div className="bg-white rounded-3xl border-2 border-emerald-500 shadow-lg overflow-hidden animate-fadeIn">
+          <div className="p-5 bg-gradient-to-r from-emerald-900 to-teal-900 text-white flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500 text-slate-950 flex items-center justify-center font-black shadow">
+                <Wallet className="w-5 h-5 text-slate-950" />
+              </div>
+              <div>
+                <h2 className="text-base font-black flex items-center gap-2">
+                  <span>लंबित एजेंट वॉलेट रिचार्ज अनुरोध ({walletRecharges.filter(r => r.status === 'pending').length})</span>
+                  <span className="text-[10px] bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full font-black">
+                    ⚡ 10 मिनट SLA
+                  </span>
+                </h2>
+                <p className="text-xs text-emerald-200">
+                  एजेंट के UTR सत्यापन के बाद 1-क्लिक से वॉलेट में तुरंत राशि क्रेडिट करें!
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => onNavigate('admin-salary')}
+              className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition"
+            >
+              सभी देखें ➔
+            </button>
+          </div>
+
+          <div className="divide-y divide-slate-100 overflow-x-auto">
+            {walletRecharges
+              .filter(r => r.status === 'pending')
+              .map((recharge) => (
+                <div key={recharge.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 font-black text-sm flex items-center justify-center shrink-0">
+                      ₹{recharge.amount}
+                    </div>
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <strong className="text-slate-900 text-sm font-black">{recharge.agent_name}</strong>
+                        <span className="font-mono text-xs text-slate-500">({recharge.agent_mobile})</span>
+                      </div>
+                      <div className="text-xs text-slate-600 flex flex-wrap items-center gap-2">
+                        <span>UTR / Ref: <strong className="font-mono text-slate-900">{recharge.utr_number}</strong></span>
+                        <span>•</span>
+                        <span>विधि: <strong>{recharge.payment_method === 'upi_qr' ? 'UPI QR' : 'बैंक'}</strong></span>
+                        <span>•</span>
+                        <span className="text-slate-400">{new Date(recharge.created_at).toLocaleTimeString('hi-IN')}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <button
+                      onClick={async () => {
+                        await approveWalletRecharge(recharge.id, 'Super Admin 1-Click Approved');
+                      }}
+                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>तुरंत स्वीकृत करें (+₹{recharge.amount})</span>
+                    </button>
+                    <button
+                      onClick={async () => {
+                        await rejectWalletRecharge(recharge.id, 'UTR नॉट फाउंड / इनवैलिड');
+                      }}
+                      className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 font-bold text-xs transition cursor-pointer"
+                    >
+                      अस्वीकार
+                    </button>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
       {/* Urgent Bookings Section (Action Required within 15 mins) */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">

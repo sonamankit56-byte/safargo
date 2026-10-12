@@ -45,8 +45,10 @@ import { PromotionClaimModal } from '../promotions/PromotionClaimModal';
 import { PromoterTrackStatusWidget } from '../promoter/PromoterTrackStatusWidget';
 import { ComingSoonModal } from '../common/ComingSoonModal';
 import { getFeatureMode } from '../../lib/featureFlags';
-import { MP_NETWORK_CITIES, POPULAR_MP_ROUTES } from '../../lib/mockData';
 import { RedBusSeatMapModal, SelectedSeatItem } from '../bus/RedBusSeatMapModal';
+import { AutoBusBookingCheckoutModal } from '../bus/AutoBusBookingCheckoutModal';
+import { SeatCategory } from '../../types';
+import { MP_NETWORK_CITIES } from '../../lib/mockData';
 
 interface HomePageProps {
   onOpenAuth: (initialTab?: 'login' | 'register' | 'promoter_login') => void;
@@ -82,6 +84,14 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
   // RedBus Inspired Bus Seat Selection & Filter States
   const [selectedTripForSeatMap, setSelectedTripForSeatMap] = useState<BusTrip | null>(null);
   const [busFilterType, setBusFilterType] = useState<'all' | 'ac' | 'seater' | 'sleeper'>('all');
+  const [autoCheckoutData, setAutoCheckoutData] = useState<{
+    trip: BusTrip;
+    selectedSeats: SelectedSeatItem[];
+    totalFare: number;
+    seatCategory: SeatCategory;
+    boardingPoint: string;
+    dropPoint: string;
+  } | null>(null);
 
   const handleSwapCities = () => {
     const temp = searchSource;
@@ -1789,15 +1799,34 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
         <RedBusSeatMapModal
           trip={selectedTripForSeatMap}
           onClose={() => setSelectedTripForSeatMap(null)}
-          onConfirmSelection={({ selectedSeats, totalFare, seatCategory }) => {
+          onConfirmSelection={({ selectedSeats, totalFare, seatCategory, boardingPoint, dropPoint }) => {
+            setAutoCheckoutData({
+              trip: selectedTripForSeatMap,
+              selectedSeats,
+              totalFare,
+              seatCategory,
+              boardingPoint,
+              dropPoint,
+            });
             setSelectedTripForSeatMap(null);
-            if (currentUser && role === 'agent') {
-              onNavigateTab('new-booking');
-            } else if (currentUser && role === 'customer') {
-              onNavigateTab('customer-portal');
-            } else {
-              onOpenAuth('login');
-            }
+          }}
+        />
+      )}
+
+      {/* RedBus Inspired Automatic Instant Booking Checkout Modal */}
+      {autoCheckoutData && (
+        <AutoBusBookingCheckoutModal
+          isOpen={true}
+          onClose={() => setAutoCheckoutData(null)}
+          trip={autoCheckoutData.trip}
+          selectedSeats={autoCheckoutData.selectedSeats}
+          totalFare={autoCheckoutData.totalFare}
+          seatCategory={autoCheckoutData.seatCategory}
+          boardingPoint={autoCheckoutData.boardingPoint}
+          dropPoint={autoCheckoutData.dropPoint}
+          onBookingSuccess={(confirmedBooking) => {
+            setAutoCheckoutData(null);
+            setPrintModalBooking(confirmedBooking);
           }}
         />
       )}

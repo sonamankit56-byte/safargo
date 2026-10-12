@@ -5,6 +5,7 @@ import { SafarGoLogo } from '../common/SafarGoLogo';
 import { PendingLoginOtp } from '../../types';
 import { MP_NETWORK_CITIES } from '../../lib/mockData';
 import { maskMobileNumber } from '../../lib/securityUtils';
+import { sendFirebasePasswordReset } from '../../lib/firebaseService';
 import {
   User,
   Phone,
@@ -51,8 +52,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     registerCustomer,
     registerShopkeeper,
     resetPassword,
+    allProfiles,
   } = useAuth();
-  const { error } = useToast();
+  const { error, success, info } = useToast();
 
   const [activeTab, setActiveTab] = useState<
     'login' | 'otp_verify' | 'register' | 'forgot_password' | 'registered_success' | 'promoter_login'
@@ -142,7 +144,44 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      // If password provided, attempt direct password login
+      const term = loginIdentifier.trim().toLowerCase();
+
+      // Super Admin special direct login
+      if (term === 'jia647155@gmail.com') {
+        const ok = await login(loginIdentifier.trim(), loginPassword.trim());
+        if (ok) {
+          onClose();
+          return;
+        }
+      }
+
+      // Check if user is an agent
+      const foundProfile = (allProfiles || []).find(
+        (p) =>
+          p.email.toLowerCase() === term ||
+          p.mobile.replace(/\D/g, '') === term.replace(/\D/g, '') ||
+          p.id.toLowerCase() === term
+      );
+
+      if (foundProfile && foundProfile.role === 'agent') {
+        // Enforce OTP Verification for Agent Login!
+        if (loginPassword.trim() && foundProfile.password && foundProfile.password !== loginPassword.trim()) {
+          error('गलत पासवर्ड', 'कृपया सही पासवर्ड दर्ज करें या पासवर्ड रीसेट करें।');
+          return;
+        }
+
+        const res = await initiateAgentLogin(loginIdentifier.trim(), loginPassword.trim());
+        if (res.success && res.pendingOtp) {
+          setCurrentPendingOtp(res.pendingOtp);
+          setEnteredOtp('');
+          setOtpCountdown(180);
+          setActiveTab('otp_verify');
+          info('सुरक्षा OTP भेजा गया', `OTP आपके पंजीकृत ईमेल (${foundProfile.email}) पर भेज दिया गया है।`);
+          return;
+        }
+      }
+
+      // If customer, shopkeeper or promoter: direct login
       if (loginPassword.trim()) {
         const ok = await login(loginIdentifier.trim(), loginPassword.trim());
         if (ok) {
@@ -228,6 +267,51 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   // Handle Forgot Password Submit
+  const [isSendingResetEmail, setIsSendingResetEmail] = useState(false);
+
+  const handleSendGmailResetLink = async () => {
+    const raw = forgotIdentifier.trim();
+    if (!raw) {
+      error('Input Required', 'कृपया अपना पंजीकृत ईमेल या जीमेल पता दर्ज करें।');
+      return;
+    }
+
+    let targetEmail = raw;
+    if (!raw.includes('@')) {
+      const found = (allProfiles || []).find(
+        (p) =>
+          p.mobile.replace(/\D/g, '') === raw.replace(/\D/g, '') ||
+          p.id.toLowerCase() === raw.toLowerCase()
+      );
+      if (found && found.email) {
+        targetEmail = found.email;
+      } else {
+        error(
+          'ईमेल नहीं मिला',
+          'इस मोबाइल नंबर से संबद्ध कोई ईमेल नहीं मिला। कृपया सीधे अपना Gmail दर्ज करें।'
+        );
+        return;
+      }
+    }
+
+    setIsSendingResetEmail(true);
+    try {
+      const res = await sendFirebasePasswordReset(targetEmail);
+      if (res.success) {
+        success(
+          'Gmail पर लिंक भेजा गया! ✉️',
+          `पासवर्ड रीसेट लिंक आपके Gmail (${targetEmail}) पर भेज दिया गया है। कृपया इनबॉक्स और स्पैम फ़ोल्डर चेक करें।`
+        );
+      } else {
+        info('रीसेट अनुरोध', res.message || 'यदि ईमेल पंजीकृत है तो लिंक भेज दिया गया है।');
+      }
+    } catch (err: any) {
+      error('त्रुटि', err?.message || 'रीसेट लिंक भेजने में समस्या आई।');
+    } finally {
+      setIsSendingResetEmail(false);
+    }
+  };
+
   const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!forgotIdentifier.trim()) {
@@ -1008,6 +1092,37 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   placeholder="उदा. 9827011223 या pawan@gmail.com"
                   className="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500 outline-none"
                 />
+              </div>
+
+              {/* Gmail Firebase Reset Link Shortcut */}
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <span className="font-bold text-blue-900 flex items-center gap-1.5">
+                    <Mail className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span>Gmail पर पासवर्ड रीसेट लिंक भेजें:</span>
+                  </span>
+                  <button
+                    type="button"
+                    disabled={isSendingResetEmail || !forgotIdentifier.trim()}
+                    onClick={handleSendGmailResetLink}
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm transition disabled:opacity-50 text-[11px] flex items-center justify-center gap-1.5 shrink-0"
+                  >
+                    {isSendingResetEmail ? (
+                      <>
+                        <RotateCw className="w-3 h-3 animate-spin" />
+                        <span>भेजा जा रहा है...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="w-3 h-3" />
+                        <span>Gmail पर लिंक भेजें</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-[11px] text-blue-700">
+                  Firebase सुरक्षित रीसेट लिंक सीधे आपके Gmail इनबॉक्स में भेजा जाएगा।
+                </p>
               </div>
 
               <div>
