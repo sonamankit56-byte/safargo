@@ -333,7 +333,7 @@ export const ManualBookingForm: React.FC = () => {
             }`}
           >
             <Bus className="w-4 h-4 text-amber-300" />
-            <span>⚡ ऑटोमैटिक लाइव बुकिंग (RedBus स्टाइल)</span>
+            <span>⚡ ऑटोमैटिक लाइव बुकिंग (AbhiBus व RedBus स्टाइल)</span>
             <span className="bg-white/20 text-[9px] px-1.5 py-0.2 rounded-full font-bold">नया / डिफ़ॉल्ट</span>
           </button>
 

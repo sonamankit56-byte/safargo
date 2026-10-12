@@ -672,18 +672,23 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
 
               {/* Results Cards Grid */}
               <div className="space-y-3 pt-2">
-                {/* 🚌 Crucial Customer Bus Booking Notice */}
-                <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
+                {/* 🚌 AbhiBus & RedBus Inspired Live Booking Notice */}
+                <div className="bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
                   <div className="flex items-start sm:items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-red-600 text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
+                    <div className="w-10 h-10 rounded-2xl bg-red-600 text-white flex items-center justify-center font-bold shrink-0 shadow-md">
                       <Bus className="w-5 h-5" />
                     </div>
                     <div>
-                      <strong className="text-slate-900 block font-black text-sm">
-                        RedBus स्टाइल सीट लेआउट व ऑनलाइन सीट चयन
-                      </strong>
-                      <span className="text-slate-600">
-                        बैठने वाली (Seater) और सोने वाली (Sleeper) सीटों का लाइव मैप देखें व मनपसंद सीट बुक करें!
+                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                        <strong className="text-slate-900 block font-black text-sm">
+                          AbhiBus & RedBus प्रेरित ऑनलाइन बस टिकटिंग नेटवर्क
+                        </strong>
+                        <span className="px-2 py-0.2 rounded-full text-[9px] font-black bg-emerald-600 text-white">
+                          🛡️ 150% रिफंड गारंटी
+                        </span>
+                      </div>
+                      <span className="text-slate-600 text-[11px]">
+                        लाइव सीट मैप (Lower व Upper Deck), सोने वाली (Sleeper) बर्थ, सीटर (Seater) कुर्सियां, महिला सुरक्षा सीट एवं तत्काल PNR जारी!
                       </span>
                     </div>
                   </div>
@@ -696,11 +701,22 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                         onOpenAuth('login');
                       }
                     }}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-extrabold rounded-xl shadow-xs shrink-0 flex items-center gap-1.5 transition self-start sm:self-auto cursor-pointer"
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-extrabold rounded-xl shadow-xs shrink-0 flex items-center gap-1.5 transition self-start sm:self-auto cursor-pointer"
                   >
                     <Phone className="w-3.5 h-3.5" />
                     <span>नजदीकी एजेंट से संपर्क करें</span>
                   </button>
+                </div>
+
+                {/* State RTC Partners Strip (AbhiBus Style) */}
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between overflow-x-auto gap-2 text-[10px] font-bold text-slate-600 no-scrollbar">
+                  <span className="text-slate-400 shrink-0">पार्टनर फ्लीट:</span>
+                  <span className="px-2 py-1 bg-white rounded-lg border border-slate-200 shrink-0">🏛️ MPSRTC (मध्य प्रदेश)</span>
+                  <span className="px-2 py-1 bg-white rounded-lg border border-slate-200 shrink-0">🏛️ UPSRTC</span>
+                  <span className="px-2 py-1 bg-white rounded-lg border border-slate-200 shrink-0">🏛️ RSRTC</span>
+                  <span className="px-2 py-1 bg-white rounded-lg border border-slate-200 shrink-0">🚌 Chartered Bus</span>
+                  <span className="px-2 py-1 bg-white rounded-lg border border-slate-200 shrink-0">🚌 Hans Travels</span>
+                  <span className="px-2 py-1 bg-white rounded-lg border border-slate-200 shrink-0">⚡ NueGo Electric</span>
                 </div>
 
                 <div className="flex items-center justify-between pt-1">
@@ -710,7 +726,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                       if (busFilterType === 'seater') return t.available_seater > 0;
                       if (busFilterType === 'sleeper') return t.available_sleeper > 0;
                       return true;
-                    }).length}) — <span className="text-red-600 font-extrabold">RedBus Inspired Inventory</span>:
+                    }).length}) — <span className="text-red-600 font-extrabold">AbhiBus Inspired Live Inventory</span>:
                   </span>
                   <span className="text-[11px] text-slate-400 font-medium">
                     सीट मैप देखने के लिए "सीटें चुनें" पर क्लिक करें
