@@ -31,11 +31,19 @@ import { Profile, Booking, WalletRechargeRequest } from '../types';
  * Register a user and automatically dispatch an Email Verification link
  */
 export async function registerWithEmailVerification(
-  email: string,
-  pass: string,
-  fullName: string,
-  mobile: string,
-  role: 'agent' | 'customer' | 'promoter' = 'agent'
+  emailOrParams:
+    | string
+    | {
+        email: string;
+        password?: string;
+        fullName: string;
+        mobile: string;
+        role?: 'agent' | 'customer' | 'promoter' | 'shopkeeper';
+      },
+  pass?: string,
+  fullNameParam?: string,
+  mobileParam?: string,
+  roleParam: 'agent' | 'customer' | 'promoter' | 'shopkeeper' = 'agent'
 ): Promise<{ success: boolean; user?: User; message: string }> {
   if (!isFirebaseConfigured || !auth || !db) {
     return {
@@ -44,8 +52,14 @@ export async function registerWithEmailVerification(
     };
   }
 
+  const email = typeof emailOrParams === 'string' ? emailOrParams : emailOrParams.email;
+  const passClean = typeof emailOrParams === 'string' ? pass || '' : emailOrParams.password || '';
+  const fullName = typeof emailOrParams === 'string' ? fullNameParam || '' : emailOrParams.fullName;
+  const mobile = typeof emailOrParams === 'string' ? mobileParam || '' : emailOrParams.mobile;
+  const role = typeof emailOrParams === 'string' ? roleParam : emailOrParams.role || 'agent';
+
   try {
-    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+    const cred = await createUserWithEmailAndPassword(auth, email, passClean);
     const user = cred.user;
 
     // Set display name in Firebase Auth
@@ -55,10 +69,7 @@ export async function registerWithEmailVerification(
 
     // Send Email Verification
     try {
-      await sendEmailVerification(user, {
-        url: window.location.origin,
-        handleCodeInApp: true,
-      });
+      await sendEmailVerification(user);
     } catch (verErr: any) {
       console.warn('[Firebase] Verification email send warning:', verErr);
     }
@@ -91,6 +102,26 @@ export async function registerWithEmailVerification(
 }
 
 /**
+ * Login with Firebase Auth
+ */
+export async function loginWithFirebase(
+  email: string,
+  pass: string
+): Promise<{ success: boolean; user?: User; message?: string }> {
+  if (!isFirebaseConfigured || !auth) {
+    return { success: false, message: 'Firebase कॉन्फ़िगर नहीं है।' };
+  }
+
+  try {
+    const cred = await signInWithEmailAndPassword(auth, email, pass);
+    return { success: true, user: cred.user };
+  } catch (err: any) {
+    console.error('[Firebase] Sign in error:', err);
+    return { success: false, message: err.message || 'लॉगिन में त्रुटि हुई।' };
+  }
+}
+
+/**
  * Resend verification email to current logged-in user
  */
 export async function resendVerificationEmail(): Promise<{ success: boolean; message: string }> {
@@ -110,6 +141,30 @@ export async function resendVerificationEmail(): Promise<{ success: boolean; mes
     return {
       success: false,
       message: err.message || 'सत्यापन लिंक भेजने में त्रुटि हुई।',
+    };
+  }
+}
+
+/**
+ * Send Password Reset Email
+ */
+export async function sendFirebasePasswordReset(email: string): Promise<{ success: boolean; message: string }> {
+  if (!isFirebaseConfigured || !auth) {
+    return { success: false, message: 'Firebase कॉन्फ़िगर नहीं है।' };
+  }
+
+  try {
+    await sendPasswordResetEmail(auth, email, {
+      url: window.location.origin,
+    });
+    return {
+      success: true,
+      message: 'पासवर्ड रीसेट लिंक आपके ईमेल पर भेज दिया गया है।',
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: err.message || 'पासवर्ड रीसेट लिंक भेजने में समस्या आई।',
     };
   }
 }
@@ -166,5 +221,37 @@ export async function saveBookingToFirestore(booking: Booking): Promise<boolean>
   } catch (err) {
     console.error('[Firebase Firestore] Booking save error:', err);
     return false;
+  }
+}
+
+/**
+ * Fetch all bookings from Firestore
+ */
+export async function fetchFirestoreBookings(): Promise<Booking[]> {
+  if (!isFirebaseConfigured || !db) return [];
+
+  try {
+    const coll = collection(db, 'bookings');
+    const snap = await getDocs(coll);
+    return snap.docs.map((d) => d.data() as Booking);
+  } catch (err) {
+    console.error('[Firebase Firestore] Fetch bookings error:', err);
+    return [];
+  }
+}
+
+/**
+ * Fetch all wallet recharges from Firestore
+ */
+export async function fetchFirestoreWalletRecharges(): Promise<WalletRechargeRequest[]> {
+  if (!isFirebaseConfigured || !db) return [];
+
+  try {
+    const coll = collection(db, 'wallet_recharges');
+    const snap = await getDocs(coll);
+    return snap.docs.map((d) => d.data() as WalletRechargeRequest);
+  } catch (err) {
+    console.error('[Firebase Firestore] Fetch recharges error:', err);
+    return [];
   }
 }

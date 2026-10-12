@@ -6,6 +6,8 @@ import { db } from '../lib/supabaseService';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { getClientDeviceString, fetchClientIpAddress, generateSecureOtpCode } from '../lib/securityUtils';
 import { safeSetItem } from '../lib/storageUtils';
+import { isFirebaseConfigured } from '../lib/firebase';
+import { registerWithEmailVerification, sendFirebasePasswordReset } from '../lib/firebaseService';
 
 interface AuthContextType {
   currentUser: Profile | null;
@@ -452,6 +454,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }).catch((e) => console.error('Supabase reset password sync error:', e));
     }
 
+    if (isFirebaseConfigured && term.includes('@')) {
+      sendFirebasePasswordReset(term).catch((e) => console.warn('[Firebase] Reset password error:', e));
+    }
+
     success('Password Reset Successful', 'आपका पासवर्ड सफलतापूर्वक अपडेट हो गया है! अब नए पासवर्ड से लॉगिन करें।');
     return true;
   };
@@ -521,6 +527,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       db.createProfile(newAgent).catch((e) => console.error('Supabase profile create error:', e));
     }
 
+    if (isFirebaseConfigured && details.email && details.email.includes('@') && !details.email.endsWith('@safargo.in')) {
+      registerWithEmailVerification({
+        email: details.email.trim(),
+        password: details.password?.trim() || 'Agent@123',
+        fullName: details.full_name.trim(),
+        mobile: details.mobile.trim(),
+        role: 'agent',
+      })
+        .then((res) => {
+          if (res.success) {
+            info('ईमेल सत्यापन लिंक भेजा गया', 'Google Firebase द्वारा सत्यापन लिंक आपके ईमेल पर भेज दिया गया है।');
+          }
+        })
+        .catch((e) => console.warn('[Firebase Auth] Agent register warning:', e));
+    }
+
     success(
       'पंजीकरण जमा हुआ!',
       'आपकी आईडी SafarGo टीम द्वारा सत्यापन के बाद एक्टिव हो जाएगी।'
@@ -573,6 +595,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (isSupabaseConfigured) {
       db.createProfile(newCustomer).catch((e) => console.error('Supabase customer create error:', e));
+    }
+
+    if (isFirebaseConfigured && details.email && details.email.includes('@') && !details.email.endsWith('@safargo.in')) {
+      registerWithEmailVerification({
+        email: details.email.trim(),
+        password: details.password?.trim() || 'Customer@123',
+        fullName: details.full_name.trim(),
+        mobile: cleanMobile,
+        role: 'customer',
+      })
+        .then((res) => {
+          if (res.success) {
+            info('ईमेल सत्यापन लिंक भेजा गया', 'Google Firebase द्वारा सत्यापन लिंक आपके ईमेल पर भेज दिया गया है।');
+          }
+        })
+        .catch((e) => console.warn('[Firebase Auth] Customer register warning:', e));
     }
 
     success(
@@ -630,6 +668,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (isSupabaseConfigured) {
       db.createProfile(newShopkeeper).catch((e) => console.error('Supabase shopkeeper create error:', e));
+    }
+
+    if (isFirebaseConfigured && details.email && details.email.includes('@') && !details.email.endsWith('@safargo.in')) {
+      registerWithEmailVerification({
+        email: details.email.trim(),
+        password: details.password?.trim() || 'Shop@123',
+        fullName: details.full_name.trim(),
+        mobile: cleanMobile,
+        role: 'shopkeeper',
+      })
+        .then((res) => {
+          if (res.success) {
+            info('ईमेल सत्यापन लिंक भेजा गया', 'Google Firebase द्वारा सत्यापन लिंक आपके ईमेल पर भेज दिया गया है।');
+          }
+        })
+        .catch((e) => console.warn('[Firebase Auth] Shopkeeper register warning:', e));
     }
 
     success(

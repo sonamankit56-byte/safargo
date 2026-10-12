@@ -4,12 +4,13 @@ import { getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyClSkIVfJ2DUbNCppfx1vJqSmE5znQ48sw',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'gen-lang-client-0347660419.firebaseapp.com',
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || 'https://gen-lang-client-0347660419-default-rtdb.firebaseio.com',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'gen-lang-client-0347660419',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'gen-lang-client-0347660419.firebasestorage.app',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '767760667242',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:767760667242:web:e129cf8f6c925f3a7e7013',
 };
 
 export const isFirebaseConfigured = Boolean(
@@ -30,12 +31,12 @@ if (isFirebaseConfigured) {
     auth = getAuth(app);
     db = getFirestore(app);
     storage = getStorage(app);
+    console.info('[Firebase] Successfully connected to project:', firebaseConfig.projectId);
   } catch (error) {
     console.error('[Firebase] Initialization error:', error);
   }
 } else {
-  // Graceful fallback dummy app or null
-  console.info('[Firebase] Not configured or missing credentials. Running in local fallback mode.');
+  console.info('[Firebase] Not configured. Running in local fallback mode.');
 }
 
 export { app, auth, db, storage, firebaseConfig };
