@@ -22,8 +22,7 @@ import {
   Store,
   FileText,
   AlertCircle,
-  Truck,
-  RotateCcw
+  Truck
 } from 'lucide-react';
 
 interface FlipkartOrderTrackingViewProps {
@@ -40,9 +39,6 @@ export const FlipkartOrderTrackingView: React.FC<FlipkartOrderTrackingViewProps>
   const {
     quickDeliveryOrders,
     customerConfirmDeliveryOrder,
-    agentAcceptDeliveryOrder,
-    agentUploadDeliveryPhotoAndPrice,
-    completeDeliveryOrder,
   } = useData();
   const { success, error } = useToast();
 
@@ -669,62 +665,35 @@ export const FlipkartOrderTrackingView: React.FC<FlipkartOrderTrackingViewProps>
 
       </div>
 
-      {/* 5. Demo / Simulation Controls (To Test 5 Steps Smoothly in One Click) */}
-      <div className="bg-slate-100 rounded-3xl p-4 sm:p-5 border border-slate-200 text-xs space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="font-bold text-slate-800 flex items-center gap-1.5">
-            <RotateCcw className="w-3.5 h-3.5 text-indigo-600" />
-            <span>टेस्टिंग व लाइव डेमो कंट्रोल्स (Simulate 5 Steps):</span>
+      {/* 5. Real SafarGo Delivery Assurance & Support Desk */}
+      <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 rounded-3xl p-5 border border-emerald-200 text-xs flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex items-center justify-center shrink-0 shadow-md">
+            <ShieldCheck className="w-6 h-6" />
           </div>
-          <span className="text-[10px] text-slate-500">त्वरित परीक्षण हेतु</span>
+          <div>
+            <h4 className="font-black text-slate-900 text-sm flex items-center gap-1.5">
+              <span>SafarGo 15-मिनट सुरक्षित डिलीवरी गारंटी</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900">
+                100% Verified
+              </span>
+            </h4>
+            <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+              राइडर नजदीकी सत्यापित दुकान से असली पक्का बिल और सामान लेकर 15 मिनट में आपके पते पर पहुंचेगा। सामान हाथ में मिलने और जांचने के बाद ही नकद (COD) या UPI से भुगतान करें।
+            </p>
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {activeOrder.status === 'placed' && (
-            <button
-              onClick={() => agentAcceptDeliveryOrder(activeOrder.id)}
-              className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition flex items-center gap-1"
-            >
-              <Bike className="w-3.5 h-3.5" />
-              <span>सिमुलेशन: एजेंट असाइन करें (Step 2)</span>
-            </button>
-          )}
-
-          {(activeOrder.status === 'placed' || activeOrder.status === 'agent_assigned') && (
-            <button
-              onClick={() =>
-                agentUploadDeliveryPhotoAndPrice(
-                  activeOrder.id,
-                  'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=400&q=80',
-                  185
-                )
-              }
-              className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold transition flex items-center gap-1"
-            >
-              <Camera className="w-3.5 h-3.5" />
-              <span>सिमुलेशन: एजेंट बिल फोटो व ₹185 अपलोड करे (Step 2 ➔ 3)</span>
-            </button>
-          )}
-
-          {activeOrder.status === 'photo_price_uploaded' && (
-            <button
-              onClick={() => handleCustomerAccept(activeOrder.id)}
-              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition flex items-center gap-1"
-            >
-              <Check className="w-3.5 h-3.5" />
-              <span>सिमुलेशन: ग्राहक बिल स्वीकार करे (Step 3 ➔ 4)</span>
-            </button>
-          )}
-
-          {activeOrder.status === 'out_for_delivery' && (
-            <button
-              onClick={() => completeDeliveryOrder(activeOrder.id)}
-              className="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold transition flex items-center gap-1"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>सिमुलेशन: ऑर्डर डिलीवर मार्क करें (Step 4 ➔ 5)</span>
-            </button>
-          )}
+        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+          <a
+            href="https://wa.me/919876543210?text=नमस्ते%20SafarGo%20टीम,%20मुझे%20अपने%20क्विक%20डिलीवरी%20ऑर्डर%20के%20बारे%20में%20सहायता%20चाहिए।"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition"
+          >
+            <MessageSquare className="w-4 h-4" />
+            <span>सफ़ारगो हेल्पलाइन (WhatsApp)</span>
+          </a>
         </div>
       </div>
 

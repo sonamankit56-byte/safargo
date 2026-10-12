@@ -54,7 +54,7 @@ export const ShopkeeperPortal: React.FC = () => {
       s.user_id === currentUser?.id ||
       s.mobile.replace(/\D/g, '') === userMobileClean ||
       s.owner_name.toLowerCase() === currentUser?.full_name.toLowerCase()
-  ) || partnerShops[0]; // fallback to first partner shop in demo
+  ) || partnerShops[0]; // fallback to first partner shop if unassigned
 
   // Orders picking up from this shop
   const myShopOrders = quickDeliveryOrders.filter(

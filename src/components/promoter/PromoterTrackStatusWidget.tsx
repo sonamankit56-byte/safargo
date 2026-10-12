@@ -41,9 +41,9 @@ export const PromoterTrackStatusWidget: React.FC<PromoterTrackStatusWidgetProps>
   const [hasSearched, setHasSearched] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const handleTrackSubmit = (e?: React.FormEvent, overrideMobile?: string) => {
+  const handleTrackSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const query = (overrideMobile || searchMobile).replace(/\D/g, '');
+    const query = searchMobile.replace(/\D/g, '');
     if (!query || query.length < 10) {
       error('Mobile Required', 'कृपया 10-अंकों का वैध मोबाइल नंबर दर्ज करें।');
       return;
@@ -57,11 +57,6 @@ export const PromoterTrackStatusWidget: React.FC<PromoterTrackStatusWidgetProps>
     } else {
       setTrackedApp(null);
     }
-  };
-
-  const handleQuickDemoClick = (mobileNo: string) => {
-    setSearchMobile(mobileNo);
-    handleTrackSubmit(undefined, mobileNo);
   };
 
   const handleDirectPromoterLogin = async () => {
