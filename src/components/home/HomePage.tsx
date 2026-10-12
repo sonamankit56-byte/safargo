@@ -206,17 +206,17 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
             </div>
 
             {/* National Mission Pill */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-800/90 border border-slate-700/80 shadow-md">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              <span className="text-xs font-bold text-orange-400">
+            <div className="inline-flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-1.5 rounded-full bg-slate-800/90 border border-slate-700/80 shadow-md max-w-full">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
+              <span className="text-xs font-bold text-orange-400 text-center">
                 🇮🇳 मध्य प्रदेश (MP) का नंबर 1 बस बुकिंग एवं CSC आजीविका मंच
               </span>
-              <span className="text-slate-500">|</span>
-              <span className="text-xs text-slate-300 font-medium">Bhopal • Indore • Vidisha • Guna Network</span>
+              <span className="hidden sm:inline text-slate-500">|</span>
+              <span className="hidden sm:inline text-xs text-slate-300 font-medium">Bhopal • Indore • Vidisha • Guna Network</span>
             </div>
 
             {/* Main Punchy Hindi Headline */}
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.15]">
+            <h1 className="text-2xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.2] sm:leading-[1.15]">
               गाँव के युवाओं और CSC केंद्रों को मिला <br className="hidden sm:inline" />
               <span className="bg-gradient-to-r from-orange-400 via-amber-300 to-orange-500 bg-clip-text text-transparent">
                 पक्का और सम्मानजनक रोजगार
@@ -224,16 +224,16 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
             </h1>
 
             {/* Subtitle */}
-            <p className="text-sm sm:text-lg text-slate-300 max-w-3xl mx-auto leading-relaxed font-normal">
+            <p className="text-xs sm:text-lg text-slate-300 max-w-3xl mx-auto leading-relaxed font-normal px-2">
               <strong>"अब हर सफर होगा आसान"</strong> — भोपाल, इंदौर, गुना, अशोक नगर, चंदेरी, सिरोंज, कुरवाई, लटेरी, विदिशा, बीना, शिवपुरी, रतलाम, खंडवा, ललितपुर, झांसी, आगरा, इटावा, जयपुर व पुणे के लिए अधिकृत बस बुकिंग नेटवर्क। प्रत्येक टिकट पर <span className="text-emerald-400 font-bold">₹19.34 कमीशन</span>, 150 बुकिंग पर <span className="text-amber-300 font-bold">₹5,000 मासिक मानदेय</span> और <span className="text-orange-400 font-bold">₹50 रेफरल बोनस</span>!
             </p>
 
             {/* CTA Buttons */}
-            <div className="pt-2 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+            <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 w-full sm:w-auto max-w-md sm:max-w-none mx-auto">
               {currentUser ? (
                 <button
                   onClick={() => onNavigateTab(role === 'admin' ? 'admin-dashboard' : 'dashboard')}
-                  className="px-8 py-4 bg-orange-500 hover:bg-orange-600 text-white font-black text-sm sm:text-base rounded-2xl shadow-xl shadow-orange-500/30 transition transform hover:-translate-y-0.5 active:scale-95 flex items-center gap-2"
+                  className="w-full sm:w-auto px-8 py-3.5 sm:py-4 bg-orange-500 hover:bg-orange-600 text-white font-black text-sm sm:text-base rounded-2xl shadow-xl shadow-orange-500/30 transition transform hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>मेरा डैशबोर्ड खोलें (Open Dashboard)</span>
                   <ArrowRight className="w-4 h-4" />
@@ -242,7 +242,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                 <>
                   <button
                     onClick={() => onOpenAuth('register')}
-                    className="px-8 py-4 bg-orange-500 hover:bg-orange-600 text-white font-black text-sm sm:text-base rounded-2xl shadow-xl shadow-orange-500/30 transition transform hover:-translate-y-0.5 active:scale-95 flex items-center gap-2"
+                    className="w-full sm:w-auto px-8 py-3.5 sm:py-4 bg-orange-500 hover:bg-orange-600 text-white font-black text-sm sm:text-base rounded-2xl shadow-xl shadow-orange-500/30 transition transform hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span>मुफ़्त एजेंट बनें (Join as Agent)</span>
                     <ArrowRight className="w-4 h-4" />
@@ -250,7 +250,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
 
                   <button
                     onClick={() => onOpenAuth('login')}
-                    className="px-6 py-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm sm:text-base rounded-2xl border border-slate-700 transition"
+                    className="w-full sm:w-auto px-6 py-3.5 sm:py-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm sm:text-base rounded-2xl border border-slate-700 transition flex items-center justify-center cursor-pointer"
                   >
                     एजेंट लॉगिन (Sign In)
                   </button>
@@ -261,7 +261,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                 href={`https://wa.me/${settings.support_whatsapp}?text=${encodeURIComponent('नमस्ते SafarGo टीम, मुझे एजेंट बनने की जानकारी चाहिए।')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-6 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm sm:text-base rounded-2xl shadow-lg transition flex items-center gap-2"
+                className="w-full sm:w-auto px-6 py-3.5 sm:py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm sm:text-base rounded-2xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 <MessageSquare className="w-4 h-4" />
                 <span>WhatsApp हेल्पलाइन</span>
@@ -269,64 +269,64 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
             </div>
 
             {/* Key Trust Badges */}
-            <div className="pt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs text-left max-w-5xl mx-auto">
-              <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl flex items-center gap-2.5">
+            <div className="pt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 text-xs text-left max-w-5xl mx-auto">
+              <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-2xl flex items-center gap-2 min-w-0 shadow-sm">
                 <div className="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center shrink-0">
                   <Clock className="w-4 h-4" />
                 </div>
-                <div>
-                  <span className="font-bold text-white block">15-Min Timer</span>
-                  <span className="text-[10px] text-slate-400">फास्ट रिस्पॉन्स</span>
+                <div className="min-w-0 flex-1">
+                  <span className="font-bold text-white block truncate">15-Min Timer</span>
+                  <span className="text-[10px] text-slate-400 block truncate">फास्ट रिस्पॉन्स</span>
                 </div>
               </div>
 
-              <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl flex items-center gap-2.5">
+              <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-2xl flex items-center gap-2 min-w-0 shadow-sm">
                 <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
                   <DollarSign className="w-4 h-4" />
                 </div>
-                <div>
-                  <span className="font-bold text-white block">₹19.34 कमीशन</span>
-                  <span className="text-[10px] text-slate-400">हर कन्फर्म टिकट</span>
+                <div className="min-w-0 flex-1">
+                  <span className="font-bold text-white block truncate">₹19.34 कमीशन</span>
+                  <span className="text-[10px] text-slate-400 block truncate">हर कन्फर्म टिकट</span>
                 </div>
               </div>
 
-              <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl flex items-center gap-2.5">
+              <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-2xl flex items-center gap-2 min-w-0 shadow-sm">
                 <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
                   <Calendar className="w-4 h-4" />
                 </div>
-                <div>
-                  <span className="font-bold text-white block">रविवार पेआउट</span>
-                  <span className="text-[10px] text-slate-400">साप्ताहिक भुगतान</span>
+                <div className="min-w-0 flex-1">
+                  <span className="font-bold text-white block truncate">रविवार पेआउट</span>
+                  <span className="text-[10px] text-slate-400 block truncate">साप्ताहिक भुगतान</span>
                 </div>
               </div>
 
-              <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl flex items-center gap-2.5">
+              <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-2xl flex items-center gap-2 min-w-0 shadow-sm">
                 <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
                   <Award className="w-4 h-4" />
                 </div>
-                <div>
-                  <span className="font-bold text-white block">₹5,000 मानदेय</span>
-                  <span className="text-[10px] text-slate-400">150 बुकिंग लक्ष्य</span>
+                <div className="min-w-0 flex-1">
+                  <span className="font-bold text-white block truncate">₹5,000 मानदेय</span>
+                  <span className="text-[10px] text-slate-400 block truncate">150 बुकिंग लक्ष्य</span>
                 </div>
               </div>
 
-              <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl flex items-center gap-2.5">
+              <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-2xl flex items-center gap-2 min-w-0 shadow-sm">
                 <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0">
                   <CheckCircle2 className="w-4 h-4" />
                 </div>
-                <div>
-                  <span className="font-bold text-white block">प्रीपेड वॉलेट</span>
-                  <span className="text-[10px] text-slate-400">Min ₹2,000 टॉप-अप</span>
+                <div className="min-w-0 flex-1">
+                  <span className="font-bold text-white block truncate">प्रीपेड वॉलेट</span>
+                  <span className="text-[10px] text-slate-400 block truncate">Min ₹2,000 टॉप-अप</span>
                 </div>
               </div>
 
-              <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl flex items-center gap-2.5">
+              <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-2xl flex items-center gap-2 min-w-0 shadow-sm">
                 <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
                   <Gift className="w-4 h-4" />
                 </div>
-                <div>
-                  <span className="font-bold text-white block">₹50 रेफरल</span>
-                  <span className="text-[10px] text-slate-400">5 बुकिंग पूरी पर</span>
+                <div className="min-w-0 flex-1">
+                  <span className="font-bold text-white block truncate">₹50 रेफरल</span>
+                  <span className="text-[10px] text-slate-400 block truncate">5 बुकिंग पूरी पर</span>
                 </div>
               </div>
             </div>
@@ -339,15 +339,15 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
       {/* 2. LIVE ROUTE SEARCH & FARE CHECKER WIDGET               */}
       {/* ======================================================== */}
       {(busMode !== 'hidden' || trackMode !== 'hidden') && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 sm:-mt-16 relative z-20">
-          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xl p-6 sm:p-8 space-y-6">
+        <section id="bus-search-tool" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 sm:-mt-16 relative z-20">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl p-4 sm:p-8 space-y-5 sm:space-y-6">
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200">
+                <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200 inline-block">
                   Interactive Bus Route Finder
                 </span>
-                <h2 className="text-lg sm:text-2xl font-black text-slate-900 mt-1">
+                <h2 className="text-base sm:text-2xl font-black text-slate-900 mt-1">
                   लोकप्रिय ग्रामीण रूट एवं अनुमानित बस किराया चेक करें
                 </h2>
               </div>
@@ -358,7 +358,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
             </div>
 
             {/* Widget Sub-Tabs: Route Finder vs PNR Status */}
-            <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-2xl border border-slate-200 self-start text-xs font-bold">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 p-1.5 bg-slate-100 rounded-2xl border border-slate-200/90 w-full sm:w-auto text-xs font-bold">
               {busMode !== 'hidden' && (
                 <button
                   type="button"
@@ -373,7 +373,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                       setWidgetTab('routes');
                     }
                   }}
-                  className={`px-4 py-2 rounded-xl transition flex items-center gap-2 cursor-pointer ${
+                  className={`w-full sm:w-auto justify-center px-4 py-2.5 rounded-xl transition flex items-center gap-2 cursor-pointer ${
                     widgetTab === 'routes'
                       ? 'bg-white text-orange-600 shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
@@ -382,7 +382,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                   <Bus className="w-3.5 h-3.5" />
                   <span>1. बस रूट व किराया खोजें</span>
                   {busMode === 'coming_soon' && (
-                    <span className="text-[9px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.5 rounded-full">जल्द आ रहा है</span>
+                    <span className="text-[9px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.5 rounded-full shrink-0">जल्द आ रहा है</span>
                   )}
                 </button>
               )}
@@ -400,7 +400,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                       setWidgetTab('track_pnr');
                     }
                   }}
-                  className={`px-4 py-2 rounded-xl transition flex items-center gap-2 cursor-pointer ${
+                  className={`w-full sm:w-auto justify-center px-4 py-2.5 rounded-xl transition flex items-center gap-2 cursor-pointer ${
                     widgetTab === 'track_pnr'
                       ? 'bg-white text-orange-600 shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
@@ -409,7 +409,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                   <Search className="w-3.5 h-3.5" />
                   <span>2. यात्री PNR / टिकट स्टेटस चेक करें</span>
                   {trackMode === 'coming_soon' && (
-                    <span className="text-[9px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.5 rounded-full">जल्द आ रहा है</span>
+                    <span className="text-[9px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.5 rounded-full shrink-0">जल्द आ रहा है</span>
                   )}
                 </button>
               )}
@@ -422,88 +422,88 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                 <span className="text-xs font-bold text-slate-600 block mb-2">
                   मध्य प्रदेश एवं कनेक्टेड मुख्य मार्ग (MP Top Corridors):
                 </span>
-                <div className="flex flex-wrap gap-2 text-xs">
+                <div className="flex items-center gap-2 overflow-x-auto sm:flex-wrap pb-1.5 text-xs no-scrollbar">
                   <button
                     type="button"
                     onClick={() => handleSelectQuickRoute('Bhopal', 'Indore')}
-                    className="px-3 py-1.5 rounded-xl border border-orange-200 bg-orange-50/70 hover:bg-orange-100 font-bold text-orange-950 transition"
+                    className="px-3 py-1.5 rounded-xl border border-orange-200 bg-orange-50/80 hover:bg-orange-100 font-bold text-orange-950 transition whitespace-nowrap shrink-0 cursor-pointer shadow-2xs"
                   >
                     भोपाल ➔ इंदौर (₹350+)
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSelectQuickRoute('Indore', 'Pune')}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition whitespace-nowrap shrink-0 cursor-pointer"
                   >
                     इंदौर ➔ पुणे (₹850+)
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSelectQuickRoute('Bhopal', 'Jaipur')}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition whitespace-nowrap shrink-0 cursor-pointer"
                   >
                     भोपाल ➔ जयपुर (₹750+)
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSelectQuickRoute('Sironj', 'Bhopal')}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition whitespace-nowrap shrink-0 cursor-pointer"
                   >
                     सिरोंज ➔ भोपाल (₹220+)
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSelectQuickRoute('Guna', 'Bhopal')}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition whitespace-nowrap shrink-0 cursor-pointer"
                   >
                     गुना ➔ भोपाल (₹320+)
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSelectQuickRoute('Ashok Nagar', 'Bhopal')}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition whitespace-nowrap shrink-0 cursor-pointer"
                   >
                     अशोक नगर ➔ भोपाल (₹340+)
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSelectQuickRoute('Chanderi', 'Jhansi')}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition whitespace-nowrap shrink-0 cursor-pointer"
                   >
                     चंदेरी ➔ झांसी (₹180+)
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSelectQuickRoute('Kurwai', 'Bina')}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition whitespace-nowrap shrink-0 cursor-pointer"
                   >
                     कुरवाई ➔ बीना (₹90+)
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSelectQuickRoute('Lateri', 'Bhopal')}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition whitespace-nowrap shrink-0 cursor-pointer"
                   >
                     लटेरी ➔ भोपाल (₹250+)
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSelectQuickRoute('Shivpuri', 'Agra')}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition whitespace-nowrap shrink-0 cursor-pointer"
                   >
                     शिवपुरी ➔ आगरा (₹450+)
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSelectQuickRoute('Ratlam', 'Indore')}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition whitespace-nowrap shrink-0 cursor-pointer"
                   >
                     रतलाम ➔ इंदौर (₹250+)
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSelectQuickRoute('Khandwa', 'Pune')}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition"
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 font-semibold text-slate-800 transition whitespace-nowrap shrink-0 cursor-pointer"
                   >
                     खंडवा ➔ पुणे (₹750+)
                   </button>
@@ -538,14 +538,15 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                   </div>
 
                   {/* Swap Button (RedBus style) */}
-                  <div className="sm:col-span-1 flex justify-center pb-1">
+                  <div className="sm:col-span-1 flex items-center justify-center my-0.5 sm:my-0 sm:pb-1">
                     <button
                       type="button"
                       onClick={handleSwapCities}
-                      className="p-2.5 rounded-xl bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-600 border border-slate-200 transition cursor-pointer shadow-xs active:rotate-180"
-                      title="रूट बदलें (Swap Cities)"
+                      className="flex items-center justify-center gap-1.5 w-full sm:w-auto px-3 py-2 sm:p-2.5 rounded-xl bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-700 border border-slate-200 transition cursor-pointer shadow-2xs active:rotate-180"
+                      title="रूट आपस में बदलें (Swap Cities)"
                     >
-                      <Repeat className="w-4 h-4" />
+                      <Repeat className="w-4 h-4 text-red-600 shrink-0" />
+                      <span className="sm:hidden font-bold text-xs">रूट बदलें (Swap)</span>
                     </button>
                   </div>
 
@@ -599,16 +600,16 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-1">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-100">
                   {/* RedBus Filter Chips */}
-                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-                    <span className="text-slate-400 text-[11px] font-bold mr-1">फ़िल्टर:</span>
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
+                    <span className="text-slate-500 text-[11px] font-bold shrink-0 mr-1">फ़िल्टर:</span>
                     <button
                       type="button"
                       onClick={() => setBusFilterType('all')}
-                      className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap cursor-pointer ${
                         busFilterType === 'all'
-                          ? 'bg-red-600 text-white shadow-xs'
+                          ? 'bg-red-600 text-white shadow-2xs'
                           : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                       }`}
                     >
@@ -617,9 +618,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                     <button
                       type="button"
                       onClick={() => setBusFilterType('ac')}
-                      className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer flex items-center gap-1 ${
+                      className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 ${
                         busFilterType === 'ac'
-                          ? 'bg-red-600 text-white shadow-xs'
+                          ? 'bg-red-600 text-white shadow-2xs'
                           : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                       }`}
                     >
@@ -628,9 +629,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                     <button
                       type="button"
                       onClick={() => setBusFilterType('seater')}
-                      className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer flex items-center gap-1 ${
+                      className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 ${
                         busFilterType === 'seater'
-                          ? 'bg-red-600 text-white shadow-xs'
+                          ? 'bg-red-600 text-white shadow-2xs'
                           : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                       }`}
                     >
@@ -639,9 +640,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                     <button
                       type="button"
                       onClick={() => setBusFilterType('sleeper')}
-                      className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer flex items-center gap-1 ${
+                      className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1 ${
                         busFilterType === 'sleeper'
-                          ? 'bg-red-600 text-white shadow-xs'
+                          ? 'bg-red-600 text-white shadow-2xs'
                           : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                       }`}
                     >
@@ -651,7 +652,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
 
                   <button
                     type="submit"
-                    className="px-6 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-extrabold rounded-xl shadow-md shadow-red-600/25 transition flex items-center gap-1.5 text-xs shrink-0 cursor-pointer active:scale-95"
+                    className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-extrabold rounded-xl shadow-md shadow-red-600/25 transition flex items-center justify-center gap-2 text-xs shrink-0 cursor-pointer active:scale-95"
                   >
                     <Search className="w-4 h-4" />
                     <span>बसें खोजें (Search Buses)</span>
@@ -826,14 +827,15 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                     value={pnrSearchInput}
                     onChange={(e) => setPnrSearchInput(e.target.value)}
                     placeholder="बुकिंग आईडी (उदा. SFG-20261010-001) या यात्री मोबाइल नंबर दर्ज करें..."
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500 bg-white"
                   />
                 </div>
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-sm rounded-xl shadow-md transition shrink-0"
+                  className="w-full sm:w-auto px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-sm rounded-xl shadow-md transition shrink-0 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                 >
-                  स्टेटस खोजें (Track Status)
+                  <Search className="w-4 h-4" />
+                  <span>स्टेटस खोजें (Track Status)</span>
                 </button>
               </form>
 
@@ -848,10 +850,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
               )}
 
               {trackedBooking && trackedBooking !== 'not_found' && (
-                <div className="p-5 sm:p-6 rounded-2xl border border-slate-200 bg-slate-50/80 space-y-4">
+                <div className="p-4 sm:p-6 rounded-2xl border border-slate-200 bg-slate-50/80 space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-mono font-bold text-xs bg-white px-2 py-0.5 rounded border border-slate-200">
                           {trackedBooking.booking_code}
                         </span>
@@ -862,7 +864,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                       </h3>
                     </div>
 
-                    <div className="text-right">
+                    <div className="text-left sm:text-right">
                       <span className="text-[10px] text-slate-400 block font-semibold">कुल किराया</span>
                       <span className="text-xl font-black text-slate-900">
                         ₹{trackedBooking.actual_fare || trackedBooking.total_estimated_amount}
@@ -871,27 +873,27 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                    <div>
+                    <div className="min-w-0">
                       <span className="text-slate-400 block font-semibold text-[10px] uppercase">मार्ग (Route)</span>
-                      <span className="font-bold text-slate-800">{trackedBooking.from_city} ➔ {trackedBooking.to_city}</span>
+                      <span className="font-bold text-slate-800 break-words">{trackedBooking.from_city} ➔ {trackedBooking.to_city}</span>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <span className="text-slate-400 block font-semibold text-[10px] uppercase">यात्रा तारीख</span>
-                      <span className="font-bold text-slate-800">{trackedBooking.journey_date}</span>
+                      <span className="font-bold text-slate-800 truncate block">{trackedBooking.journey_date}</span>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <span className="text-slate-400 block font-semibold text-[10px] uppercase">बस ऑपरेटर</span>
-                      <span className="font-bold text-slate-800">{trackedBooking.actual_operator || trackedBooking.operator_preference}</span>
+                      <span className="font-bold text-slate-800 break-words">{trackedBooking.actual_operator || trackedBooking.operator_preference}</span>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <span className="text-slate-400 block font-semibold text-[10px] uppercase">सीटें</span>
-                      <span className="font-bold text-emerald-700">{trackedBooking.confirmed_seats || 'प्रतीक्षाधीन'}</span>
+                      <span className="font-bold text-emerald-700 break-words">{trackedBooking.confirmed_seats || 'प्रतीक्षाधीन'}</span>
                     </div>
                   </div>
 
                   {/* Confirmed Details & Actions */}
                   {trackedBooking.status === 'confirmed' ? (
-                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                    <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                       <div className="flex items-center gap-2 text-emerald-900">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                         <span>
@@ -903,10 +905,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                         <button
                           type="button"
                           onClick={() => setPrintModalBooking(trackedBooking)}
-                          className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-xs"
+                          className="w-full sm:w-auto px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
                         >
                           <Printer className="w-3.5 h-3.5" />
-                          ई-टिकट पर्ची प्रिंट करें
+                          <span>ई-टिकट पर्ची प्रिंट करें</span>
                         </button>
                       </div>
                     </div>
@@ -931,12 +933,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
       {/* 2.4 SAFARGO PROMOTER PARTNER & 15-MINUTE QUICK DELIVERY  */}
       {/* ======================================================== */}
       {(prmMode !== 'hidden' || qdMode !== 'hidden') && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <section id="agent-partner-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
             {/* Card 1: Promoter Partner Program (Only 5 Candidates, ₹15,000/Month, 100% Refund) */}
             {prmMode !== 'hidden' && (
-              <div className="bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white border border-indigo-800/40 shadow-xl flex flex-col justify-between space-y-6 relative overflow-hidden">
+              <div className="bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 rounded-3xl p-5 sm:p-8 text-white border border-indigo-800/40 shadow-xl flex flex-col justify-between space-y-6 relative overflow-hidden">
                 <div className="space-y-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-400 text-slate-950 flex items-center gap-1.5 shadow-sm">
@@ -1025,7 +1027,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
 
             {/* Card 2: 15-Minute Rural Quick Delivery (Blinkit Model for MP Gap Towns) */}
             {qdMode !== 'hidden' && (
-              <div className="bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 rounded-3xl p-6 sm:p-8 text-white border border-emerald-800/40 shadow-xl flex flex-col justify-between space-y-6 relative overflow-hidden">
+              <div className="bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 rounded-3xl p-5 sm:p-8 text-white border border-emerald-800/40 shadow-xl flex flex-col justify-between space-y-6 relative overflow-hidden">
                 <div className="space-y-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-400 text-slate-950 flex items-center gap-1.5 shadow-sm">
@@ -1529,10 +1531,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             
             {/* Pillar 1 */}
-            <div className="bg-slate-800/80 border border-slate-700 p-6 rounded-3xl space-y-4 flex flex-col justify-between">
+            <div className="bg-slate-800/80 border border-slate-700/80 p-5 sm:p-6 rounded-3xl space-y-4 flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-xl">
                   ₹
@@ -1548,7 +1550,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
             </div>
 
             {/* Pillar 2 */}
-            <div className="bg-slate-800/80 border border-slate-700 p-6 rounded-3xl space-y-4 flex flex-col justify-between">
+            <div className="bg-slate-800/80 border border-slate-700/80 p-5 sm:p-6 rounded-3xl space-y-4 flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
                   <Award className="w-6 h-6" />
@@ -1564,7 +1566,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
             </div>
 
             {/* Pillar 3 */}
-            <div className="bg-slate-800/80 border border-slate-700 p-6 rounded-3xl space-y-4 flex flex-col justify-between">
+            <div className="bg-slate-800/80 border border-slate-700/80 p-5 sm:p-6 rounded-3xl space-y-4 flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="w-12 h-12 rounded-2xl bg-orange-500/20 text-orange-400 flex items-center justify-center">
                   <Gift className="w-6 h-6" />
@@ -1580,7 +1582,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
             </div>
 
             {/* Pillar 4 */}
-            <div className="bg-slate-800/80 border border-slate-700 p-6 rounded-3xl space-y-4 flex flex-col justify-between">
+            <div className="bg-slate-800/80 border border-slate-700/80 p-5 sm:p-6 rounded-3xl space-y-4 flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="w-12 h-12 rounded-2xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
                   <ShieldCheck className="w-6 h-6" />
@@ -1617,9 +1619,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           
-          <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-3 relative">
+          <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-3 relative">
             <span className="w-8 h-8 rounded-full bg-orange-500 text-white font-black text-xs flex items-center justify-center">
               1
             </span>
@@ -1629,7 +1631,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
             </p>
           </div>
 
-          <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-3 relative">
+          <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-3 relative">
             <span className="w-8 h-8 rounded-full bg-slate-900 text-white font-black text-xs flex items-center justify-center">
               2
             </span>
@@ -1639,7 +1641,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
             </p>
           </div>
 
-          <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-3 relative">
+          <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-3 relative">
             <span className="w-8 h-8 rounded-full bg-amber-500 text-white font-black text-xs flex items-center justify-center">
               3
             </span>
@@ -1649,7 +1651,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
             </p>
           </div>
 
-          <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-3 relative">
+          <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-3 relative">
             <span className="w-8 h-8 rounded-full bg-emerald-500 text-white font-black text-xs flex items-center justify-center">
               4
             </span>
@@ -1714,13 +1716,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
       {/* 7. HIGH CONVERSION BOTTOM CTA BANNER                     */}
       {/* ======================================================== */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
-        <div className="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 rounded-3xl p-8 sm:p-12 text-white shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
+        <div className="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 rounded-3xl p-6 sm:p-12 text-white shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8">
           
           <div className="space-y-3 max-w-xl text-center md:text-left">
-            <span className="text-xs font-black uppercase tracking-wider bg-black/20 px-3 py-1 rounded-full text-orange-100">
+            <span className="text-xs font-black uppercase tracking-wider bg-black/20 px-3 py-1 rounded-full text-orange-100 inline-block">
               100% Free Agent Onboarding
             </span>
-            <h2 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight">
+            <h2 className="text-xl sm:text-4xl font-black tracking-tight leading-tight">
               आज ही अपने जन सेवा केंद्र को अधिकृत बस बुकिंग सेंटर बनाएं!
             </h2>
             <p className="text-xs sm:text-sm text-orange-100 font-medium">
@@ -1728,11 +1730,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
+          <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 w-full md:w-auto">
             {currentUser ? (
               <button
                 onClick={() => onNavigateTab('new-booking')}
-                className="w-full sm:w-auto px-8 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-8 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>नई टिकट बुक करें</span>
                 <ArrowRight className="w-4 h-4" />
@@ -1741,14 +1743,14 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
               <>
                 <button
                   onClick={() => onOpenAuth('register')}
-                  className="w-full sm:w-auto px-8 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto px-8 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>फ्री में एजेंट बनें</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => onOpenAuth('login')}
-                  className="w-full sm:w-auto px-6 py-3.5 bg-white/20 hover:bg-white/30 text-white font-bold text-sm rounded-xl border border-white/30 transition"
+                  className="w-full sm:w-auto px-6 py-3.5 bg-white/20 hover:bg-white/30 text-white font-bold text-sm rounded-xl border border-white/30 transition cursor-pointer"
                 >
                   लॉगिन करें
                 </button>

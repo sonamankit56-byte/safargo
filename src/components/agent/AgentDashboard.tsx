@@ -64,7 +64,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
     let rejected = 0;
     let expired = 0;
 
-    agentBookings.forEach((b) => {
+    (agentBookings || []).forEach((b) => {
       const bDate = b.created_at.split('T')[0];
       const bMonth = b.created_at.substring(0, 7);
 
@@ -91,7 +91,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
     let totalEarned = 0;
     let paidCommission = 0;
 
-    agentCommissions.forEach((c) => {
+    (agentCommissions || []).forEach((c) => {
       if (c.status === 'credited') {
         totalEarned += c.amount;
       } else if (c.status === 'reversed') {
@@ -104,7 +104,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
     const pendingCommission = Math.max(0, totalEarned - paidCommission);
 
     // Target calculation
-    const monthlyTarget = settings.monthly_target;
+    const monthlyTarget = settings?.monthly_target || 150;
     const remainingToTarget = Math.max(0, monthlyTarget - monthConfirmed);
     const progressPercent = Math.min(100, Math.round((monthConfirmed / monthlyTarget) * 100));
 
@@ -123,10 +123,10 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
       remainingToTarget,
       progressPercent,
     };
-  }, [agentBookings, agentCommissions, todayStr, currentMonth, settings.monthly_target]);
+  }, [agentBookings, agentCommissions, todayStr, currentMonth, settings?.monthly_target]);
 
   const recentBookings = useMemo(() => {
-    return [...agentBookings]
+    return [...(agentBookings || [])]
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 5);
   }, [agentBookings]);
@@ -471,7 +471,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
               onClick={() => onNavigate('my-bookings')}
               className="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-sm transition"
             >
-              मेरी बुकिंग्स ({agentBookings.length})
+              मेरी बुकिंग्स ({(agentBookings || []).length})
             </button>
           </div>
         </div>

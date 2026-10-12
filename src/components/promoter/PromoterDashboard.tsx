@@ -84,12 +84,12 @@ export const PromoterDashboard: React.FC = () => {
   const salary = currentUser?.promoter_salary || 15000;
 
   // Promoter Application record (to check fee refund eligibility)
-  const promoterApp = promoterApplications.find(
+  const promoterApp = (promoterApplications || []).find(
     (a) => a.assigned_slot === slotNo || a.promoter_code === promoterCode || a.mobile === currentUser?.mobile
   );
 
   // Agents associated with this promoter
-  const networkAgents = allProfiles.filter(
+  const networkAgents = (allProfiles || []).filter(
     (p) =>
       p.role === 'agent' &&
       (p.promoter_code === promoterCode ||
@@ -100,7 +100,7 @@ export const PromoterDashboard: React.FC = () => {
 
   // Compute Verified Agents (Compulsory: >= 3 confirmed bus bookings!)
   const agentsWithBookingCounts = networkAgents.map((agent) => {
-    const confirmedCount = bookings.filter(
+    const confirmedCount = (bookings || []).filter(
       (b) => b.agent_id === agent.id && b.status === 'confirmed'
     ).length;
     return {
@@ -116,14 +116,14 @@ export const PromoterDashboard: React.FC = () => {
   const progressPctModel1 = Math.min(100, Math.round((verifiedAgentsCount / targetGoalModel1) * 100));
 
   // Partner shops onboarded by this promoter
-  const myShops = partnerShops.filter(
+  const myShops = (partnerShops || []).filter(
     (s) => s.promoter_id === currentUser?.id || s.promoter_name === currentUser?.full_name || s.city === currentUser?.city
   );
 
   // Model 2: 125 Agents + 20 Shopkeeper Subscriptions (Gold Package ₹699/mo)
   const targetAgentsModel2 = 125;
   const targetShopsModel2 = 20;
-  const goldShopsCount = myShops.filter((s) => s.subscription_plan_name.includes('गोल्ड') || s.monthly_fee >= 699).length;
+  const goldShopsCount = myShops.filter((s) => (s.subscription_plan_name || '').includes('गोल्ड') || (s.monthly_fee || 0) >= 699).length;
   const goldProgressPct = Math.min(100, Math.round((goldShopsCount / targetShopsModel2) * 100));
   const model2AgentsProgressPct = Math.min(100, Math.round((verifiedAgentsCount / targetAgentsModel2) * 100));
 
@@ -381,7 +381,7 @@ export const PromoterDashboard: React.FC = () => {
           }`}
         >
           <PhoneCall className="w-4 h-4" />
-          <span>दैनिक एजेंट कॉलिंग व ऑडिट ({agentCallLogs.length})</span>
+          <span>दैनिक एजेंट कॉलिंग व ऑडिट ({(agentCallLogs || []).length})</span>
         </button>
 
         <button
@@ -393,7 +393,7 @@ export const PromoterDashboard: React.FC = () => {
           }`}
         >
           <Bike className="w-4 h-4" />
-          <span>15-मिनट डिलीवरी निगरानी ({quickDeliveryOrders.length})</span>
+          <span>15-मिनट डिलीवरी निगरानी ({(quickDeliveryOrders || []).length})</span>
         </button>
       </div>
 
@@ -430,7 +430,7 @@ export const PromoterDashboard: React.FC = () => {
                 .filter(({ agent }) => {
                   if (!searchQuery) return true;
                   const q = searchQuery.toLowerCase().trim();
-                  return agent.full_name.toLowerCase().includes(q) || agent.mobile.includes(q);
+                  return (agent.full_name || '').toLowerCase().includes(q) || (agent.mobile || '').includes(q);
                 })
                 .map(({ agent, confirmedCount, isVerifiedQualityTarget }) => (
                   <div key={agent.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition">

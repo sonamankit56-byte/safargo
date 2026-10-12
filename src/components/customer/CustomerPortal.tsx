@@ -56,23 +56,25 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onNavigateTab })
   const [newCity, setNewCity] = useState(currentUser?.city || 'Indore');
 
   // Filter approved agents in MP
-  const mpAgents = allProfiles.filter((p) => p.role === 'agent' && p.agent_status === 'approved');
+  const mpAgents = (allProfiles || []).filter((p) => p.role === 'agent' && p.agent_status === 'approved');
   const filteredAgents = mpAgents.filter((a) => {
-    const matchCity = agentSearchCity === 'All' || a.city.toLowerCase() === agentSearchCity.toLowerCase();
-    const matchQ = !agentSearchQuery.trim() ||
-      a.full_name.toLowerCase().includes(agentSearchQuery.toLowerCase()) ||
-      (a.shop_name && a.shop_name.toLowerCase().includes(agentSearchQuery.toLowerCase())) ||
-      a.mobile.includes(agentSearchQuery) ||
-      a.city.toLowerCase().includes(agentSearchQuery.toLowerCase());
+    const aCity = (a.city || '').toLowerCase();
+    const matchCity = agentSearchCity === 'All' || aCity === agentSearchCity.toLowerCase();
+    const q = agentSearchQuery.toLowerCase().trim();
+    const matchQ = !q ||
+      (a.full_name || '').toLowerCase().includes(q) ||
+      (a.shop_name && a.shop_name.toLowerCase().includes(q)) ||
+      (a.mobile || '').includes(agentSearchQuery) ||
+      aCity.includes(q);
     return matchCity && matchQ;
   });
 
   // Filter bookings for this customer
-  const userMobileClean = currentUser?.mobile.replace(/\D/g, '') || '';
-  const myBookings = bookings.filter((b) => {
-    const cMobile = b.customer_mobile?.replace(/\D/g, '');
-    const aMobile = b.agent_mobile?.replace(/\D/g, '');
-    return cMobile === userMobileClean || aMobile === userMobileClean || b.agent_id === currentUser?.id;
+  const userMobileClean = currentUser?.mobile ? currentUser.mobile.replace(/\D/g, '') : '';
+  const myBookings = (bookings || []).filter((b) => {
+    const cMobile = b.customer_mobile ? b.customer_mobile.replace(/\D/g, '') : '';
+    const aMobile = b.agent_mobile ? b.agent_mobile.replace(/\D/g, '') : '';
+    return (userMobileClean && (cMobile === userMobileClean || aMobile === userMobileClean)) || (currentUser?.id && b.agent_id === currentUser.id);
   });
 
   // Filter quick deliveries for this customer

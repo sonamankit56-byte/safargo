@@ -34,6 +34,7 @@ import { AuthModal } from './components/auth/AuthModal';
 import { AnnouncementBanner } from './components/common/AnnouncementBanner';
 import { HomePage } from './components/home/HomePage';
 import { SafarGoLogo } from './components/common/SafarGoLogo';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { getTabFromPath, getPathFromTab } from './lib/routes';
 import { Bus, ShieldCheck, Heart, UserPlus, LogIn, ExternalLink } from 'lucide-react';
 
@@ -98,23 +99,31 @@ const AppContent: React.FC = () => {
     }
   }, [currentUser, role, isAdmin, navigate]);
 
-  // Strict Role-Based Route Guard: Protect admin, agent, promoter areas
+  // Strict Role-Based Route Guard: Protect admin, agent, promoter areas safely
   useEffect(() => {
     if (location.pathname.startsWith('/admin')) {
-      if (!currentUser || role !== 'admin' || !isAdmin) {
+      if (!currentUser || (role !== 'admin' && !isAdmin)) {
         if (role === 'customer') navigate('/customer', { replace: true });
         else if (role === 'shopkeeper') navigate('/shop', { replace: true });
         else if (role === 'agent') navigate('/agent/dashboard', { replace: true });
         else if (role === 'promoter') navigate('/promoter/dashboard', { replace: true });
-        else {
-          navigate('/', { replace: true });
-          handleOpenAuth('login');
-        }
+        else navigate('/', { replace: true });
       }
-    } else if (location.pathname.startsWith('/agent') || location.pathname.startsWith('/promoter/dashboard')) {
+    } else if (location.pathname.startsWith('/agent')) {
       if (!currentUser) {
         navigate('/', { replace: true });
-        handleOpenAuth('login');
+      } else if (role !== 'agent' && role !== 'admin') {
+        if (role === 'customer') navigate('/customer', { replace: true });
+        else if (role === 'shopkeeper') navigate('/shop', { replace: true });
+        else if (role === 'promoter') navigate('/promoter/dashboard', { replace: true });
+      }
+    } else if (location.pathname.startsWith('/promoter/dashboard')) {
+      if (!currentUser) {
+        navigate('/', { replace: true });
+      } else if (role !== 'promoter' && role !== 'admin') {
+        if (role === 'customer') navigate('/customer', { replace: true });
+        else if (role === 'shopkeeper') navigate('/shop', { replace: true });
+        else if (role === 'agent') navigate('/agent/dashboard', { replace: true });
       }
     }
   }, [location.pathname, currentUser, role, isAdmin, navigate]);
@@ -441,13 +450,15 @@ const AppContent: React.FC = () => {
 export function App() {
   return (
     <BrowserRouter>
-      <ToastProvider>
-        <AuthProvider>
-          <DataProvider>
-            <AppContent />
-          </DataProvider>
-        </AuthProvider>
-      </ToastProvider>
+      <ErrorBoundary>
+        <ToastProvider>
+          <AuthProvider>
+            <DataProvider>
+              <AppContent />
+            </DataProvider>
+          </AuthProvider>
+        </ToastProvider>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }

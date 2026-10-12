@@ -47,14 +47,15 @@ export const ShopkeeperPortal: React.FC = () => {
   const [newItemCategory, setNewItemCategory] = useState('');
 
   // Find this shopkeeper's shop
-  const userMobileClean = currentUser?.mobile.replace(/\D/g, '') || '';
-  const myShop = partnerShops.find(
+  const userMobileClean = currentUser?.mobile ? currentUser.mobile.replace(/\D/g, '') : '';
+  const userFullNameClean = currentUser?.full_name ? currentUser.full_name.toLowerCase() : '';
+  const myShop = (partnerShops || []).find(
     (s) =>
-      s.id === currentUser?.shop_id ||
-      s.user_id === currentUser?.id ||
-      s.mobile.replace(/\D/g, '') === userMobileClean ||
-      s.owner_name.toLowerCase() === currentUser?.full_name.toLowerCase()
-  ) || partnerShops[0]; // fallback to first partner shop if unassigned
+      (currentUser?.shop_id && s.id === currentUser.shop_id) ||
+      (currentUser?.id && s.user_id === currentUser.id) ||
+      (userMobileClean && s.mobile.replace(/\D/g, '') === userMobileClean) ||
+      (userFullNameClean && (s.owner_name || '').toLowerCase() === userFullNameClean)
+  ) || ((partnerShops && partnerShops[0]) ? partnerShops[0] : null);
 
   // Orders picking up from this shop
   const myShopOrders = quickDeliveryOrders.filter(
@@ -359,7 +360,9 @@ export const ShopkeeperPortal: React.FC = () => {
                     <div className="flex items-center gap-3">
                       <span className="font-black text-slate-900">₹{item.price}</span>
                       <button
-                        onClick={() => togglePartnerShopItemStock(myShop.id, item.id)}
+                        onClick={() => {
+                          if (myShop) togglePartnerShopItemStock(myShop.id, item.id);
+                        }}
                         className={`px-2 py-1 rounded text-[10px] font-bold ${
                           item.in_stock
                             ? 'bg-emerald-100 text-emerald-800'
@@ -524,7 +527,9 @@ export const ShopkeeperPortal: React.FC = () => {
                     </td>
                     <td className="p-3 text-right">
                       <button
-                        onClick={() => togglePartnerShopItemStock(myShop.id, item.id)}
+                        onClick={() => {
+                          if (myShop) togglePartnerShopItemStock(myShop.id, item.id);
+                        }}
                         className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-[11px]"
                       >
                         {item.in_stock ? 'स्टॉक से हटाएं' : 'स्टॉक में डालें'}

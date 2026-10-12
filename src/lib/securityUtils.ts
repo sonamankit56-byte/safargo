@@ -50,7 +50,8 @@ export const generateSecureOtpCode = (): string => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-export const maskMobileNumber = (mobile: string): string => {
+export const maskMobileNumber = (mobile?: string | null): string => {
+  if (!mobile) return '';
   const clean = mobile.replace(/\D/g, '');
   if (clean.length === 10) {
     return `${clean.slice(0, 3)}****${clean.slice(7)}`;
@@ -58,7 +59,8 @@ export const maskMobileNumber = (mobile: string): string => {
   return mobile;
 };
 
-export const maskIpAddress = (ip: string): string => {
+export const maskIpAddress = (ip?: string | null): string => {
+  if (!ip) return '';
   const parts = ip.split('.');
   if (parts.length === 4) {
     return `${parts[0]}.${parts[1]}.***.${parts[3]}`;
