@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { QuickDeliveryOrder } from '../../types';
 import {
@@ -22,7 +23,8 @@ import {
   Store,
   FileText,
   AlertCircle,
-  Truck
+  Truck,
+  Search
 } from 'lucide-react';
 
 interface FlipkartOrderTrackingViewProps {
@@ -36,16 +38,22 @@ export const FlipkartOrderTrackingView: React.FC<FlipkartOrderTrackingViewProps>
   onBack,
   onSelectOrder,
 }) => {
+  const { currentUser } = useAuth();
   const {
     quickDeliveryOrders,
     customerConfirmDeliveryOrder,
   } = useData();
   const { success, error } = useToast();
 
-  // Find active order or default to the most recent
-  const activeOrder: QuickDeliveryOrder | undefined = orderId
-    ? quickDeliveryOrders.find((o) => o.id === orderId)
-    : quickDeliveryOrders[0];
+  const [searchInput, setSearchInput] = useState('');
+  const [searchedOrder, setSearchedOrder] = useState<QuickDeliveryOrder | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
+
+  // Active order is resolved ONLY when an explicit orderId is passed or the user searches for one.
+  // Never default to a random mock order!
+  const activeOrder: QuickDeliveryOrder | null =
+    (orderId ? quickDeliveryOrders.find((o) => o.id === orderId || o.order_code.toLowerCase() === orderId.toLowerCase()) : null) ||
+    searchedOrder;
 
   const [copiedCode, setCopiedCode] = useState(false);
   const [photoZoom, setPhotoZoom] = useState<string | null>(null);
@@ -82,20 +90,152 @@ export const FlipkartOrderTrackingView: React.FC<FlipkartOrderTrackingViewProps>
     }
   };
 
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchInput.trim().toLowerCase();
+    if (!q) {
+      error('Input Required', 'कृपया अपना Order ID या 10-अंकों का मोबाइल नंबर दर्ज करें।');
+      return;
+    }
+    setHasSearched(true);
+    const cleanDigits = q.replace(/\D/g, '');
+    const found = quickDeliveryOrders.find(
+      (o) =>
+        o.order_code.toLowerCase() === q ||
+        o.id.toLowerCase() === q ||
+        (cleanDigits.length >= 10 && o.customer_mobile.replace(/\D/g, '').includes(cleanDigits))
+    );
+
+    if (found) {
+      setSearchedOrder(found);
+      if (onSelectOrder) onSelectOrder(found.id);
+      success('ऑर्डर मिला! 📦', `ऑर्डर ${found.order_code} का लाइव स्टेटस नीचे लोड हो गया है।`);
+    } else {
+      setSearchedOrder(null);
+    }
+  };
+
   if (!activeOrder) {
+    const userOrders = currentUser
+      ? quickDeliveryOrders.filter((o) => {
+          const uMob = currentUser.mobile ? currentUser.mobile.replace(/\D/g, '').slice(-10) : '';
+          return (
+            (uMob && o.customer_mobile.replace(/\D/g, '').includes(uMob)) ||
+            (currentUser.full_name && o.customer_name.toLowerCase().includes(currentUser.full_name.toLowerCase()))
+          );
+        })
+      : [];
+
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12 text-center space-y-4">
-        <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto">
-          <Package className="w-8 h-8" />
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-fadeIn">
+        {/* Back and Brand Header */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={onBack}
+            className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>← वापस जाएं</span>
+          </button>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-black">
+            <Package className="w-3.5 h-3.5" />
+            <span>SafarGo आधिकारिक आर्डर ट्रैकर</span>
+          </div>
         </div>
-        <h2 className="text-xl font-black text-slate-800">कोई ऑर्डर नहीं मिला</h2>
-        <p className="text-xs text-slate-500">कृपया नया ऑर्डर करें या ऑर्डर लिस्ट से चुनें।</p>
-        <button
-          onClick={onBack}
-          className="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition"
-        >
-          ← वापस जाएं
-        </button>
+
+        {/* Big Search Hero Desk */}
+        <div className="bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-10 text-white shadow-2xl border border-indigo-800/40 relative overflow-hidden">
+          <div className="relative z-10 max-w-2xl mx-auto text-center space-y-4">
+            <div className="w-16 h-16 rounded-2xl bg-indigo-600/30 border border-indigo-400/40 flex items-center justify-center mx-auto shadow-inner">
+              <Package className="w-8 h-8 text-indigo-300" />
+            </div>
+
+            <h1 className="text-2xl sm:text-4xl font-black tracking-tight">
+              सफ़ारगो आर्डर ट्रैक <br />
+              <span className="bg-gradient-to-r from-amber-300 via-emerald-300 to-teal-300 bg-clip-text text-transparent">
+                SafarGo 5-स्टेप एक्सप्रेस लाइव ट्रैकिंग
+              </span>
+            </h1>
+
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-lg mx-auto">
+              अपने 15-मिनट क्विक डिलीवरी ऑर्डर का लाइव स्टेटस देखें — एजेंट असाइनमेंट, दुकान से बिल फोटो और घर तक डिलीवरी की पल-पल की जानकारी।
+            </p>
+
+            {/* Search Input Bar */}
+            <form onSubmit={handleSearchSubmit} className="pt-2 flex flex-col sm:flex-row gap-2 max-w-xl mx-auto">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder="Order ID (उदा. SFG-QD-...) या मोबाइल नंबर दर्ज करें"
+                  className="w-full pl-10 pr-4 py-3.5 rounded-2xl bg-white/10 border border-white/20 text-white placeholder-slate-400 text-xs sm:text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white/15 transition"
+                />
+              </div>
+              <button
+                type="submit"
+                className="py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 font-black text-xs sm:text-sm shadow-lg transition shrink-0 cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Search className="w-4 h-4" />
+                <span>आर्डर ट्रैक करें</span>
+              </button>
+            </form>
+
+            {hasSearched && !searchedOrder && (
+              <div className="p-3.5 rounded-2xl bg-rose-500/20 border border-rose-400/40 text-rose-200 text-xs font-semibold max-w-xl mx-auto flex items-center justify-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-300 shrink-0" />
+                <span>इस विवरण पर कोई सक्रिय ऑर्डर नहीं मिला। कृपया अपना 10-अंकों का पंजीकृत मोबाइल नंबर या सही Order ID जांचें।</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* If user logged in and has recent orders */}
+        {userOrders.length > 0 && (
+          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+            <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
+              <Clock className="w-4 h-4 text-indigo-600" />
+              <span>आपके हालिया SafarGo ऑर्डर्स (Click to Track):</span>
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {userOrders.map((o) => (
+                <div
+                  key={o.id}
+                  onClick={() => {
+                    setSearchedOrder(o);
+                    if (onSelectOrder) onSelectOrder(o.id);
+                  }}
+                  className="p-4 rounded-2xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/40 transition cursor-pointer flex items-center justify-between gap-3 group"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-xs text-indigo-900 bg-indigo-100 px-2 py-0.5 rounded-md">
+                        {o.order_code}
+                      </span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        o.status === 'delivered' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
+                      }`}>
+                        {o.status === 'delivered' ? 'डिलीवर ✓' : 'प्रगति पर ⚡'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-700 font-semibold line-clamp-1">
+                      {o.items_description}
+                    </p>
+                    <span className="text-[10px] text-slate-400 block">
+                      कुल: ₹{o.total_order_amount || o.delivery_fee} • {o.city}
+                    </span>
+                  </div>
+
+                  <span className="text-xs font-bold text-indigo-600 group-hover:translate-x-1 transition flex items-center gap-1 shrink-0">
+                    ट्रैक ➔
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -148,23 +288,36 @@ export const FlipkartOrderTrackingView: React.FC<FlipkartOrderTrackingViewProps>
           </div>
         </div>
 
-        {/* Order Selector (if multiple orders exist) */}
-        {quickDeliveryOrders.length > 1 && (
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-slate-400 text-[11px]">अन्य ऑर्डर देखें:</span>
-            <select
-              value={activeOrder.id}
-              onChange={(e) => onSelectOrder ? onSelectOrder(e.target.value) : undefined}
-              className="py-1.5 px-2.5 rounded-xl border border-slate-300 text-xs font-semibold bg-slate-50 outline-none"
-            >
-              {quickDeliveryOrders.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.order_code} ({o.status === 'delivered' ? 'डिलीवर ✓' : 'चालू ⚡'})
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => {
+              setSearchedOrder(null);
+              if (onSelectOrder) onSelectOrder('');
+            }}
+            className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border border-slate-200"
+          >
+            <Search className="w-3.5 h-3.5" />
+            <span>दूसरा आर्डर खोजें</span>
+          </button>
+
+          {/* Order Selector (if multiple orders exist) */}
+          {quickDeliveryOrders.length > 1 && (
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-slate-400 text-[11px]">अन्य ऑर्डर:</span>
+              <select
+                value={activeOrder.id}
+                onChange={(e) => onSelectOrder ? onSelectOrder(e.target.value) : undefined}
+                className="py-1.5 px-2.5 rounded-xl border border-slate-300 text-xs font-semibold bg-slate-50 outline-none"
+              >
+                {quickDeliveryOrders.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.order_code} ({o.status === 'delivered' ? 'डिलीवर ✓' : 'चालू ⚡'})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 2. Flipkart Delivery Status Card with Big ETA Banner */}
@@ -248,7 +401,7 @@ export const FlipkartOrderTrackingView: React.FC<FlipkartOrderTrackingViewProps>
           <div>
             <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
               <Package className="w-5 h-5 text-indigo-600" />
-              <span>फ्लिपकार्ट स्टाइल ऑर्डर ट्रैकिंग स्टेप्स (Flipkart Order Tracker)</span>
+              <span>सफ़ारगो लाइव ऑर्डर ट्रैकिंग (SafarGo Live Order Tracker)</span>
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
               5-चरणीय लाइव पारदर्शी डिलीवरी ट्रैकर - 5 मिनट पिकअप से 15 मिनट डिलीवरी तक
@@ -634,7 +787,7 @@ export const FlipkartOrderTrackingView: React.FC<FlipkartOrderTrackingViewProps>
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
               <FileText className="w-4 h-4 text-indigo-600" />
-              <span>मूल्य विवरण (Flipkart Price Breakdown)</span>
+              <span>मूल्य विवरण (SafarGo Price Breakdown)</span>
             </h4>
             <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
               कैश / UPI ऑन डिलीवरी

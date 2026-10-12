@@ -2,9 +2,10 @@ import React, { useState, useId, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
-import { SeatCategory, Passenger, Booking, PromoCode } from '../../types';
+import { SeatCategory, Passenger, Booking, PromoCode, BusTrip } from '../../types';
 import { BookingSuccessModal } from './BookingSuccessModal';
 import { WalletRechargeModal } from './WalletRechargeModal';
+import { RedBusSeatMapModal, SelectedSeatItem } from '../bus/RedBusSeatMapModal';
 import { MP_NETWORK_CITIES } from '../../lib/mockData';
 import {
   Bus,
@@ -33,7 +34,7 @@ import {
 
 export const ManualBookingForm: React.FC = () => {
   const { isApprovedAgent, isAdmin, currentUser } = useAuth();
-  const { createBooking, agentWalletBalance, settings, promoCodes, applyPromoCode } = useData();
+  const { createBooking, agentWalletBalance, settings, promoCodes, applyPromoCode, busTrips } = useData();
   const { error, warning, success } = useToast();
 
   const [customerName, setCustomerName] = useState('');
@@ -69,6 +70,41 @@ export const ManualBookingForm: React.FC = () => {
 
   // Boarding Sathi Assistance Service State (+₹33 customer charge, +₹23 agent payout, ₹10 SafarGo share)
   const [boardingSathiOpted, setBoardingSathiOpted] = useState(false);
+
+  // RedBus Interactive Seat Selection Modal State
+  const [isSeatMapOpen, setIsSeatMapOpen] = useState(false);
+  const [selectedSeatNumbers, setSelectedSeatNumbers] = useState<string[]>([]);
+
+  const activeTripForSeatMap: BusTrip = useMemo(() => {
+    const sCity = fromCity.trim() || 'Bhopal';
+    const dCity = toCity.trim() || 'Indore';
+    const match = (busTrips || []).find(
+      (t) =>
+        t.source.toLowerCase() === sCity.toLowerCase() &&
+        t.destination.toLowerCase() === dCity.toLowerCase()
+    );
+    if (match) return match;
+    return {
+      id: 'agent-custom-trip',
+      operator_name: operatorPreference || 'SafarGo Royal Star Express',
+      source: sCity,
+      destination: dCity,
+      journey_date: journeyDate || new Date().toISOString().split('T')[0],
+      departure_time: departureTimePref.includes('06:00') ? '06:30 PM' : '09:00 PM',
+      arrival_time: '06:00 AM (Next Day)',
+      bus_type: seatCategory.includes('ac') ? 'AC Sleeper 2+1' : 'Non-AC Seater/Sleeper',
+      seater_fare: Math.max(450, Math.round(estimatedFare * 0.75)),
+      sleeper_fare: estimatedFare || 850,
+      available_seater: 16,
+      available_sleeper: 12,
+      boarding_points: [`${sCity} Main Bus Stand`, `${sCity} Bypass`],
+      drop_points: [`${dCity} Central Bus Stand`, `${dCity} Bypass`],
+      notes: 'SafarGo Verified MP Bus Service',
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+  }, [busTrips, fromCity, toCity, journeyDate, operatorPreference, departureTimePref, estimatedFare, seatCategory]);
 
   // Generate an idempotency key per form session to prevent double submits
   const [idempotencyKey, setIdempotencyKey] = useState<string>(() => `idemp-${Date.now()}`);
@@ -548,6 +584,46 @@ export const ManualBookingForm: React.FC = () => {
                   className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm outline-none transition"
                 />
               </div>
+            </div>
+
+            {/* RedBus-Inspired Interactive Seat Selection Card */}
+            <div className="mt-5 p-4 rounded-2xl bg-gradient-to-r from-rose-50 via-orange-50 to-amber-50 border-2 border-dashed border-rose-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded bg-rose-600 text-white uppercase tracking-wider">
+                    RedBus Inspired
+                  </span>
+                  <h4 className="text-sm font-black text-slate-900 flex items-center gap-1.5">
+                    <Bus className="w-4 h-4 text-rose-600" />
+                    <span>रेडबस स्टाइल इंटरैक्टिव सीट मैप (बैठने वाले Seater / सोने वाले Sleeper)</span>
+                  </h4>
+                </div>
+                <p className="text-xs text-slate-600">
+                  सीट लेआउट खोलकर लोअर व अपर डेक में से बैठने वाली कुर्सियां (Seater Chairs) अथवा तकिए वाले AC स्लीपर बेड चुनें।
+                </p>
+                {selectedSeatNumbers.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-xs font-bold text-slate-700">✓ चुनी गई सीटें:</span>
+                    {selectedSeatNumbers.map((seat) => (
+                      <span
+                        key={seat}
+                        className="text-xs font-black px-2.5 py-0.5 rounded-full bg-rose-600 text-white shadow-2xs"
+                      >
+                        {seat}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsSeatMapOpen(true)}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-500 hover:to-orange-500 text-white font-extrabold text-xs shadow-md shadow-rose-600/20 flex items-center justify-center gap-2 transition cursor-pointer shrink-0"
+              >
+                <Bus className="w-4 h-4" />
+                <span>{selectedSeatNumbers.length > 0 ? 'सीटें बदलें (Change Seats)' : 'सीट मैप खोलें (Open Seat Map) ▾'}</span>
+              </button>
             </div>
           </div>
 
@@ -1140,6 +1216,45 @@ export const ManualBookingForm: React.FC = () => {
       {isWalletModalOpen && (
         <WalletRechargeModal
           onClose={() => setIsWalletModalOpen(false)}
+        />
+      )}
+
+      {/* RedBus Interactive Seat Selection Modal */}
+      {isSeatMapOpen && (
+        <RedBusSeatMapModal
+          trip={activeTripForSeatMap}
+          onClose={() => setIsSeatMapOpen(false)}
+          onConfirmSelection={({ selectedSeats, totalFare, seatCategory: newCat, boardingPoint: bp, dropPoint: dp, passengerCount: pCount }) => {
+            setSelectedSeatNumbers(selectedSeats.map((s) => s.number));
+            setSeatCategory(newCat);
+            setPassengerCount(pCount);
+            setEstimatedFare(Math.round(totalFare / (pCount || 1)));
+            if (bp) setBoardingPoint(bp);
+            if (dp) setDropPoint(dp);
+
+            // Auto-populate passengers count
+            const updated: Passenger[] = [];
+            for (let i = 0; i < pCount; i++) {
+              updated.push(
+                passengers[i] || {
+                  id: `p-${i + 1}`,
+                  name: i === 0 ? customerName : '',
+                  age: 28,
+                  gender: 'male',
+                }
+              );
+            }
+            setPassengers(updated);
+
+            const seatListStr = selectedSeats.map((s) => `${s.number} (${s.type === 'sleeper' ? 'स्लीपर' : 'सीटर'})`).join(', ');
+            setAgentNotes((prev) => {
+              const clean = prev.replace(/\s*\|\s*RedBus सीटें:.*$/i, '').trim();
+              return clean ? `${clean} | RedBus सीटें: ${seatListStr}` : `RedBus सीटें: ${seatListStr}`;
+            });
+
+            setIsSeatMapOpen(false);
+            success('सीटें सफलतापूर्वक चुनी गईं!', `${selectedSeats.length} सीटें (${seatListStr}) अपडेट हो गईं।`);
+          }}
         />
       )}
     </div>

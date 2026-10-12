@@ -32,7 +32,8 @@ import {
   Award,
   Store,
   Tag,
-  Clock
+  Clock,
+  Package
 } from 'lucide-react';
 import { ComingSoonModal } from './ComingSoonModal';
 import { getFeatureMode } from '../../lib/featureFlags';
@@ -140,6 +141,19 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                 </span>
               </button>
             )}
+
+            {/* SafarGo Order Track */}
+            <button
+              onClick={() => handleTabChange('track-order')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition cursor-pointer ${
+                currentTab === 'track-order'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Package className="w-4 h-4 text-indigo-400" />
+              <span>SafarGo आर्डर ट्रैक</span>
+            </button>
 
             {/* Promoter Partner Program */}
             {prmMode !== 'hidden' && (
@@ -706,6 +720,24 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                 )}
               </button>
             )}
+
+            {/* SafarGo Order Track */}
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                handleTabChange('track-order');
+              }}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-between ${
+                currentTab === 'track-order' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <Package className="w-4 h-4 text-indigo-400" /> SafarGo आर्डर ट्रैक
+              </span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
+                📦 लाइव
+              </span>
+            </button>
 
             {prmMode !== 'hidden' && (
               <button

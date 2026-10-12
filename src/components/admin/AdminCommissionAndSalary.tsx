@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { SalaryRecord, PayoutRequest, WalletRechargeRequest } from '../../types';
+import { SalaryRecord, PayoutRequest, WalletRechargeRequest, Profile } from '../../types';
+import { AdminWalletAdjustmentModal } from './AdminWalletAdjustmentModal';
 import {
   DollarSign,
   Wallet,
@@ -66,6 +67,7 @@ export const AdminCommissionAndSalary: React.FC = () => {
   const [approvingRechargeId, setApprovingRechargeId] = useState<string | null>(null);
   const [rechargeApproveNotes, setRechargeApproveNotes] = useState('');
   const [isSubmittingRechargeAction, setIsSubmittingRechargeAction] = useState(false);
+  const [adjustingAgent, setAdjustingAgent] = useState<Profile | null>(null);
 
   const handlePaySalary = async () => {
     if (!paymentModalRecord) return;
@@ -540,9 +542,22 @@ export const AdminCommissionAndSalary: React.FC = () => {
                 एजेंट्स द्वारा प्रीपेड बैलेंस (न्यूनतम ₹{settings.min_wallet_recharge.toLocaleString('en-IN')}) हेतु जमा किए गए अनुरोध • सत्यापन के बाद बैलेंस तुरंत एजेंट वॉलेट में क्रेडिट होता है
               </p>
             </div>
-            <span className="text-xs font-bold text-slate-400">
-              {walletRecharges.length} कुल अनुरोध
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const firstAgent = allProfiles.find((p) => p.role === 'agent');
+                  if (firstAgent) setAdjustingAgent(firstAgent);
+                }}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition active:scale-95 cursor-pointer"
+              >
+                <Wallet className="w-3.5 h-3.5" />
+                <span>मैन्युअल वॉलेट एडजस्ट करें (+/-)</span>
+              </button>
+              <span className="text-xs font-bold text-slate-400">
+                {walletRecharges.length} कुल अनुरोध
+              </span>
+            </div>
           </div>
 
           {walletRecharges.length === 0 ? (
@@ -676,6 +691,22 @@ export const AdminCommissionAndSalary: React.FC = () => {
                             <XCircle className="w-3.5 h-3.5" /> अस्वीकृत
                           </span>
                         )}
+                        {(() => {
+                          const rowAgent = allProfiles.find((p) => p.id === r.agent_id);
+                          if (rowAgent) {
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => setAdjustingAgent(rowAgent)}
+                                className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-bold text-[11px] border border-blue-200 ml-2 cursor-pointer transition"
+                                title="इस एजेंट का वॉलेट बैलेंस सीधे एडजस्ट करें"
+                              >
+                                वॉलेट (+/-)
+                              </button>
+                            );
+                          }
+                          return null;
+                        })()}
                       </td>
                     </tr>
                   ))}
@@ -1074,6 +1105,14 @@ export const AdminCommissionAndSalary: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Admin Manual Wallet Adjustment Modal */}
+      {adjustingAgent && (
+        <AdminWalletAdjustmentModal
+          agent={adjustingAgent}
+          onClose={() => setAdjustingAgent(null)}
+        />
       )}
 
     </div>

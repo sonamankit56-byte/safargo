@@ -84,8 +84,8 @@ export const PLATFORM_FEATURE_DEFINITIONS: PlatformFeatureDefinition[] = [
   },
   {
     key: 'feature_live_tracking_mode',
-    name: 'Live PNR & Flipkart-Style Order Tracking',
-    hindiName: 'लाइव PNR व डिलीवरी स्टेप ट्रैकिंग',
+    name: 'Live PNR & SafarGo Order Tracking',
+    hindiName: 'लाइव PNR व SafarGo आर्डर ट्रैकिंग',
     category: 'core',
     description: 'PNR नंबर या आर्डर नंबर से लाइव स्टेप-बाय-स्टेप स्थिति व टाइमर ट्रैकिंग।',
     iconName: 'Search'

@@ -145,7 +145,7 @@ const AppContent: React.FC = () => {
             }}
           />
         ) : currentTab === 'quick-delivery' ? (
-          <QuickDeliveryHub />
+          <QuickDeliveryHub onOpenAuth={handleOpenAuth} />
         ) : currentTab === 'promoter-program' ? (
           <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
             <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
@@ -194,7 +194,7 @@ const AppContent: React.FC = () => {
               </div>
             </div>
 
-            <QuickDeliveryHub />
+            <QuickDeliveryHub onOpenAuth={handleOpenAuth} />
           </div>
         ) : currentTab === 'promoter-dashboard' ? (
           <PromoterDashboard />

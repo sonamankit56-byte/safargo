@@ -110,6 +110,7 @@ interface DataContextType {
   requestWalletRecharge: (amount: number, utr: string, screenshotUrl?: string, paymentMethod?: 'upi_qr' | 'bank_transfer') => Promise<boolean>;
   approveWalletRecharge: (rechargeId: string, adminNotes?: string) => Promise<boolean>;
   rejectWalletRecharge: (rechargeId: string, reason: string) => Promise<boolean>;
+  adjustAgentWallet: (agentId: string, amount: number, type: 'credit' | 'debit', reason: string) => Promise<boolean>;
 
   // Viral Creator & Social Media Promotion (Instagram 1M => ₹500, YouTube 10k => ₹100, 24-hr SLA)
   promotionClaims: PromotionClaim[];
@@ -1682,8 +1683,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     success(
-      'रिचार्ज अनुरोध सबमिट!',
-      `₹${amount.toLocaleString('en-IN')} का वॉलेट टॉप-अप अनुरोध SafarGo एडमिन को भेज दिया गया है। एडमिन सत्यापन के बाद राशि वॉलेट में जमा होगी।`
+      'अनुरोध एडमिन को भेजा गया!',
+      `आपका पैसा कुछ ही देर में आपके वॉलेट में जोड़ दिया जाएगा (सत्यापन प्रक्रियाधीन)। अनुरोध SafarGo एडमिन को भेज दिया गया है!`
     );
     return true;
   };
@@ -1785,6 +1786,88 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     warning('Recharge Rejected', `वॉलेट रिचार्ज अस्वीकृत: ${reason}`);
+    return true;
+  };
+
+  const adjustAgentWallet = async (
+    agentId: string,
+    amount: number,
+    type: 'credit' | 'debit',
+    reason: string
+  ): Promise<boolean> => {
+    if (!isAdmin) {
+      error('Unauthorized', 'केवल एडमिन ही एजेंट के वॉलेट में बदलाव कर सकते हैं।');
+      return false;
+    }
+
+    if (!agentId || amount <= 0 || !reason.trim()) {
+      error('Invalid Input', 'कृपया वैध राशि और कारण दर्ज करें।');
+      return false;
+    }
+
+    const targetProfile = allProfiles.find((p) => p.id === agentId);
+    if (!targetProfile) {
+      error('Agent Not Found', 'यह एजेंट सिस्टम में नहीं मिला।');
+      return false;
+    }
+
+    const currentBal = targetProfile.wallet_balance || 0;
+    let newBal = currentBal;
+
+    if (type === 'credit') {
+      newBal = currentBal + amount;
+    } else {
+      if (currentBal < amount) {
+        error(
+          'Insufficient Balance',
+          `एजेंट का वर्तमान बैलेंस केवल ₹${currentBal.toLocaleString('en-IN')} है, ₹${amount.toLocaleString('en-IN')} नहीं काटा जा सकता।`
+        );
+        return false;
+      }
+      newBal = currentBal - amount;
+    }
+
+    const nowIso = new Date().toISOString();
+
+    if (currentUser?.id === agentId) {
+      await updateProfile({ wallet_balance: newBal });
+    } else if (isSupabaseConfigured) {
+      db.updateProfile(agentId, { wallet_balance: newBal }).catch(console.error);
+    }
+
+    const adjTx: WalletTransaction = {
+      id: `wtx-${Date.now()}`,
+      agent_id: agentId,
+      amount: amount,
+      type: 'adjustment',
+      description: `एडमिन द्वारा मैन्युअल ${type === 'credit' ? 'क्रेडिट (+)' : 'डेबिट (-)'}: ${reason.trim()}`,
+      balance_after: newBal,
+      created_at: nowIso,
+    };
+
+    setWalletTransactions((prev) => [adjTx, ...prev]);
+    if (isSupabaseConfigured) {
+      db.createWalletTransaction(adjTx).catch(console.error);
+    }
+
+    addAuditLog(
+      type === 'credit' ? 'admin_wallet_credit' : 'admin_wallet_debit',
+      'profiles',
+      agentId,
+      {
+        amount,
+        type,
+        reason,
+        previous_balance: currentBal,
+        new_balance: newBal,
+      }
+    );
+
+    success(
+      'वॉलेट बैलेंस अपडेट!',
+      `${targetProfile.full_name} के वॉलेट में ₹${amount.toLocaleString('en-IN')} ${type === 'credit' ? 'सफलतापूर्वक जोड़े गए' : 'सफलतापूर्वक काटे गए'}। नया बैलेंस: ₹${newBal.toLocaleString('en-IN')}`
+    );
+
     return true;
   };
 
@@ -2606,6 +2689,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         requestWalletRecharge,
         approveWalletRecharge,
         rejectWalletRecharge,
+        adjustAgentWallet,
         promotionClaims,
         agentPromotionClaims,
         submitPromotionClaim,

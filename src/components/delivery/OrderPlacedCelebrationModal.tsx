@@ -217,7 +217,7 @@ export const OrderPlacedCelebrationModal: React.FC<OrderPlacedCelebrationModalPr
               className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-700 hover:from-emerald-700 hover:to-indigo-800 text-white font-black text-sm shadow-xl hover:shadow-2xl transition transform active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
             >
               <Package className="w-5 h-5" />
-              <span>📦 लाइव आर्डर ट्रैक करें (Flipkart Style Tracker)</span>
+              <span>📦 सफ़ारगो लाइव आर्डर ट्रैक करें (SafarGo Order Track)</span>
               <ArrowRight className="w-4 h-4 ml-1" />
             </button>
 

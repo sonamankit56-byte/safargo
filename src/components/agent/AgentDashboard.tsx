@@ -43,7 +43,7 @@ interface AgentDashboardProps {
 
 export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) => {
   const { currentUser, isApprovedAgent } = useAuth();
-  const { agentBookings, agentCommissions, agentSalaryRecord, settings, agentWalletBalance } = useData();
+  const { agentBookings, agentCommissions, agentSalaryRecord, settings, agentWalletBalance, agentWalletRecharges } = useData();
   const [showRechargeModal, setShowRechargeModal] = useState(false);
   const [isKycModalOpen, setIsKycModalOpen] = useState(false);
   const [isPosterModalOpen, setIsPosterModalOpen] = useState(false);
@@ -580,6 +580,20 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
                 + जोड़ें
               </button>
             </div>
+
+            {agentWalletRecharges && agentWalletRecharges.filter(r => r.status === 'pending').slice(0, 1).map(pendingRec => (
+              <div key={pendingRec.id} className="mt-3 p-2.5 rounded-xl bg-amber-500/20 border border-amber-400/40 text-[11px] text-amber-100 flex items-start gap-2 animate-fadeIn">
+                <Clock className="w-3.5 h-3.5 text-amber-300 shrink-0 mt-0.5 animate-pulse" />
+                <div className="space-y-0.5">
+                  <span className="font-bold text-amber-300 block">
+                    ₹{pendingRec.amount.toLocaleString('en-IN')} का अनुरोध एडमिन के पास लंबित है
+                  </span>
+                  <p className="text-[10px] text-amber-200">
+                    आपका पैसा कुछ ही देर में आपके वॉलेट में होगा (सत्यापन प्रक्रियाधीन)।
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 

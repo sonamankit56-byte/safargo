@@ -12,7 +12,8 @@ import {
   ShieldCheck,
   AlertCircle,
   ArrowRight,
-  QrCode
+  QrCode,
+  CheckCircle2
 } from 'lucide-react';
 import { SafarGoLogo } from '../common/SafarGoLogo';
 
@@ -31,6 +32,7 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
   const [screenshotPreview, setScreenshotPreview] = useState<string>('');
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
 
   const upiId = settings.safargo_upi_id || 'safargo.booking@icici';
   const parsedAmount = parseFloat(amount) || 0;
@@ -86,12 +88,64 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
         paymentMethod
       );
       if (ok) {
-        onClose();
+        setIsSubmittedSuccess(true);
       }
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (isSubmittedSuccess) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs animate-in fade-in">
+        <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 my-8 p-6 sm:p-8 text-center space-y-6">
+          <div className="w-20 h-20 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
+            <CheckCircle2 className="w-10 h-10" />
+          </div>
+
+          <div className="space-y-2">
+            <span className="text-[11px] font-black uppercase tracking-wider px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full inline-block">
+              अनुरोध SafarGo एडमिन को भेजा गया ✓
+            </span>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900">
+              आपका पैसा कुछ ही देर में आपके वॉलेट में होगा!
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md mx-auto">
+              एडमिन द्वारा आपका <strong>UTR ({utrNumber})</strong> एवं पेमेंट रसीद सत्यापित की जा रही है। सत्यापन संपन्न होते ही राशि आपके वॉलेट में तुरंत जोड़ दी जाएगी।
+            </p>
+          </div>
+
+          <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 text-left space-y-2.5 text-xs">
+            <div className="flex justify-between items-center text-slate-600">
+              <span>अनुरोध राशि (Amount):</span>
+              <strong className="text-slate-900 text-base font-black">₹{parsedAmount.toLocaleString('en-IN')}</strong>
+            </div>
+            <div className="flex justify-between items-center text-slate-600">
+              <span>बैंक UTR / UPI Ref:</span>
+              <strong className="font-mono text-slate-900 font-bold">{utrNumber}</strong>
+            </div>
+            <div className="flex justify-between items-center text-slate-600">
+              <span>भुगतान विधि:</span>
+              <span className="font-bold text-slate-800">{paymentMethod === 'upi_qr' ? 'SafarGo UPI QR' : 'बैंक ट्रांसफर'}</span>
+            </div>
+            <div className="flex justify-between items-center text-slate-600 pt-2 border-t border-slate-200">
+              <span>स्थिति:</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 flex items-center gap-1">
+                ⏳ सत्यापन प्रक्रियाधीन (Under Review)
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="w-full py-3.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-extrabold text-sm rounded-xl shadow-lg transition active:scale-95 cursor-pointer"
+          >
+            समझ गया / डैशबोर्ड पर जाएं (Done)
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs animate-in fade-in">

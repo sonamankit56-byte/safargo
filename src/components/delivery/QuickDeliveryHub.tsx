@@ -30,7 +30,11 @@ import {
 import { OrderPlacedCelebrationModal } from './OrderPlacedCelebrationModal';
 import { FlipkartOrderTrackingView } from './FlipkartOrderTrackingView';
 
-export const QuickDeliveryHub: React.FC = () => {
+interface QuickDeliveryHubProps {
+  onOpenAuth?: (tab?: 'login' | 'register') => void;
+}
+
+export const QuickDeliveryHub: React.FC<QuickDeliveryHubProps> = ({ onOpenAuth }) => {
   const { currentUser } = useAuth();
   const {
     quickDeliveryOrders,
@@ -92,6 +96,11 @@ export const QuickDeliveryHub: React.FC = () => {
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentUser) {
+      error('Login Required', '15-मिनट क्विक डिलीवरी ऑर्डर करने के लिए कृपया SafarGo में लॉगिन करें।');
+      if (onOpenAuth) onOpenAuth('login');
+      return;
+    }
     if (!customerName.trim() || customerMobile.replace(/\D/g, '').length !== 10) {
       error('Invalid Details', 'कृपया अपना नाम और 10-अंकों का मोबाइल नंबर दर्ज करें।');
       return;
@@ -257,6 +266,43 @@ export const QuickDeliveryHub: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Animated SafarGo Quick Delivery Login Banner for Unauthenticated Users */}
+      {!currentUser && (
+        <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-900 text-white rounded-3xl p-5 sm:p-6 border-2 border-emerald-500/50 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-5 animate-pulse">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/40 animate-bounce">
+              <Bike className="w-8 h-8" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950">
+                  🔒 लॉगिन आवश्यक
+                </span>
+                <span className="text-xs text-emerald-300 font-bold">
+                  SafarGo 15-Minute Rural Express
+                </span>
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-white">
+                क्विक डिलीवरी का लाभ लेने के लिए लॉगिन करें!
+              </h3>
+              <p className="text-xs text-emerald-200/90 max-w-xl">
+                सीधे अपने मोबाइल नंबर से लॉगिन करें ताकि राइडर आपका सामान 15 मिनट में आपके पते पर पहुंचा सके।
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onOpenAuth ? onOpenAuth('login') : undefined}
+            className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-emerald-400 hover:from-amber-300 hover:to-emerald-300 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-emerald-500/30 transition flex items-center gap-2 shrink-0 active:scale-95 cursor-pointer"
+          >
+            <Zap className="w-4 h-4 fill-slate-950" />
+            <span>SafarGo क्विक डिलीवरी — लॉगिन करें</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* 3. Order Placement Desk & Live Tracking Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -498,13 +544,24 @@ export const QuickDeliveryHub: React.FC = () => {
               </div>
             </div>
 
-            <button
-              type="submit"
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-700 to-indigo-700 hover:from-emerald-700 hover:to-indigo-800 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2"
-            >
-              <Zap className="w-4 h-4" />
-              <span>15-मिनट डिलीवरी ऑर्डर बुक करें (Place Order)</span>
-            </button>
+            {!currentUser ? (
+              <button
+                type="button"
+                onClick={() => onOpenAuth ? onOpenAuth('login') : undefined}
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-emerald-600 hover:from-amber-600 hover:to-emerald-700 text-slate-950 font-black text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer animate-pulse"
+              >
+                <Zap className="w-4 h-4 fill-slate-950" />
+                <span>🔑 SafarGo क्विक डिलीवरी — लॉगिन कर ऑर्डर करें</span>
+              </button>
+            ) : (
+              <button
+                type="submit"
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-700 to-indigo-700 hover:from-emerald-700 hover:to-indigo-800 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Zap className="w-4 h-4" />
+                <span>15-मिनट डिलीवरी ऑर्डर बुक करें (Place Order)</span>
+              </button>
+            )}
           </form>
         </div>
 

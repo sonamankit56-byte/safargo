@@ -26,9 +26,11 @@ import {
   X,
   ShieldCheck,
   Building2,
-  Smartphone
+  Smartphone,
+  Wallet
 } from 'lucide-react';
 import { AdminSecurityDesk } from './AdminSecurityDesk';
+import { AdminWalletAdjustmentModal } from './AdminWalletAdjustmentModal';
 
 export interface AdminAgentManagementProps {
   initialTab?: 'agents' | 'kyc_desk' | 'security_otp_desk';
@@ -62,6 +64,9 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ init
   // Rejection modal
   const [rejectingAgentId, setRejectingAgentId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+
+  // Admin Wallet adjustment modal
+  const [walletAdjustingAgent, setWalletAdjustingAgent] = useState<Profile | null>(null);
 
   const agents = allProfiles.filter((p) => p.role === 'agent' || (!p.role && p.agent_status));
 
@@ -299,7 +304,7 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ init
                     </div>
 
                     {/* Performance Box */}
-                    <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200 grid grid-cols-3 gap-2 text-center text-xs">
+                    <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200 grid grid-cols-4 gap-2 text-center text-xs">
                       <div>
                         <span className="text-[10px] text-slate-400 block">Total Req</span>
                         <span className="font-bold text-slate-900">{agentBookingsCount}</span>
@@ -310,9 +315,23 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ init
                       </div>
                       <div>
                         <span className="text-[10px] text-slate-400 block">Commission</span>
-                        <span className="font-bold text-slate-900">₹{agentCommissionTotal.toFixed(2)}</span>
+                        <span className="font-bold text-slate-900">₹{agentCommissionTotal.toFixed(0)}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-blue-500 block font-bold">वॉलेट</span>
+                        <span className="font-black text-blue-700">₹{(ag.wallet_balance || 0).toLocaleString('en-IN')}</span>
                       </div>
                     </div>
+
+                    {/* Admin Wallet Adjustment Action */}
+                    <button
+                      type="button"
+                      onClick={() => setWalletAdjustingAgent(ag)}
+                      className="w-full mt-3 py-2 px-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-black transition flex items-center justify-center gap-1.5 border border-blue-200 cursor-pointer shadow-xs active:scale-98"
+                    >
+                      <Wallet className="w-3.5 h-3.5 text-blue-600" />
+                      <span>वॉलेट (+/-) बैलेंस एडजस्ट करें</span>
+                    </button>
                   </div>
 
                   {/* Action Buttons */}
@@ -837,6 +856,14 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ init
             </div>
           </div>
         </div>
+      )}
+
+      {/* Admin Wallet Adjustment Modal */}
+      {walletAdjustingAgent && (
+        <AdminWalletAdjustmentModal
+          agent={walletAdjustingAgent}
+          onClose={() => setWalletAdjustingAgent(null)}
+        />
       )}
 
     </div>

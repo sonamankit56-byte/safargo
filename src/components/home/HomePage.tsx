@@ -30,9 +30,14 @@ import {
   Instagram,
   Youtube,
   Bike,
-  Store
+  Store,
+  Package,
+  Repeat,
+  Zap,
+  Wifi,
+  Coffee
 } from 'lucide-react';
-import { Booking, PromotionPlatform } from '../../types';
+import { Booking, PromotionPlatform, BusTrip } from '../../types';
 import { StatusBadge } from '../common/StatusBadge';
 import { PrintTicketModal } from '../common/PrintTicketModal';
 import { SafarGoLogo } from '../common/SafarGoLogo';
@@ -41,6 +46,7 @@ import { PromoterTrackStatusWidget } from '../promoter/PromoterTrackStatusWidget
 import { ComingSoonModal } from '../common/ComingSoonModal';
 import { getFeatureMode } from '../../lib/featureFlags';
 import { MP_NETWORK_CITIES, POPULAR_MP_ROUTES } from '../../lib/mockData';
+import { RedBusSeatMapModal, SelectedSeatItem } from '../bus/RedBusSeatMapModal';
 
 interface HomePageProps {
   onOpenAuth: (initialTab?: 'login' | 'register' | 'promoter_login') => void;
@@ -72,6 +78,26 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
   const [searchDestination, setSearchDestination] = useState('Indore');
   const [searchDate, setSearchDate] = useState('2026-10-12');
   const [filteredTrips, setFilteredTrips] = useState(busTrips);
+
+  // RedBus Inspired Bus Seat Selection & Filter States
+  const [selectedTripForSeatMap, setSelectedTripForSeatMap] = useState<BusTrip | null>(null);
+  const [busFilterType, setBusFilterType] = useState<'all' | 'ac' | 'seater' | 'sleeper'>('all');
+
+  const handleSwapCities = () => {
+    const temp = searchSource;
+    setSearchSource(searchDestination);
+    setSearchDestination(temp);
+  };
+
+  const handleSetDateToday = () => {
+    setSearchDate(new Date().toISOString().split('T')[0]);
+  };
+
+  const handleSetDateTomorrow = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    setSearchDate(d.toISOString().split('T')[0]);
+  };
 
   // PNR / Ticket Tracker state
   const [pnrSearchInput, setPnrSearchInput] = useState('');
@@ -491,60 +517,144 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                 ))}
               </datalist>
 
-              {/* Search Inputs Form */}
-              <form onSubmit={handleSearchRoutes} className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">कहाँ से (From City)</label>
-                  <div className="relative">
-                    <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-                    <input
-                      type="text"
-                      required
-                      list="mp-home-cities"
-                      value={searchSource}
-                      onChange={(e) => setSearchSource(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-orange-500 text-sm"
-                      placeholder="उदा. Bhopal / Sironj / Guna"
-                    />
+              {/* RedBus-Inspired Search Inputs Form */}
+              <form onSubmit={handleSearchRoutes} className="space-y-3 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                  {/* From City */}
+                  <div className="sm:col-span-4">
+                    <label className="block font-bold text-slate-700 mb-1">कहाँ से (From City) *</label>
+                    <div className="relative">
+                      <MapPin className="w-4 h-4 text-rose-500 absolute left-3 top-3 pointer-events-none" />
+                      <input
+                        type="text"
+                        required
+                        list="mp-home-cities"
+                        value={searchSource}
+                        onChange={(e) => setSearchSource(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-red-500 text-sm bg-white"
+                        placeholder="उदा. Bhopal / Sironj / Guna"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Swap Button (RedBus style) */}
+                  <div className="sm:col-span-1 flex justify-center pb-1">
+                    <button
+                      type="button"
+                      onClick={handleSwapCities}
+                      className="p-2.5 rounded-xl bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-600 border border-slate-200 transition cursor-pointer shadow-xs active:rotate-180"
+                      title="रूट बदलें (Swap Cities)"
+                    >
+                      <Repeat className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* To Destination */}
+                  <div className="sm:col-span-4">
+                    <label className="block font-bold text-slate-700 mb-1">कहाँ तक (To Destination) *</label>
+                    <div className="relative">
+                      <MapPin className="w-4 h-4 text-emerald-600 absolute left-3 top-3 pointer-events-none" />
+                      <input
+                        type="text"
+                        required
+                        list="mp-home-cities"
+                        value={searchDestination}
+                        onChange={(e) => setSearchDestination(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-red-500 text-sm bg-white"
+                        placeholder="उदा. Indore / Pune / Jaipur"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Date & Quick Date Buttons */}
+                  <div className="sm:col-span-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-bold text-slate-700">यात्रा तारीख *</label>
+                      <div className="flex items-center gap-1 text-[10px]">
+                        <button
+                          type="button"
+                          onClick={handleSetDateToday}
+                          className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-red-50 hover:text-red-600 font-bold text-slate-600 cursor-pointer"
+                        >
+                          आज
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSetDateTomorrow}
+                          className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-red-50 hover:text-red-600 font-bold text-slate-600 cursor-pointer"
+                        >
+                          कल
+                        </button>
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                      <input
+                        type="date"
+                        value={searchDate}
+                        onChange={(e) => setSearchDate(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-red-500 text-sm bg-white"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">कहाँ तक (To Destination)</label>
-                  <div className="relative">
-                    <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-                    <input
-                      type="text"
-                      required
-                      list="mp-home-cities"
-                      value={searchDestination}
-                      onChange={(e) => setSearchDestination(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-orange-500 text-sm"
-                      placeholder="उदा. Indore / Pune / Jaipur"
-                    />
+                <div className="flex items-center justify-between pt-1">
+                  {/* RedBus Filter Chips */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                    <span className="text-slate-400 text-[11px] font-bold mr-1">फ़िल्टर:</span>
+                    <button
+                      type="button"
+                      onClick={() => setBusFilterType('all')}
+                      className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer ${
+                        busFilterType === 'all'
+                          ? 'bg-red-600 text-white shadow-xs'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      सभी बसें
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBusFilterType('ac')}
+                      className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer flex items-center gap-1 ${
+                        busFilterType === 'ac'
+                          ? 'bg-red-600 text-white shadow-xs'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      <span>❄️ A/C बसें</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBusFilterType('seater')}
+                      className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer flex items-center gap-1 ${
+                        busFilterType === 'seater'
+                          ? 'bg-red-600 text-white shadow-xs'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      <span>💺 सीटर (बैठने वाले)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBusFilterType('sleeper')}
+                      className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer flex items-center gap-1 ${
+                        busFilterType === 'sleeper'
+                          ? 'bg-red-600 text-white shadow-xs'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      <span>🛏️ स्लीपर (सोने वाले)</span>
+                    </button>
                   </div>
-                </div>
 
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">यात्रा तारीख (Journey Date)</label>
-                  <div className="relative">
-                    <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-                    <input
-                      type="date"
-                      value={searchDate}
-                      onChange={(e) => setSearchDate(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 font-bold outline-none focus:ring-2 focus:ring-orange-500 text-sm"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-end">
                   <button
                     type="submit"
-                    className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center gap-1.5 text-sm"
+                    className="px-6 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-extrabold rounded-xl shadow-md shadow-red-600/25 transition flex items-center gap-1.5 text-xs shrink-0 cursor-pointer active:scale-95"
                   >
                     <Search className="w-4 h-4" />
-                    बसें खोजें
+                    <span>बसें खोजें (Search Buses)</span>
                   </button>
                 </div>
               </form>
@@ -552,17 +662,17 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
               {/* Results Cards Grid */}
               <div className="space-y-3 pt-2">
                 {/* 🚌 Crucial Customer Bus Booking Notice */}
-                <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
                   <div className="flex items-start sm:items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-orange-600 text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
-                      <Bus className="w-4 h-4" />
+                    <div className="w-9 h-9 rounded-xl bg-red-600 text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
+                      <Bus className="w-5 h-5" />
                     </div>
                     <div>
                       <strong className="text-slate-900 block font-black text-sm">
-                        बस बुकिंग के लिए अपने नजदीकी SafarGo एजेंट से संपर्क करें
+                        RedBus स्टाइल सीट लेआउट व ऑनलाइन सीट चयन
                       </strong>
                       <span className="text-slate-600">
-                        सीट व स्लीपर कन्फर्मेशन एवं 'बोर्डिंग साथी' (+₹33) सेवा आपके नजदीकी अधिकृत जन सेवा केंद्र (CSC) एजेंट द्वारा ही की जाती है।
+                        बैठने वाली (Seater) और सोने वाली (Sleeper) सीटों का लाइव मैप देखें व मनपसंद सीट बुक करें!
                       </span>
                     </div>
                   </div>
@@ -575,74 +685,128 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                         onOpenAuth('login');
                       }
                     }}
-                    className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-extrabold rounded-xl shadow-xs shrink-0 flex items-center gap-1.5 transition self-start sm:self-auto"
+                    className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-extrabold rounded-xl shadow-xs shrink-0 flex items-center gap-1.5 transition self-start sm:self-auto cursor-pointer"
                   >
                     <Phone className="w-3.5 h-3.5" />
                     <span>नजदीकी एजेंट से संपर्क करें</span>
                   </button>
                 </div>
 
-                <span className="text-xs font-bold text-slate-500 block pt-1">
-                  उपलब्ध बसें ({filteredTrips.length}) — <span className="text-orange-600">मैन्युअल ऑपरेटर स्टॉक</span>:
-                </span>
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-xs font-bold text-slate-500">
+                    उपलब्ध बसें ({filteredTrips.filter(t => {
+                      if (busFilterType === 'ac') return t.bus_type.toLowerCase().includes('ac') || t.bus_type.toLowerCase().includes('a/c');
+                      if (busFilterType === 'seater') return t.available_seater > 0;
+                      if (busFilterType === 'sleeper') return t.available_sleeper > 0;
+                      return true;
+                    }).length}) — <span className="text-red-600 font-extrabold">RedBus Inspired Inventory</span>:
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    सीट मैप देखने के लिए "सीटें चुनें" पर क्लिक करें
+                  </span>
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                  {filteredTrips.map((trip) => (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredTrips
+                    .filter((t) => {
+                      if (busFilterType === 'ac') return t.bus_type.toLowerCase().includes('ac') || t.bus_type.toLowerCase().includes('a/c');
+                      if (busFilterType === 'seater') return t.available_seater > 0;
+                      if (busFilterType === 'sleeper') return t.available_sleeper > 0;
+                      return true;
+                    })
+                    .map((trip) => (
                     <div
                       key={trip.id}
-                      className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-orange-400 hover:shadow-md transition-all flex flex-col justify-between"
+                      className="p-5 rounded-3xl border border-slate-200 bg-white hover:border-red-400 hover:shadow-xl transition-all flex flex-col justify-between space-y-4 group"
                     >
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="font-extrabold text-slate-900 text-sm flex items-center gap-1">
-                            <Bus className="w-4 h-4 text-orange-500" />
-                            {trip.operator_name}
+                          <div>
+                            <span className="font-black text-slate-900 text-base flex items-center gap-1.5 group-hover:text-red-600 transition">
+                              <Bus className="w-4 h-4 text-red-600" />
+                              {trip.operator_name}
+                            </span>
+                            <span className="text-[11px] text-slate-400 block font-mono">
+                              {trip.bus_type}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-black bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full shadow-xs flex items-center gap-1">
+                            ⭐ 4.6
                           </span>
-                          <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
-                            उपलब्ध (Live)
+                        </div>
+
+                        {/* Route & Times */}
+                        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between text-xs">
+                          <div>
+                            <span className="text-[10px] text-slate-400 block uppercase font-bold">प्रस्थान</span>
+                            <span className="font-black text-slate-900 text-sm">{trip.departure_time}</span>
+                            <span className="text-[11px] text-slate-600 block truncate max-w-[100px]">{trip.source}</span>
+                          </div>
+
+                          <div className="text-center px-2">
+                            <span className="text-[9px] text-slate-400 font-mono block">➔</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-bold">
+                              एक्सप्रेस
+                            </span>
+                          </div>
+
+                          <div className="text-right">
+                            <span className="text-[10px] text-slate-400 block uppercase font-bold">पहुंच</span>
+                            <span className="font-black text-slate-900 text-sm">{trip.arrival_time}</span>
+                            <span className="text-[11px] text-slate-600 block truncate max-w-[100px]">{trip.destination}</span>
+                          </div>
+                        </div>
+
+                        {/* Amenities Chips */}
+                        <div className="flex items-center gap-2 text-[10px] text-slate-500 flex-wrap">
+                          <span className="flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded-md">
+                            <Zap className="w-3 h-3 text-amber-500" /> Live GPS
+                          </span>
+                          <span className="flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded-md">
+                            <Coffee className="w-3 h-3 text-emerald-600" /> पानी बोतल
+                          </span>
+                          <span className="flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded-md">
+                            <Wifi className="w-3 h-3 text-indigo-500" /> वाई-फाई
                           </span>
                         </div>
 
-                        <div className="text-xs text-slate-600">
-                          <strong>{trip.source}</strong> ➔ <strong>{trip.destination}</strong>
-                        </div>
+                        {/* Seater & Sleeper Badges & Fares */}
+                        <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+                          <div className="p-2.5 rounded-xl bg-orange-50/70 border border-orange-200">
+                            <span className="text-[10px] font-bold text-orange-800 flex items-center gap-1">
+                              💺 बैठने वाली (Seater)
+                            </span>
+                            <div className="font-black text-slate-900 text-sm mt-0.5">
+                              ₹{trip.seater_fare}
+                            </div>
+                            <span className="text-[9px] text-emerald-700 font-semibold">
+                              {trip.available_seater} सीटें उपलब्ध
+                            </span>
+                          </div>
 
-                        <div className="text-[11px] text-slate-500 flex items-center gap-3">
-                          <span>प्रस्थान: <strong className="text-slate-800">{trip.departure_time}</strong></span>
-                          <span>पहुंच: <strong className="text-slate-800">{trip.arrival_time}</strong></span>
+                          <div className="p-2.5 rounded-xl bg-blue-50/70 border border-blue-200">
+                            <span className="text-[10px] font-bold text-blue-800 flex items-center gap-1">
+                              🛏️ सोने वाली (Sleeper)
+                            </span>
+                            <div className="font-black text-slate-900 text-sm mt-0.5">
+                              ₹{trip.sleeper_fare}
+                            </div>
+                            <span className="text-[9px] text-emerald-700 font-semibold">
+                              {trip.available_sleeper} स्लीपर उपलब्ध
+                            </span>
+                          </div>
                         </div>
-
-                        <p className="text-[11px] text-slate-400 font-mono">
-                          {trip.bus_type}
-                        </p>
                       </div>
 
-                      <div className="mt-4 pt-3 border-t border-slate-200/80 flex items-center justify-between">
-                        <div>
-                          <span className="text-[10px] text-slate-400 block font-semibold">अनुमानित किराया</span>
-                          <span className="text-base font-black text-slate-900">
-                            ₹{trip.seater_fare} <span className="text-xs font-normal text-slate-500">/ ₹{trip.sleeper_fare}</span>
-                          </span>
-                        </div>
-
-                        <button
-                          onClick={() => {
-                            if (currentUser && role === 'agent') {
-                              onNavigateTab('new-booking');
-                            } else if (currentUser && role === 'customer') {
-                              onNavigateTab('customer-portal');
-                            } else if (currentUser && role === 'admin') {
-                              onNavigateTab('admin-bookings');
-                            } else {
-                              onOpenAuth('login');
-                            }
-                          }}
-                          className="px-3.5 py-1.5 bg-slate-900 hover:bg-orange-600 text-white font-bold text-xs rounded-xl transition flex items-center gap-1 shadow-sm"
-                        >
-                          <span>{role === 'customer' ? 'एजेंट से बुक कराएं' : 'टिकट बुक करें'}</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      {/* Interactive Seat Map CTA */}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTripForSeatMap(trip)}
+                        className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-red-600 text-white font-extrabold text-xs transition flex items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-95 group-hover:bg-red-600"
+                      >
+                        <Bus className="w-4 h-4" />
+                        <span>सीटें चुनें (Select Seats ▾)</span>
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -904,28 +1068,56 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                   </div>
                 </div>
 
-                <div className="pt-2">
-                  <button
-                    onClick={() => {
-                      if (qdMode === 'coming_soon') {
-                        setComingSoonModal({
-                          isOpen: true,
-                          name: '15-मिनट क्विक डिलीवरी (Rural Blinkit)',
-                          desc: 'सिरोंज, कुरवाई, लटेरी, चंदेरी, गुना, बीना आदि कस्बों में 15 मिनट डिलीवरी सेवा बहुत जल्द शुरू हो रही है!'
-                        });
-                      } else {
-                        onNavigateTab('quick-delivery');
-                      }
-                    }}
-                    className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-700 hover:from-emerald-600 hover:to-teal-800 text-white font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Bike className="w-4 h-4" />
-                    <span>
-                      {qdMode === 'coming_soon'
-                        ? '⏳ 15-मिनट डिलीवरी — जल्द आ रही है (Notify Me)'
-                        : '15-मिनट डिलीवरी ऑर्डर हब खोलें (Order Now)'}
-                    </span>
-                  </button>
+                <div className="pt-2 space-y-2.5">
+                  {!currentUser ? (
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => onOpenAuth('login')}
+                        className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-emerald-500 hover:from-amber-500 hover:to-emerald-600 text-slate-950 font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer animate-pulse"
+                      >
+                        <Zap className="w-4 h-4 fill-slate-950" />
+                        <span>⚡ SafarGo क्विक डिलीवरी — लॉगिन कर ऑर्डर करें</span>
+                      </button>
+                      <button
+                        onClick={() => onNavigateTab('track-order')}
+                        className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-emerald-200 font-bold text-xs transition flex items-center justify-center gap-2 border border-white/15 cursor-pointer"
+                      >
+                        <Package className="w-4 h-4" />
+                        <span>📦 SafarGo आर्डर ट्रैक करें (Track Order)</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <button
+                        onClick={() => {
+                          if (qdMode === 'coming_soon') {
+                            setComingSoonModal({
+                              isOpen: true,
+                              name: '15-मिनट क्विक डिलीवरी (Rural Blinkit)',
+                              desc: 'सिरोंज, कुरवाई, लटेरी, चंदेरी, गुना, बीना आदि कस्बों में 15 मिनट डिलीवरी सेवा बहुत जल्द शुरू हो रही है!'
+                            });
+                          } else {
+                            onNavigateTab('quick-delivery');
+                          }
+                        }}
+                        className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-700 hover:from-emerald-600 hover:to-teal-800 text-white font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <Bike className="w-4 h-4" />
+                        <span>
+                          {qdMode === 'coming_soon'
+                            ? '⏳ 15-मिनट डिलीवरी — जल्द आ रही है'
+                            : '15-मिनट डिलीवरी ऑर्डर हब खोलें'}
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => onNavigateTab('track-order')}
+                        className="py-3.5 px-5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm border border-white/20 transition flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <Package className="w-4 h-4 text-emerald-400" />
+                        <span>आर्डर ट्रैक</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1589,6 +1781,24 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
         featureDescription={comingSoonModal.desc}
         onClose={() => setComingSoonModal({ isOpen: false, name: '' })}
       />
+
+      {/* RedBus Interactive Seat Selection Modal (Seater Chairs & AC Sleeper Beds) */}
+      {selectedTripForSeatMap && (
+        <RedBusSeatMapModal
+          trip={selectedTripForSeatMap}
+          onClose={() => setSelectedTripForSeatMap(null)}
+          onConfirmSelection={({ selectedSeats, totalFare, seatCategory }) => {
+            setSelectedTripForSeatMap(null);
+            if (currentUser && role === 'agent') {
+              onNavigateTab('new-booking');
+            } else if (currentUser && role === 'customer') {
+              onNavigateTab('customer-portal');
+            } else {
+              onOpenAuth('login');
+            }
+          }}
+        />
+      )}
 
     </div>
   );
