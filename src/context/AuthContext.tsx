@@ -5,6 +5,7 @@ import { useToast } from './ToastContext';
 import { db } from '../lib/supabaseService';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { getClientDeviceString, fetchClientIpAddress, generateSecureOtpCode } from '../lib/securityUtils';
+import { safeSetItem } from '../lib/storageUtils';
 
 interface AuthContextType {
   currentUser: Profile | null;
@@ -163,7 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Persist pending login otps
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_PENDING_OTPS, JSON.stringify(pendingLoginOtps));
+    safeSetItem(STORAGE_KEY_PENDING_OTPS, JSON.stringify(pendingLoginOtps));
   }, [pendingLoginOtps]);
 
   // Multi-tab sync: instantly catch KYC submissions & OTP verification from other tabs/windows
@@ -206,13 +207,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Persist profiles
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(profiles));
+    safeSetItem(STORAGE_KEY_PROFILES, JSON.stringify(profiles));
   }, [profiles]);
 
   // Persist current user id
   useEffect(() => {
     if (currentUserId) {
-      localStorage.setItem(STORAGE_KEY_CURRENT_USER, currentUserId);
+      safeSetItem(STORAGE_KEY_CURRENT_USER, currentUserId);
     } else {
       localStorage.removeItem(STORAGE_KEY_CURRENT_USER);
     }

@@ -70,6 +70,25 @@ export class ErrorBoundary extends Component<Props, State> {
             )}
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              {this.state.error && this.state.error.message.includes('quota') ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      localStorage.removeItem('safargo_wallet_recharges_v1');
+                      localStorage.removeItem('safargo_audit_logs_v1');
+                    } catch (e) {
+                      console.warn(e);
+                    }
+                    window.location.reload();
+                  }}
+                  className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-extrabold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                >
+                  <RotateCw className="w-4 h-4" />
+                  <span>कैश मेमोरी साफ़ करें व रीलोड करें</span>
+                </button>
+              ) : null}
+
               <button
                 type="button"
                 onClick={this.handleReload}

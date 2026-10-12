@@ -47,6 +47,8 @@ import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 import { db } from '../lib/supabaseService';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { safeSetItem, sanitizeWalletRecharges, sanitizeBookings } from '../lib/storageUtils';
+import { saveWalletRechargeToFirestore, saveBookingToFirestore, uploadScreenshotToFirebase } from '../lib/firebaseService';
 
 interface DataContextType {
   // Bookings
@@ -412,69 +414,69 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [celebrationBooking, setCelebrationBooking] = useState<Booking | null>(null);
 
-  // Sync with localStorage
+  // Sync with safeStorage (Protected against QuotaExceededError)
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_BOOKINGS, JSON.stringify(bookings));
+    safeSetItem(STORAGE_KEY_BOOKINGS, JSON.stringify(sanitizeBookings(bookings)));
   }, [bookings]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_COMMISSION, JSON.stringify(commissions));
+    safeSetItem(STORAGE_KEY_COMMISSION, JSON.stringify(commissions));
   }, [commissions]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_SALARY, JSON.stringify(salaryRecords));
+    safeSetItem(STORAGE_KEY_SALARY, JSON.stringify(salaryRecords));
   }, [salaryRecords]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_TRIPS, JSON.stringify(busTrips));
+    safeSetItem(STORAGE_KEY_TRIPS, JSON.stringify(busTrips));
   }, [busTrips]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+    safeSetItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
   }, [settings]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(auditLogs));
+    safeSetItem(STORAGE_KEY_LOGS, JSON.stringify(auditLogs));
   }, [auditLogs]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_SEEN_CONFIRMATIONS, JSON.stringify(seenConfirmations));
+    safeSetItem(STORAGE_KEY_SEEN_CONFIRMATIONS, JSON.stringify(seenConfirmations));
   }, [seenConfirmations]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_PAYOUTS, JSON.stringify(payoutRequests));
+    safeSetItem(STORAGE_KEY_PAYOUTS, JSON.stringify(payoutRequests));
   }, [payoutRequests]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_WALLET_RECHARGES, JSON.stringify(walletRecharges));
+    safeSetItem(STORAGE_KEY_WALLET_RECHARGES, JSON.stringify(sanitizeWalletRecharges(walletRecharges)));
   }, [walletRecharges]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_WALLET_TX, JSON.stringify(walletTransactions));
+    safeSetItem(STORAGE_KEY_WALLET_TX, JSON.stringify(walletTransactions));
   }, [walletTransactions]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_PROMOTIONS, JSON.stringify(promotionClaims));
+    safeSetItem(STORAGE_KEY_PROMOTIONS, JSON.stringify(promotionClaims));
   }, [promotionClaims]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_PROMOTERS, JSON.stringify(promoterApplications));
+    safeSetItem(STORAGE_KEY_PROMOTERS, JSON.stringify(promoterApplications));
   }, [promoterApplications]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_PARTNER_SHOPS, JSON.stringify(partnerShops));
+    safeSetItem(STORAGE_KEY_PARTNER_SHOPS, JSON.stringify(partnerShops));
   }, [partnerShops]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_CALL_LOGS, JSON.stringify(agentCallLogs));
+    safeSetItem(STORAGE_KEY_CALL_LOGS, JSON.stringify(agentCallLogs));
   }, [agentCallLogs]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_QUICK_DELIVERIES, JSON.stringify(quickDeliveryOrders));
+    safeSetItem(STORAGE_KEY_QUICK_DELIVERIES, JSON.stringify(quickDeliveryOrders));
   }, [quickDeliveryOrders]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_PROMO_CODES, JSON.stringify(promoCodes));
+    safeSetItem(STORAGE_KEY_PROMO_CODES, JSON.stringify(promoCodes));
   }, [promoCodes]);
 
   // Real Database Sync: Load initial live data from Supabase when configured
@@ -1659,6 +1661,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     }
 
+    let finalScreenshotUrl = screenshotUrl;
+    if (screenshotUrl && screenshotUrl.startsWith('data:image/')) {
+      try {
+        const remoteUrl = await uploadScreenshotToFirebase(screenshotUrl, 'wallet_receipts');
+        if (remoteUrl) finalScreenshotUrl = remoteUrl;
+      } catch (err) {
+        console.warn('[Firebase] Screenshot upload skipped:', err);
+      }
+    }
+
     const newRecharge: WalletRechargeRequest = {
       id: `rech-${Date.now()}`,
       agent_id: currentUser.id,
@@ -1667,12 +1679,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       amount,
       payment_method: paymentMethod,
       utr_number: utr.trim(),
-      screenshot_url: screenshotUrl,
+      screenshot_url: finalScreenshotUrl,
       status: 'pending',
       created_at: new Date().toISOString(),
     };
 
     setWalletRecharges((prev) => [newRecharge, ...prev]);
+    saveWalletRechargeToFirestore(newRecharge).catch(console.error);
     if (isSupabaseConfigured) {
       db.createWalletRecharge(newRecharge).catch(console.error);
     }

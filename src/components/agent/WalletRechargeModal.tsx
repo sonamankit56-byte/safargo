@@ -16,6 +16,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { SafarGoLogo } from '../common/SafarGoLogo';
+import { compressImage } from '../../lib/storageUtils';
 
 interface WalletRechargeModalProps {
   onClose: () => void;
@@ -48,18 +49,23 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
     setTimeout(() => setCopiedUpi(false), 3000);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        error('File Too Large', 'कृपया 5MB से छोटी फाइल चुनें।');
+      if (file.size > 15 * 1024 * 1024) {
+        error('File Too Large', 'कृपया 15MB से छोटी फाइल चुनें।');
         return;
       }
-      const reader = new FileReader();
-      reader.onload = () => {
-        setScreenshotPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressed = await compressImage(file, 800, 800, 0.6);
+        setScreenshotPreview(compressed);
+      } catch {
+        const reader = new FileReader();
+        reader.onload = () => {
+          setScreenshotPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 

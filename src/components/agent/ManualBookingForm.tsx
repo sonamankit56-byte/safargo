@@ -7,6 +7,7 @@ import { BookingSuccessModal } from './BookingSuccessModal';
 import { WalletRechargeModal } from './WalletRechargeModal';
 import { RedBusSeatMapModal, SelectedSeatItem } from '../bus/RedBusSeatMapModal';
 import { MP_NETWORK_CITIES } from '../../lib/mockData';
+import { compressImage } from '../../lib/storageUtils';
 import {
   Bus,
   User,
@@ -1095,12 +1096,17 @@ export const ManualBookingForm: React.FC = () => {
                         <input
                           type="file"
                           accept="image/*"
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              const reader = new FileReader();
-                              reader.onload = () => setPaymentScreenshot(reader.result as string);
-                              reader.readAsDataURL(file);
+                              try {
+                                const compressed = await compressImage(file, 800, 800, 0.6);
+                                setPaymentScreenshot(compressed);
+                              } catch {
+                                const reader = new FileReader();
+                                reader.onload = () => setPaymentScreenshot(reader.result as string);
+                                reader.readAsDataURL(file);
+                              }
                             }
                           }}
                           className="hidden"
