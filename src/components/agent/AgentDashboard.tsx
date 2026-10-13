@@ -457,10 +457,10 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
             </button>
             <button
               onClick={() => setShowRechargeModal(true)}
-              className="px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm flex items-center gap-1.5 shadow-lg shadow-blue-600/25 transition active:scale-95"
+              className="px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm flex items-center gap-1.5 shadow-lg shadow-emerald-600/25 transition active:scale-95"
             >
               <Wallet className="w-4 h-4" />
-              <span>+ वॉलेट रिचार्ज (Min ₹{settings.min_wallet_recharge.toLocaleString('en-IN')})</span>
+              <span>+ Go Wallet रिचार्ज (Min ₹{settings.min_wallet_recharge.toLocaleString('en-IN')})</span>
             </button>
             <button
               onClick={() => onNavigate('new-booking')}
@@ -488,7 +488,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
               <div className="flex flex-wrap items-center gap-2">
                 {agentWalletRecharges && agentWalletRecharges.some((r) => r.status === 'pending') ? (
                   <span className="text-[10px] bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider animate-pulse">
-                    ⏳ Pending Verification
+                    ⏳ 10-Min Pending Verification
                   </span>
                 ) : agentWalletBalance > 0 ? (
                   <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider">
@@ -507,7 +507,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
               onClick={() => onNavigate('go-wallet')}
               className="px-4 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow-lg transition flex items-center gap-1.5 cursor-pointer active:scale-95"
             >
-              <span>👑 3D Go Wallet (बैंक निकासी / Top Ad / Transactions)</span>
+              <span>👑 Exclusive Go Wallet (बैंक निकासी व ट्रांजेक्शन)</span>
             </button>
             {agentWalletBalance > 0 && (
               <button

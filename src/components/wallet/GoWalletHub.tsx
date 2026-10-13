@@ -22,6 +22,13 @@ import {
   Zap,
   Crown,
   CreditCard,
+  Check,
+  X,
+  Search,
+  ExternalLink,
+  Eye,
+  AlertCircle,
+  Layers,
 } from 'lucide-react';
 
 /**
@@ -115,20 +122,30 @@ interface GoWalletHubProps {
 }
 
 export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
-  const { currentUser, role } = useAuth();
+  const { currentUser, role, isAdmin } = useAuth();
   const {
     agentWalletBalance,
     agentWalletRecharges,
     agentWalletTransactions,
+    walletRecharges,
+    walletTransactions,
+    approveWalletRecharge,
+    rejectWalletRecharge,
     partnerShops,
-    quickDeliveryOrders,
     withdrawFromGoWallet,
     boostShopOnSafarGoTop,
   } = useData();
 
-  const [activeSection, setActiveSection] = useState<'overview' | 'transactions' | 'top_ad' | 'withdraw'>('overview');
+  // Navigation tab state
+  const [activeSection, setActiveSection] = useState<'overview' | 'recharge_requests' | 'transactions' | 'top_ad' | 'withdraw'>('overview');
   const [txnFilter, setTxnFilter] = useState<'all' | 'sales_in' | 'recharges_in' | 'money_out'>('all');
   const [isRechargeModalOpen, setIsRechargeModalOpen] = useState(false);
+
+  // Super Admin Recharge Requests Filter & Screenshot Modal
+  const [adminReqFilter, setAdminReqFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
+  const [adminSearchTerm, setAdminSearchTerm] = useState('');
+  const [viewingScreenshotUrl, setViewingScreenshotUrl] = useState<string | null>(null);
+  const [processingReqId, setProcessingReqId] = useState<string | null>(null);
 
   // Withdrawal Form State
   const [withdrawMethod, setWithdrawMethod] = useState<'upi' | 'bank'>('upi');
@@ -138,7 +155,7 @@ export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
   const [bankIfsc, setBankIfsc] = useState((currentUser as any)?.ifsc_code || '');
   const [bankHolder, setBankHolder] = useState((currentUser as any)?.account_holder_name || currentUser?.full_name || '');
 
-  // Top Ad Boost State
+  // Top Ad Boost State (for Shopkeeper)
   const userMobClean = currentUser?.mobile ? currentUser.mobile.replace(/\D/g, '') : '';
   const myDefaultShop =
     (partnerShops || []).find(
@@ -150,7 +167,15 @@ export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
 
   const [selectedShopId, setSelectedShopId] = useState<string>(myDefaultShop?.id || '');
 
-  // Metrics Calculation
+  // Super Admin Specific Metrics
+  const allRechargeRequests = walletRecharges || [];
+  const pendingRecharges = allRechargeRequests.filter((r) => r.status === 'pending');
+  const approvedRecharges = allRechargeRequests.filter((r) => r.status === 'approved');
+  const rejectedRecharges = allRechargeRequests.filter((r) => r.status === 'rejected');
+  const totalApprovedAmount = approvedRecharges.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+  const totalPendingAmount = pendingRecharges.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+
+  // User/Agent/Shopkeeper Metrics Calculation
   const quickCommerceSalesTotal = (agentWalletTransactions || [])
     .filter((t) => t.type === 'quick_commerce_sale')
     .reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
@@ -168,6 +193,28 @@ export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
         t.amount < 0
     )
     .reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
+
+  // Admin Approve Handler
+  const handleAdminApprove = async (rechargeId: string) => {
+    setProcessingReqId(rechargeId);
+    try {
+      await approveWalletRecharge(rechargeId, 'Super Admin 1-Click Approved');
+    } finally {
+      setProcessingReqId(null);
+    }
+  };
+
+  // Admin Reject Handler
+  const handleAdminReject = async (rechargeId: string) => {
+    const reason = window.prompt('अस्वीकृत करने का कारण दर्ज करें (उदा. गलत UTR या पेमेंट अपूर्ण):', 'UTR अमान्य / पेमेंट नॉट रिसीव्ड');
+    if (!reason) return;
+    setProcessingReqId(rechargeId);
+    try {
+      await rejectWalletRecharge(rechargeId, reason);
+    } finally {
+      setProcessingReqId(null);
+    }
+  };
 
   const handleWithdrawSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,11 +243,436 @@ export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
     }
   };
 
+  // =========================================================================
+  // VIEW 1: SUPER ADMIN MASTER DESK (WHEN role === 'admin' OR isAdmin)
+  // Super Admin does NOT see Agent booking tasks or Dukandar shop options.
+  // Super Admin sees: Live Agent/User Recharge Requests Approval Desk & Platform Ledger.
+  // =========================================================================
+  if (isAdmin || role === 'admin') {
+    const filteredAdminRequests = allRechargeRequests
+      .filter((r) => {
+        if (adminReqFilter === 'pending') return r.status === 'pending';
+        if (adminReqFilter === 'approved') return r.status === 'approved';
+        if (adminReqFilter === 'rejected') return r.status === 'rejected';
+        return true;
+      })
+      .filter((r) => {
+        if (!adminSearchTerm.trim()) return true;
+        const q = adminSearchTerm.toLowerCase();
+        return (
+          (r.agent_name || '').toLowerCase().includes(q) ||
+          (r.agent_mobile || '').toLowerCase().includes(q) ||
+          (r.utr_number || '').toLowerCase().includes(q) ||
+          (r.amount || '').toString().includes(q)
+        );
+      })
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {/* 🌟 SUPER ADMIN GO WALLET HERO BANNER */}
+        <div className="relative rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-white p-6 sm:p-8 border-2 border-amber-400/50 shadow-2xl overflow-hidden">
+          <div className="absolute -top-24 -right-24 w-72 h-72 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <Go3DLogoBadge size="lg" showWalletText={true} exclusive={true} />
+                <span className="px-3 py-1 rounded-full text-xs font-black uppercase bg-amber-400/20 text-amber-300 border border-amber-400/50 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-amber-400" />
+                  सुपर एडमिन Go Wallet मास्टर कंट्रोल डेस्क
+                </span>
+              </div>
+
+              <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+                यहाँ से आप <strong>एजेंटों, दुकानदारों और प्रमोटरों द्वारा Go Wallet में पैसे जोड़ने के लाइव अनुरोधों (Recharge Requests)</strong> को तुरंत <strong>1-क्लिक में सत्यापित व स्वीकृत (Approve)</strong> कर सकते हैं। स्वीकृत करते ही बैलेंस तुरंत उनके Go Wallet में क्रेडिट हो जाएगा।
+              </p>
+
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] font-bold">
+                <span className="px-3 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-400/30 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" /> 10-मिनट वेरिफिकेशन डेस्क एक्टिव
+                </span>
+                <span className="px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> 1-क्लिक इंस्टेंट ऑटो-क्रेडिट
+                </span>
+                <span className="px-3 py-1 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-400/30 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5" /> UTR व रसीद स्क्रीनशॉट सत्यापन
+                </span>
+              </div>
+            </div>
+
+            {/* Admin Live Summary Card */}
+            <div className="bg-slate-900/90 backdrop-blur-md border-2 border-amber-400/50 rounded-3xl p-5 sm:p-6 min-w-[290px] shadow-xl space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-amber-400 animate-pulse" />
+                  सत्यापन शेष अनुरोध (Pending)
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-xs animate-bounce">
+                  {pendingRecharges.length} PENDING
+                </span>
+              </div>
+
+              <div className="text-3xl sm:text-4xl font-black text-white font-mono tracking-tight">
+                ₹{totalPendingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </div>
+
+              <p className="text-[11px] text-slate-400">
+                कुल {pendingRecharges.length} यूज़र्स पैसे जोड़ने हेतु एडमिन अप्रूवल का इंतज़ार कर रहे हैं।
+              </p>
+            </div>
+          </div>
+
+          {/* 4 Admin Platform Metrics */}
+          <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/10">
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
+              <span className="text-[11px] text-amber-300 block font-bold">
+                ⏳ सत्यापन शेष अनुरोध (Pending)
+              </span>
+              <span className="text-xl sm:text-2xl font-black text-amber-400 mt-0.5 block">
+                {pendingRecharges.length}
+              </span>
+              <span className="text-[10px] text-slate-400">राशि: ₹{totalPendingAmount.toLocaleString('en-IN')}</span>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
+              <span className="text-[11px] text-emerald-300 block font-bold">
+                ✅ स्वीकृत अनुरोध (Approved)
+              </span>
+              <span className="text-xl sm:text-2xl font-black text-emerald-400 mt-0.5 block">
+                {approvedRecharges.length}
+              </span>
+              <span className="text-[10px] text-slate-400">राशि: +₹{totalApprovedAmount.toLocaleString('en-IN')}</span>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
+              <span className="text-[11px] text-rose-300 block font-bold">
+                ❌ अस्वीकृत (Rejected)
+              </span>
+              <span className="text-xl sm:text-2xl font-black text-rose-400 mt-0.5 block">
+                {rejectedRecharges.length}
+              </span>
+              <span className="text-[10px] text-slate-400">अमान्य UTR / मिसमैच</span>
+            </div>
+
+            <div className="bg-emerald-500/15 border border-emerald-400/40 rounded-2xl p-3.5">
+              <span className="text-[11px] text-emerald-200 block font-bold">
+                💎 कुल अनुरोध दर्ज (All Requests)
+              </span>
+              <span className="text-xl sm:text-2xl font-black text-white mt-0.5 block">
+                {allRechargeRequests.length}
+              </span>
+              <span className="text-[10px] text-emerald-300">प्लेटफॉर्म लाइव Go Wallet डेटा</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 🧭 SUPER ADMIN NAVIGATION TABS */}
+        <div className="flex flex-wrap items-center gap-2 bg-white p-2 rounded-2xl border border-slate-200 shadow-xs">
+          <button
+            onClick={() => setActiveSection('overview')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition cursor-pointer ${
+              activeSection === 'overview'
+                ? 'bg-slate-900 text-white shadow'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Clock className="w-4 h-4 text-amber-400" />
+            <span>⚡ पैसे जोड़ने के अनुरोध (Approval Desk)</span>
+            {pendingRecharges.length > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-400 text-slate-950 font-black animate-pulse">
+                {pendingRecharges.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveSection('transactions')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition cursor-pointer ${
+              activeSection === 'transactions'
+                ? 'bg-indigo-600 text-white shadow'
+                : 'text-slate-700 hover:bg-indigo-50'
+            }`}
+          >
+            <History className="w-4 h-4 text-indigo-400" />
+            <span>📜 मास्टर Go Wallet ट्रांजेक्शन लेज़र</span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-200 text-slate-800 font-bold">
+              {(walletTransactions || []).length}
+            </span>
+          </button>
+        </div>
+
+        {/* ADMIN TAB 1: RECHARGE REQUESTS APPROVAL DESK */}
+        {activeSection === 'overview' && (
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden space-y-4 p-5 sm:p-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-amber-500" />
+                  <span>एजेंट व यूज़र द्वारा पैसे जोड़ने के अनुरोध (Live Approval Desk)</span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  कृपया UTR नंबर और पेमेंट रसीद की पुष्टि कर तुरंत स्वीकार (Approve) या अस्वीकार करें।
+                </p>
+              </div>
+
+              {/* Status Filters & Search */}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
+                  <input
+                    type="text"
+                    value={adminSearchTerm}
+                    onChange={(e) => setAdminSearchTerm(e.target.value)}
+                    placeholder="खोजें: नाम, मोबाइल या UTR..."
+                    className="pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-400 outline-none w-48 sm:w-56"
+                  />
+                </div>
+
+                {(['pending', 'approved', 'rejected', 'all'] as const).map((st) => (
+                  <button
+                    key={st}
+                    onClick={() => setAdminReqFilter(st)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer capitalize ${
+                      adminReqFilter === st
+                        ? 'bg-slate-900 text-white shadow'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    {st === 'pending'
+                      ? `⏳ सत्यापन शेष (${pendingRecharges.length})`
+                      : st === 'approved'
+                      ? `✅ स्वीकृत (${approvedRecharges.length})`
+                      : st === 'rejected'
+                      ? `❌ अस्वीकृत (${rejectedRecharges.length})`
+                      : `सभी (${allRechargeRequests.length})`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* List / Table of Requests */}
+            {filteredAdminRequests.length === 0 ? (
+              <div className="text-center py-16 text-slate-400 text-sm space-y-2">
+                <Clock className="w-10 h-10 text-slate-300 mx-auto" />
+                <p className="font-bold">इस श्रेणी में कोई अनुरोध नहीं मिला।</p>
+                <p className="text-xs">जब कोई एजेंट या यूज़र पैसे जोड़ने का अनुरोध भेजेगा, वह यहाँ तुरंत दिखेगा।</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredAdminRequests.map((req) => (
+                  <div
+                    key={req.id}
+                    className={`p-4 sm:p-5 rounded-2xl border transition flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${
+                      req.status === 'pending'
+                        ? 'bg-amber-50/50 border-amber-300 ring-1 ring-amber-200'
+                        : req.status === 'approved'
+                        ? 'bg-emerald-50/30 border-emerald-200'
+                        : 'bg-rose-50/30 border-rose-200'
+                    }`}
+                  >
+                    {/* User & Request Info */}
+                    <div className="space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border ${
+                            req.status === 'pending'
+                              ? 'bg-amber-100 text-amber-800 border-amber-300 animate-pulse'
+                              : req.status === 'approved'
+                              ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                              : 'bg-rose-100 text-rose-800 border-rose-300'
+                          }`}
+                        >
+                          {req.status === 'pending'
+                            ? '⏳ PENDING (10-MIN REVIEW)'
+                            : req.status === 'approved'
+                            ? '✅ APPROVED & CREDITED'
+                            : '❌ REJECTED'}
+                        </span>
+
+                        <span className="text-sm font-black text-slate-900">
+                          {req.agent_name || 'SafarGo User'}
+                        </span>
+                        <span className="text-xs font-mono font-bold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
+                          +91 {req.agent_mobile || 'N/A'}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-700">
+                        <span>
+                          <strong>UTR / Ref No:</strong>{' '}
+                          <code className="bg-white px-2 py-0.5 rounded font-mono font-black text-indigo-700 border border-slate-200">
+                            {req.utr_number || 'N/A'}
+                          </code>
+                        </span>
+                        <span>
+                          <strong>विधि:</strong>{' '}
+                          {req.payment_method === 'upi_qr' ? 'SafarGo UPI QR' : 'Bank Transfer'}
+                        </span>
+                        <span className="text-slate-400 text-[11px]">
+                          🕒 {new Date(req.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+                        </span>
+                      </div>
+
+                      {req.admin_notes && (
+                        <p className="text-[11px] text-slate-600 italic">
+                          नोट: <strong>{req.admin_notes}</strong>
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Amount & Admin Actions */}
+                    <div className="flex flex-wrap items-center gap-3 lg:justify-end shrink-0">
+                      <div className="text-left lg:text-right mr-2">
+                        <span className="text-[10px] text-slate-400 block font-bold uppercase">अनुरोध राशि</span>
+                        <span className="text-2xl font-black text-slate-950 font-mono">
+                          ₹{(Number(req.amount) || 0).toLocaleString('en-IN')}
+                        </span>
+                      </div>
+
+                      {/* Screenshot Preview Button */}
+                      {req.screenshot_url && (
+                        <button
+                          type="button"
+                          onClick={() => setViewingScreenshotUrl(req.screenshot_url || null)}
+                          className="px-3 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>रसीद देखें</span>
+                        </button>
+                      )}
+
+                      {/* 1-Click Approve / Reject for Pending Requests */}
+                      {req.status === 'pending' && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={processingReqId === req.id}
+                            onClick={() => handleAdminApprove(req.id)}
+                            className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 active:scale-95 cursor-pointer disabled:opacity-50"
+                          >
+                            <Check className="w-4 h-4" />
+                            <span>{processingReqId === req.id ? 'स्वीकृत हो रहा...' : '✓ स्वीकार करें & जोड़ें'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={processingReqId === req.id}
+                            onClick={() => handleAdminReject(req.id)}
+                            className="px-3 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 font-black text-xs transition flex items-center gap-1 active:scale-95 cursor-pointer disabled:opacity-50"
+                          >
+                            <X className="w-4 h-4" />
+                            <span>अस्वीकार</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {req.status === 'approved' && (
+                        <span className="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 font-black text-xs flex items-center gap-1">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          क्रेडिट हो चुका है
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ADMIN TAB 2: MASTER PLATFORM TRANSACTIONS LEDGER */}
+        {activeSection === 'transactions' && (
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-md overflow-hidden">
+            <div className="p-6 bg-slate-900 text-white flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-black text-white">📜 प्लेटफ़ॉर्म मास्टर Go Wallet ट्रांजेक्शन लेज़र</h3>
+                <p className="text-xs text-slate-300">
+                  प्लेटफ़ॉर्म के सभी एजेंट्स, दुकानदारों व प्रमोटरों के Go Wallet का पूरा लेन-देन रिकॉर्ड
+                </p>
+              </div>
+              <span className="px-3 py-1 rounded-full bg-white/10 text-amber-300 text-xs font-mono font-bold">
+                {(walletTransactions || []).length} कुल ट्रांजेक्शन
+              </span>
+            </div>
+
+            <div className="p-5 sm:p-6 space-y-3">
+              {(walletTransactions || []).length === 0 ? (
+                <div className="text-center py-12 text-slate-400 text-xs">
+                  अभी तक कोई प्लेटफ़ॉर्म ट्रांजेक्शन दर्ज नहीं है।
+                </div>
+              ) : (
+                (walletTransactions || []).slice(0, 50).map((tx) => (
+                  <div
+                    key={tx.id}
+                    className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                            tx.amount >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                          }`}
+                        >
+                          {tx.type}
+                        </span>
+                        <span className="font-bold text-slate-900">{tx.description}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        {new Date(tx.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} • ID: {tx.id}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span
+                        className={`text-base font-black font-mono ${
+                          tx.amount >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                        }`}
+                      >
+                        {tx.amount >= 0 ? '+' : ''}₹{Number(tx.amount || 0).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Screenshot Zoom Modal */}
+        {viewingScreenshotUrl && (
+          <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-5 space-y-4 shadow-2xl">
+              <div className="flex items-center justify-between border-b pb-3">
+                <h4 className="font-black text-slate-900 text-sm">भुगतान रसीद / स्क्रीनशॉट</h4>
+                <button
+                  onClick={() => setViewingScreenshotUrl(null)}
+                  className="p-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="max-h-[70vh] overflow-auto rounded-2xl border bg-slate-50 flex items-center justify-center p-2">
+                <img src={viewingScreenshotUrl} alt="Receipt Slip" className="max-w-full rounded-xl object-contain" />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // VIEW 2: ROLE-SPECIFIC VIEWS FOR AGENT, DUKANDAR & PROMOTER
+  // =========================================================================
+  const isAgent = role === 'agent';
+  const isShopkeeper = role === 'shopkeeper';
+  const isPromoter = role === 'promoter';
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      {/* 🌟 3D GO WALLET HERO BANNER (FOR AGENT, DUKANDAR & PROMOTER) */}
+      {/* 🌟 3D GO WALLET HERO BANNER */}
       <div className="relative rounded-3xl bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white p-6 sm:p-8 border-2 border-amber-400/40 shadow-2xl overflow-hidden">
-        {/* Ambient 3D Glows */}
         <div className="absolute -top-24 -right-24 w-72 h-72 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
 
@@ -210,32 +682,70 @@ export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
             <div className="flex flex-wrap items-center gap-3">
               <Go3DLogoBadge size="lg" showWalletText={true} exclusive={true} />
               <span className="px-3 py-1 rounded-full text-[11px] font-black uppercase bg-white/10 text-amber-300 border border-amber-400/30">
-                {role === 'shopkeeper'
+                {isShopkeeper
                   ? '🏪 दुकानदार (Quick Commerce) Go Wallet'
-                  : role === 'promoter'
+                  : isPromoter
                   ? '👑 प्रमोटर (Promoter) Go Wallet'
-                  : '⚡ एजेंट एवं ऑल-इन-वन Go Wallet'}
+                  : '⚡ एजेंट Exclusive Go Wallet'}
               </span>
             </div>
 
+            {/* Role-Specific Description */}
             <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
-              <strong>एजेंट, दुकानदार (Quick Commerce) और प्रमोटर</strong> का यूनिवर्सल 3D वॉलेट! दुकानदार के क्विक कॉमर्स में बिके सामान का पैसा, प्रमोटर की कमाई और वॉलेट रिचार्ज सीधे <strong>Go Wallet</strong> में आता है — जिसे आप <strong>बैंक / UPI में निकाल सकते हैं</strong>, <strong>दुकान को SafarGo Top पर दिखाने (Ad Boost)</strong> में या <strong>बस टिकट बुकिंग</strong> में तुरंत उपयोग कर सकते हैं!
+              {isShopkeeper ? (
+                <>
+                  दुकानदार का जो भी सामान <strong>SafarGo 15-Minute Quick Commerce</strong> में बिकता है, उसकी पूरी कमाई सीधे <strong>Go Wallet</strong> में जमा होती है। आप इसे कभी भी अपने <strong>बैंक खाते / UPI ID</strong> में निकाल सकते हैं या अपनी दुकान को <strong>SafarGo Top (#1 Ad Boost)</strong> पर प्रमोट कर सकते हैं!
+                </>
+              ) : isPromoter ? (
+                <>
+                  प्रमोटर की <strong>दुकान ऑनबोर्डिंग व वायरल रील शेयरिंग कमाई</strong> सीधे <strong>Go Wallet</strong> में आती है! इसे आप <strong>बैंक / UPI में निकाल सकते हैं</strong>, या <strong>Exclusive Go बस टिकट बुकिंग</strong> में उपयोग कर सकते हैं।
+                </>
+              ) : (
+                <>
+                  एजेंट का <strong>Exclusive 3D Go Wallet</strong>! वॉलेट में पैसे जोड़कर तुरंत <strong>बस टिकट बुक करें</strong>, अपना कमीशन कमाएं और अपनी पूरी कमाई सीधे <strong>बैंक खाते या UPI ID में ट्रांसफर करें</strong>।
+                </>
+              )}
             </p>
 
             {/* Quick Role Highlights */}
             <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] font-bold">
-              <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                ✓ क्विक कॉमर्स सामान बिक्री आय ऑटो-क्रेडिट
-              </span>
-              <span className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-400/30">
-                ✓ बैंक / UPI में तुरंत निकासी
-              </span>
-              <span className="px-2.5 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
-                ✓ SafarGo #1 Top Shop Ad Boost
-              </span>
-              <span className="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-400/30">
-                ✓ Exclusive Go बस टिकट बुकिंग
-              </span>
+              {isShopkeeper ? (
+                <>
+                  <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                    ✓ 15-Min क्विक कॉमर्स सामान बिक्री आय
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-orange-500/20 text-orange-300 border border-orange-400/30">
+                    ✓ SafarGo #1 Top Shop Ad Boost
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                    ✓ बैंक / UPI में तुरंत निकासी
+                  </span>
+                </>
+              ) : isPromoter ? (
+                <>
+                  <span className="px-2.5 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
+                    ✓ दुकान ऑनबोर्डिंग & वायरल रील इंसेंटिव
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                    ✓ बैंक / UPI में तुरंत निकासी
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-400/30">
+                    ✓ Exclusive Go बस टिकट बुकिंग
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                    ✓ 10-मिनट टाइमर सत्यापन के साथ + पैसे जोड़ें
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-400/30">
+                    ✓ Exclusive Go बस टिकट बुकिंग (₹19+ कमीशन)
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                    ✓ बैंक / UPI में तुरंत निकासी
+                  </span>
+                </>
+              )}
             </div>
           </div>
 
@@ -248,7 +758,7 @@ export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
               </span>
               {agentWalletRecharges && agentWalletRecharges.some((r) => r.status === 'pending') ? (
                 <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[10px] animate-pulse">
-                  ⏳ Pending
+                  ⏳ 10-Min Pending
                 </span>
               ) : (
                 <span className="px-2 py-0.5 rounded-full bg-emerald-400 text-slate-950 font-black text-[10px]">
@@ -280,37 +790,99 @@ export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* 4 Summary Metrics Strip */}
+        {/* Role-Specific 4 Summary Metrics Strip */}
         <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/10">
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
-            <span className="text-[11px] text-slate-300 block font-semibold">
-              🏪 क्विक कॉमर्स सामान बिक्री आय
-            </span>
-            <span className="text-lg sm:text-xl font-black text-emerald-400 mt-0.5 block">
-              +₹{quickCommerceSalesTotal.toLocaleString('en-IN')}
-            </span>
-            <span className="text-[10px] text-slate-400">दुकान के बिके सामान का पैसा</span>
-          </div>
-
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
-            <span className="text-[11px] text-slate-300 block font-semibold">
-              💰 रिचार्ज एवं प्रमोटर आय (+ जमा)
-            </span>
-            <span className="text-lg sm:text-xl font-black text-teal-300 mt-0.5 block">
-              +₹{promoterAndRechargeTotal.toLocaleString('en-IN')}
-            </span>
-            <span className="text-[10px] text-slate-400">वॉलेट में जोड़ा व कमाया धन</span>
-          </div>
-
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
-            <span className="text-[11px] text-slate-300 block font-semibold">
-              💸 उपयोग व निकासी (- कहाँ गया)
-            </span>
-            <span className="text-lg sm:text-xl font-black text-orange-400 mt-0.5 block">
-              -₹{totalMoneySpentOrWithdrawn.toLocaleString('en-IN')}
-            </span>
-            <span className="text-[10px] text-slate-400">बस टिकट, Top Ad व बैंक निकासी</span>
-          </div>
+          {isShopkeeper ? (
+            <>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
+                <span className="text-[11px] text-slate-300 block font-semibold">
+                  🏪 क्विक कॉमर्स सामान बिक्री आय
+                </span>
+                <span className="text-lg sm:text-xl font-black text-emerald-400 mt-0.5 block">
+                  +₹{quickCommerceSalesTotal.toLocaleString('en-IN')}
+                </span>
+                <span className="text-[10px] text-slate-400">दुकान के बिके सामान का पैसा</span>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
+                <span className="text-[11px] text-slate-300 block font-semibold">
+                  💰 वॉलेट में जोड़े गए पैसे
+                </span>
+                <span className="text-lg sm:text-xl font-black text-teal-300 mt-0.5 block">
+                  +₹{promoterAndRechargeTotal.toLocaleString('en-IN')}
+                </span>
+                <span className="text-[10px] text-slate-400">Ad व अन्य उपयोग हेतु</span>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
+                <span className="text-[11px] text-slate-300 block font-semibold">
+                  💸 Top Ad खर्च व बैंक निकासी
+                </span>
+                <span className="text-lg sm:text-xl font-black text-orange-400 mt-0.5 block">
+                  -₹{totalMoneySpentOrWithdrawn.toLocaleString('en-IN')}
+                </span>
+                <span className="text-[10px] text-slate-400">दुकान प्रमोशन व पेआउट</span>
+              </div>
+            </>
+          ) : isPromoter ? (
+            <>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
+                <span className="text-[11px] text-slate-300 block font-semibold">
+                  👑 प्रमोटर कमाई व रिवॉर्ड्स
+                </span>
+                <span className="text-lg sm:text-xl font-black text-indigo-400 mt-0.5 block">
+                  +₹{promoterAndRechargeTotal.toLocaleString('en-IN')}
+                </span>
+                <span className="text-[10px] text-slate-400">ऑनबोर्डिंग व वायरल रील</span>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
+                <span className="text-[11px] text-slate-300 block font-semibold">
+                  💰 वॉलेट में जोड़े गए पैसे
+                </span>
+                <span className="text-lg sm:text-xl font-black text-teal-300 mt-0.5 block">
+                  +₹{promoterAndRechargeTotal.toLocaleString('en-IN')}
+                </span>
+                <span className="text-[10px] text-slate-400">कुल जमा राशि</span>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
+                <span className="text-[11px] text-slate-300 block font-semibold">
+                  💸 बस टिकट व बैंक निकासी
+                </span>
+                <span className="text-lg sm:text-xl font-black text-orange-400 mt-0.5 block">
+                  -₹{totalMoneySpentOrWithdrawn.toLocaleString('en-IN')}
+                </span>
+                <span className="text-[10px] text-slate-400">उपयोग व ट्रांसफर</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
+                <span className="text-[11px] text-slate-300 block font-semibold">
+                  💰 Go Wallet में जोड़े गए पैसे
+                </span>
+                <span className="text-lg sm:text-xl font-black text-teal-300 mt-0.5 block">
+                  +₹{promoterAndRechargeTotal.toLocaleString('en-IN')}
+                </span>
+                <span className="text-[10px] text-slate-400">10-मिनट वेरीफाइड रिचार्ज</span>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
+                <span className="text-[11px] text-slate-300 block font-semibold">
+                  🚌 बस टिकट बुकिंग खर्च
+                </span>
+                <span className="text-lg sm:text-xl font-black text-rose-400 mt-0.5 block">
+                  -₹{totalMoneySpentOrWithdrawn.toLocaleString('en-IN')}
+                </span>
+                <span className="text-[10px] text-slate-400">टिकट भुगतान</span>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
+                <span className="text-[11px] text-slate-300 block font-semibold">
+                  🏦 बैंक / UPI में निकासी
+                </span>
+                <span className="text-lg sm:text-xl font-black text-amber-400 mt-0.5 block">
+                  -₹{totalMoneySpentOrWithdrawn.toLocaleString('en-IN')}
+                </span>
+                <span className="text-[10px] text-slate-400">कमीशन पेआउट</span>
+              </div>
+            </>
+          )}
 
           <div className="bg-emerald-500/15 border border-emerald-400/40 rounded-2xl p-3.5">
             <span className="text-[11px] text-emerald-200 block font-semibold">
@@ -319,12 +891,12 @@ export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
             <span className="text-lg sm:text-xl font-black text-white mt-0.5 block">
               ₹{(agentWalletBalance || 0).toLocaleString('en-IN')}
             </span>
-            <span className="text-[10px] text-emerald-300">सभी सेवाओं में 1-क्लिक उपयोग</span>
+            <span className="text-[10px] text-emerald-300">1-क्लिक तुरंत उपलब्ध</span>
           </div>
         </div>
       </div>
 
-      {/* 🧭 GO WALLET NAVIGATION TABS (INCLUDING DEDICATED "TRANSACTIONS" OPTION) */}
+      {/* 🧭 ROLE-FILTERED NAVIGATION TABS */}
       <div className="flex flex-wrap items-center gap-2 bg-white p-2 rounded-2xl border border-slate-200 shadow-xs">
         <button
           onClick={() => setActiveSection('overview')}
@@ -335,7 +907,7 @@ export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
           }`}
         >
           <Wallet className="w-4 h-4 text-amber-400" />
-          <span>Go Wallet फीचर्स (All Options)</span>
+          <span>Go Wallet फीचर्स</span>
         </button>
 
         <button
@@ -347,23 +919,26 @@ export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
           }`}
         >
           <History className="w-4 h-4 text-indigo-400" />
-          <span>📜 Transactions (पैसा कहाँ आया / कहाँ गया)</span>
+          <span>📜 Transactions (कहाँ आया / कहाँ गया)</span>
           <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-400 text-slate-950 font-black">
-            {(agentWalletTransactions || []).length + (agentWalletRecharges || []).filter((r) => r.status !== 'approved').length}
+            {(agentWalletTransactions || []).length}
           </span>
         </button>
 
-        <button
-          onClick={() => setActiveSection('top_ad')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition cursor-pointer ${
-            activeSection === 'top_ad'
-              ? 'bg-gradient-to-r from-orange-500 to-rose-600 text-white shadow'
-              : 'text-slate-700 hover:bg-orange-50'
-          }`}
-        >
-          <Megaphone className="w-4 h-4 text-orange-500" />
-          <span>🚀 दुकान को SafarGo TOP पर दिखाएं (Ad Boost)</span>
-        </button>
+        {/* Shopkeeper Only: Top Ad Boost Tab */}
+        {isShopkeeper && (
+          <button
+            onClick={() => setActiveSection('top_ad')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition cursor-pointer ${
+              activeSection === 'top_ad'
+                ? 'bg-gradient-to-r from-orange-500 to-rose-600 text-white shadow'
+                : 'text-slate-700 hover:bg-orange-50'
+            }`}
+          >
+            <Megaphone className="w-4 h-4 text-orange-500" />
+            <span>🚀 दुकान को TOP पर दिखाएं (Ad Boost)</span>
+          </button>
+        )}
 
         <button
           onClick={() => setActiveSection('withdraw')}
@@ -378,151 +953,408 @@ export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
         </button>
       </div>
 
-      {/* SECTION 1: GO WALLET ALL-IN-ONE FEATURES FOR AGENT, DUKANDAR & PROMOTER */}
+      {/* SECTION 1: ROLE-SPECIFIC OVERVIEW CARDS */}
       {activeSection === 'overview' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Card 1: Dukandar Quick Commerce Sales & Bank/UPI Payout */}
-          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4 flex flex-col justify-between">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-black text-xs flex items-center gap-1.5">
-                  <Store className="w-4 h-4 text-emerald-600" />
-                  दुकानदार (Quick Commerce) स्पेशल
-                </span>
-                <span className="text-xs font-black text-emerald-600">
-                  बिक्री आय: +₹{quickCommerceSalesTotal.toLocaleString('en-IN')}
-                </span>
+          {/* ================= AGENT OVERVIEW CARDS ================= */}
+          {isAgent && (
+            <>
+              {/* Agent Card 1: Exclusive Go Bus Ticket Booking */}
+              <div className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-3xl p-6 border border-indigo-500/30 shadow-md space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Go3DLogoBadge size="sm" showWalletText={true} exclusive={true} />
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-400 text-slate-950 font-black text-[10px]">
+                      +₹19.34 प्रति टिकट कमीशन
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-black text-white">
+                    Exclusive Go Wallet से बस टिकट बुकिंग
+                  </h3>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    एजेंट सीधे अपने <strong>Go Wallet बैलेंस से 1-क्लिक में बस टिकट बुक</strong> कर सकते हैं। टिकट बुकिंग पर आपका कमीशन तुरंत वॉलेट में जमा होता है और ग्राहक को टिकट तुरंत मिल जाता है।
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2.5 pt-2">
+                  <button
+                    onClick={() => {
+                      if (onNavigate) onNavigate('new-booking');
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-xs shadow-lg transition cursor-pointer"
+                  >
+                    🚌 Go Wallet से बस टिकट बुक करें ➔
+                  </button>
+                  <button
+                    onClick={() => setIsRechargeModalOpen(true)}
+                    className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition cursor-pointer"
+                  >
+                    + पैसे जोड़ें (10m Timer)
+                  </button>
+                </div>
               </div>
-              <h3 className="text-lg font-black text-slate-900">
-                क्विक कॉमर्स में बिके सामान का पैसा सीधे Go Wallet में!
-              </h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                दुकानदार का जो भी सामान <strong>SafarGo 15-Minute Quick Commerce</strong> में बिकता है, उसकी पूरी कमाई अपने-आप इस <strong>Go Wallet</strong> में जमा होती है। आप इसे कभी भी अपने <strong>बैंक खाते या UPI ID</strong> में निकाल सकते हैं।
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2.5 pt-2">
-              <button
-                onClick={() => setActiveSection('withdraw')}
-                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition cursor-pointer"
-              >
-                🏦 बैंक / UPI में पैसे निकालें ➔
-              </button>
-              <button
-                onClick={() => setActiveSection('transactions')}
-                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition cursor-pointer"
-              >
-                📜 बिक्री Transactions देखें
-              </button>
-            </div>
-          </div>
 
-          {/* Card 2: Promote Shop on SafarGo TOP (#1 Ad Boost) */}
-          <div className="bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 rounded-3xl p-6 border-2 border-orange-200 shadow-sm space-y-4 flex flex-col justify-between">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="px-3 py-1 rounded-full bg-orange-500 text-white font-black text-xs flex items-center gap-1.5">
-                  <Crown className="w-4 h-4" />
-                  SafarGo TOP #1 Ad Boost
-                </span>
-                <span className="text-xs font-black text-orange-700">₹49 से शुरू</span>
+              {/* Agent Card 2: 10-Minute Add Money Desk */}
+              <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-800 font-black text-xs flex items-center gap-1.5">
+                      <Clock className="w-4 h-4 text-amber-600" />
+                      10-मिनट टाइमर वेरिफिकेशन
+                    </span>
+                    <span className="text-xs font-black text-emerald-600">सुरक्षित QR व UPI</span>
+                  </div>
+                  <h3 className="text-lg font-black text-slate-900">
+                    Go Wallet में पैसे जोड़ें — 10 मिनट में सत्यापन!
+                  </h3>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    SafarGo आधिकारिक QR कोड या UPI से भुगतान करें और UTR नंबर दर्ज करें। <strong>10-मिनट टाइमर</strong> स्क्रीन पर एडमिन सत्यापन की पुष्टि लाइव दिखाई देती है और राशि तुरंत आपके वॉलेट में जुड़ जाती है।
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2.5 pt-2">
+                  <button
+                    onClick={() => setIsRechargeModalOpen(true)}
+                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition cursor-pointer"
+                  >
+                    + Go Wallet में पैसे जोड़ें ➔
+                  </button>
+                  <button
+                    onClick={() => setActiveSection('transactions')}
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition cursor-pointer"
+                  >
+                    📜 रिचार्ज इतिहास देखें
+                  </button>
+                </div>
               </div>
-              <h3 className="text-lg font-black text-slate-900">
-                अपनी दुकान का विज्ञापन करें — SafarGo पर सबसे TOP में दिखाएं!
-              </h3>
-              <p className="text-xs text-slate-700 leading-relaxed">
-                दुकानदार या प्रमोटर अपने <strong>Go Wallet</strong> में पैसे जोड़कर या अपनी कमाई से अपनी दुकान को <strong>SafarGo Quick Commerce में सबसे ऊपर (#1 Top Sponsored)</strong> दिखा सकते हैं, जिससे ग्राहकों के सबसे ज़्यादा ऑर्डर आपकी दुकान पर आएंगे!
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2.5 pt-2">
-              <button
-                onClick={() => setActiveSection('top_ad')}
-                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-rose-600 hover:from-orange-500 hover:to-rose-500 text-white font-black text-xs shadow transition cursor-pointer"
-              >
-                🚀 अपनी दुकान को TOP पर दिखाएं ➔
-              </button>
-              <button
-                onClick={() => setIsRechargeModalOpen(true)}
-                className="px-4 py-2.5 rounded-xl bg-white hover:bg-orange-100 text-orange-800 border border-orange-300 font-bold text-xs transition cursor-pointer"
-              >
-                + Ad के लिए पैसे जोड़ें
-              </button>
-            </div>
-          </div>
 
-          {/* Card 3: Exclusive Go Wallet Bus Ticket Booking (For Agent, Promoter & Dukandar) */}
-          <div className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-3xl p-6 border border-indigo-500/30 shadow-md space-y-4 flex flex-col justify-between">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Go3DLogoBadge size="sm" showWalletText={true} exclusive={true} />
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-400 text-slate-950 font-black text-[10px]">
-                  +₹19.34 कमीशन
-                </span>
+              {/* Agent Card 3: Bank / UPI Payout */}
+              <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-black text-xs flex items-center gap-1.5">
+                      <Building2 className="w-4 h-4 text-emerald-600" />
+                      इंस्टेंट बैंक ट्रांसफर
+                    </span>
+                    <span className="text-xs font-bold text-slate-500">24x7 उपलब्ध</span>
+                  </div>
+                  <h3 className="text-lg font-black text-slate-900">
+                    कमीशन व कमाई सीधे बैंक या UPI ID में निकालें
+                  </h3>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    एजेंट अपने Go Wallet से कमाई को कभी भी सीधे अपने <strong>Google Pay / PhonePe / Paytm UPI ID</strong> या <strong>बैंक खाते</strong> में ट्रांसफर कर सकते हैं।
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2.5 pt-2">
+                  <button
+                    onClick={() => setActiveSection('withdraw')}
+                    className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition cursor-pointer"
+                  >
+                    🏦 अभी बैंक / UPI में निकालें ➔
+                  </button>
+                </div>
               </div>
-              <h3 className="text-lg font-black text-white">
-                Exclusive Go Wallet से प्रीमियम बस टिकट बुकिंग (एजेंट, प्रमोटर व दुकानदार)
-              </h3>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                बस टिकट बुकिंग में <strong>Exclusive Go Wallet (3D Logo के साथ)</strong> ऑटोमैटिक प्रीमियम पेमेंट ऑप्शन के रूप में सेट है! एजेंट, प्रमोटर और दुकानदार सभी अपने Go Wallet बैलेंस से तुरंत बस टिकट बुक कर सकते हैं।
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2.5 pt-2">
-              <button
-                onClick={() => {
-                  if (onNavigate) {
-                    onNavigate(role === 'agent' || role === 'promoter' ? 'new-booking' : 'home');
-                  }
-                }}
-                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-xs shadow-lg transition cursor-pointer"
-              >
-                🚌 Go Wallet से बस टिकट बुक करें ➔
-              </button>
-              {onNavigate && (
-                <button
-                  onClick={() => onNavigate('home')}
-                  className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition cursor-pointer"
-                >
-                  ⚡ ऑटोमैटिक सीट बस बुकिंग
-                </button>
-              )}
-            </div>
-          </div>
 
-          {/* Card 4: Promoter & Agent All-Rounder Go Wallet Controls */}
-          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4 flex flex-col justify-between">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="px-3 py-1 rounded-full bg-indigo-100 text-indigo-800 font-black text-xs flex items-center gap-1.5">
-                  <Award className="w-4 h-4 text-indigo-600" />
-                  प्रमोटर एवं एजेंट फुल एक्सेस
-                </span>
-                <span className="text-xs font-bold text-indigo-600">All Features Active</span>
+              {/* Agent Card 4: Agent Passbook */}
+              <div className="bg-slate-50 rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="px-3 py-1 rounded-full bg-indigo-100 text-indigo-800 font-black text-xs flex items-center gap-1.5">
+                      <History className="w-4 h-4 text-indigo-600" />
+                      एजेंट पासबुक
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-black text-slate-900">
+                    एजेंट का पूरा लेन-देन इतिहास (Transactions)
+                  </h3>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    देखें कि आपका पैसा कहाँ से आया (रिचार्ज, टिकट कमीशन) और कहाँ गया (बस बुकिंग, बैंक निकासी)।
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2.5 pt-2">
+                  <button
+                    onClick={() => setActiveSection('transactions')}
+                    className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs transition cursor-pointer"
+                  >
+                    📜 पूरा Transactions इतिहास देखें ➔
+                  </button>
+                </div>
               </div>
-              <h3 className="text-lg font-black text-slate-900">
-                प्रमोटर, दुकानदार और एजेंट — सभी के लिए संपूर्ण सुविधाएं!
-              </h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                प्रमोटर अपनी दुकान ऑनबोर्डिंग व वायरल रील की कमाई को <strong>Go Wallet</strong> में देख सकते हैं, उसे बस टिकट बुकिंग में इस्तेमाल कर सकते हैं, दुकानों को Top Ad में प्रमोट कर सकते हैं या सीधे बैंक/UPI में ले सकते हैं।
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2.5 pt-2">
-              <button
-                onClick={() => setActiveSection('transactions')}
-                className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs transition cursor-pointer"
-              >
-                📜 पूरा Transactions इतिहास देखें ➔
-              </button>
-              <button
-                onClick={() => setIsRechargeModalOpen(true)}
-                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition cursor-pointer"
-              >
-                + पैसे जोड़ें (Add Money)
-              </button>
-            </div>
-          </div>
+            </>
+          )}
+
+          {/* ================= DUKANDAR (SHOPKEEPER) OVERVIEW CARDS ================= */}
+          {isShopkeeper && (
+            <>
+              {/* Dukandar Card 1: Quick Commerce Sales */}
+              <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-black text-xs flex items-center gap-1.5">
+                      <Store className="w-4 h-4 text-emerald-600" />
+                      दुकानदार क्विक कॉमर्स स्पेशल
+                    </span>
+                    <span className="text-xs font-black text-emerald-600">
+                      बिक्री आय: +₹{quickCommerceSalesTotal.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-black text-slate-900">
+                    क्विक कॉमर्स में बिके सामान का पैसा सीधे Go Wallet में!
+                  </h3>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    दुकानदार का जो भी सामान <strong>SafarGo 15-Minute Quick Commerce</strong> में बिकता है, उसकी पूरी कमाई अपने-आप इस <strong>Go Wallet</strong> में जमा होती है। आप इसे कभी भी अपने <strong>बैंक खाते या UPI ID</strong> में निकाल सकते हैं।
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2.5 pt-2">
+                  <button
+                    onClick={() => setActiveSection('withdraw')}
+                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition cursor-pointer"
+                  >
+                    🏦 बैंक / UPI में पैसे निकालें ➔
+                  </button>
+                  <button
+                    onClick={() => setActiveSection('transactions')}
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition cursor-pointer"
+                  >
+                    📜 बिक्री Transactions देखें
+                  </button>
+                </div>
+              </div>
+
+              {/* Dukandar Card 2: Top Shop Ad Boost */}
+              <div className="bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 rounded-3xl p-6 border-2 border-orange-200 shadow-sm space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="px-3 py-1 rounded-full bg-orange-500 text-white font-black text-xs flex items-center gap-1.5">
+                      <Crown className="w-4 h-4" />
+                      SafarGo TOP #1 Ad Boost
+                    </span>
+                    <span className="text-xs font-black text-orange-700">₹49 से शुरू</span>
+                  </div>
+                  <h3 className="text-lg font-black text-slate-900">
+                    अपनी दुकान को SafarGo पर सबसे TOP में दिखाएं!
+                  </h3>
+                  <p className="text-xs text-slate-700 leading-relaxed">
+                    दुकानदार अपने <strong>Go Wallet</strong> बैलेंस से अपनी दुकान को <strong>SafarGo Quick Commerce में सबसे ऊपर (#1 Top Sponsored)</strong> दिखा सकते हैं, जिससे ग्राहकों के सबसे ज़्यादा ऑर्डर आपकी दुकान पर आएंगे!
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2.5 pt-2">
+                  <button
+                    onClick={() => setActiveSection('top_ad')}
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-rose-600 hover:from-orange-500 hover:to-rose-500 text-white font-black text-xs shadow transition cursor-pointer"
+                  >
+                    🚀 दुकान को TOP पर दिखाएं ➔
+                  </button>
+                  <button
+                    onClick={() => setIsRechargeModalOpen(true)}
+                    className="px-4 py-2.5 rounded-xl bg-white hover:bg-orange-100 text-orange-800 border border-orange-300 font-bold text-xs transition cursor-pointer"
+                  >
+                    + पैसे जोड़ें (Add Money)
+                  </button>
+                </div>
+              </div>
+
+              {/* Dukandar Card 3: Bank Withdrawal */}
+              <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="px-3 py-1 rounded-full bg-indigo-100 text-indigo-800 font-black text-xs flex items-center gap-1.5">
+                      <Building2 className="w-4 h-4 text-indigo-600" />
+                      दुकानदार निकासी
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-black text-slate-900">
+                    बिक्री कमाई बैंक या UPI ID में ट्रांसफर करें
+                  </h3>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    दुकानदार अपने किसी भी बैंक खाते या UPI ID (PhonePe, GPay) में 1-क्लिक में सुरक्षित निकासी कर सकते हैं।
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2.5 pt-2">
+                  <button
+                    onClick={() => setActiveSection('withdraw')}
+                    className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs transition cursor-pointer"
+                  >
+                    🏦 पैसे निकालें ➔
+                  </button>
+                </div>
+              </div>
+
+              {/* Dukandar Card 4: Passbook */}
+              <div className="bg-slate-50 rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="px-3 py-1 rounded-full bg-slate-200 text-slate-800 font-black text-xs flex items-center gap-1.5">
+                      <History className="w-4 h-4" />
+                      दुकानदार पासबुक
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-black text-slate-900">
+                    दुकान बिक्री व खर्च का पूरा रिकॉर्ड
+                  </h3>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    हर क्विक कॉमर्स बिक्री, टॉप ऐड बूस्ट खर्च और बैंक निकासी का पूरा ब्यौरा।
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2.5 pt-2">
+                  <button
+                    onClick={() => setActiveSection('transactions')}
+                    className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs transition cursor-pointer"
+                  >
+                    📜 पूरा लेन-देन देखें ➔
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ================= PROMOTER OVERVIEW CARDS ================= */}
+          {isPromoter && (
+            <>
+              {/* Promoter Card 1: Promoter Rewards */}
+              <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="px-3 py-1 rounded-full bg-indigo-100 text-indigo-800 font-black text-xs flex items-center gap-1.5">
+                      <Award className="w-4 h-4 text-indigo-600" />
+                      प्रमोटर रिवॉर्ड्स
+                    </span>
+                    <span className="text-xs font-bold text-indigo-600">Active</span>
+                  </div>
+                  <h3 className="text-lg font-black text-slate-900">
+                    दुकान ऑनबोर्डिंग व वायरल रील की कमाई सीधे Go Wallet में!
+                  </h3>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    प्रमोटर अपने ऑनबोर्डिंग इंसेंटिव व वायरल वीडियो रिवॉर्ड्स को <strong>Go Wallet</strong> में देख सकते हैं, और इसे कभी भी बैंक/UPI में ट्रांसफर कर सकते हैं या बस टिकट बुक कर सकते हैं।
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2.5 pt-2">
+                  <button
+                    onClick={() => setActiveSection('withdraw')}
+                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition cursor-pointer"
+                  >
+                    🏦 बैंक / UPI में पैसे निकालें ➔
+                  </button>
+                  <button
+                    onClick={() => setIsRechargeModalOpen(true)}
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition cursor-pointer"
+                  >
+                    + पैसे जोड़ें
+                  </button>
+                </div>
+              </div>
+
+              {/* Promoter Card 2: Exclusive Go Bus Ticket Booking */}
+              <div className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-3xl p-6 border border-indigo-500/30 shadow-md space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Go3DLogoBadge size="sm" showWalletText={true} exclusive={true} />
+                    <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[10px]">
+                      प्रमोटर स्पेशल
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-black text-white">
+                    Exclusive Go Wallet से बस टिकट बुकिंग
+                  </h3>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    प्रमोटर अपनी कमाई से सीधे प्रीमियम बस टिकट बुक कर सकते हैं और यात्रा का आनंद ले सकते हैं।
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2.5 pt-2">
+                  <button
+                    onClick={() => {
+                      if (onNavigate) onNavigate('new-booking');
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-xs shadow-lg transition cursor-pointer"
+                  >
+                    🚌 Go Wallet से बस टिकट बुक करें ➔
+                  </button>
+                </div>
+              </div>
+
+              {/* Promoter Card 3: Passbook */}
+              <div className="bg-slate-50 rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="px-3 py-1 rounded-full bg-slate-200 text-slate-800 font-black text-xs flex items-center gap-1.5">
+                      <History className="w-4 h-4" />
+                      प्रमोटर पासबुक
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-black text-slate-900">
+                    रिवॉर्ड्स व लेन-देन का पूरा इतिहास
+                  </h3>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    देखें कि कौन सा रिवॉर्ड कब जमा हुआ और आपने कब निकासी की।
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2.5 pt-2">
+                  <button
+                    onClick={() => setActiveSection('transactions')}
+                    className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs transition cursor-pointer"
+                  >
+                    📜 पूरा लेन-देन देखें ➔
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ================= CUSTOMER / GENERAL PASSENGER CARDS ================= */}
+          {!isAgent && !isShopkeeper && !isPromoter && (
+            <>
+              <div className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-3xl p-6 border border-indigo-500/30 shadow-md space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Go3DLogoBadge size="sm" showWalletText={true} exclusive={true} />
+                  </div>
+                  <h3 className="text-lg font-black text-white">
+                    Exclusive Go Wallet से 1-क्लिक बस टिकट बुक करें
+                  </h3>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    अपने Go Wallet में पैसे जोड़ें और बिना किसी बैंक देरी के सीधे बस टिकट बुक करें!
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2.5 pt-2">
+                  <button
+                    onClick={() => {
+                      if (onNavigate) onNavigate('home');
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs transition cursor-pointer"
+                  >
+                    🚌 बस खोजें व बुक करें ➔
+                  </button>
+                  <button
+                    onClick={() => setIsRechargeModalOpen(true)}
+                    className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition cursor-pointer"
+                  >
+                    + पैसे जोड़ें (10m Timer)
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <h3 className="text-lg font-black text-slate-900">
+                    बैंक या UPI ID में पैसे निकालें
+                  </h3>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Go Wallet से अपने शेष पैसे को कभी भी वापस अपने बैंक या UPI ID में ट्रांसफर करें।
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2.5 pt-2">
+                  <button
+                    onClick={() => setActiveSection('withdraw')}
+                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition cursor-pointer"
+                  >
+                    🏦 पैसे निकालें ➔
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 
-      {/* SECTION 2: DEDICATED "TRANSACTIONS" TAB (जहाँ एजेंट, दुकानदार और प्रमोटर देख सकें कि उनका पैसा कहाँ आया और कहाँ गया) */}
+      {/* SECTION 2: TRANSACTIONS TAB */}
       {activeSection === 'transactions' && (
         <div className="bg-white rounded-3xl border border-slate-200 shadow-md overflow-hidden">
           <div className="p-6 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -530,10 +1362,10 @@ export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
               <Go3DLogoBadge size="sm" showWalletText={false} />
               <div>
                 <h2 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
-                  <span>📜 Go Wallet Transactions (लेन-देन पासबुक हिस्ट्री)</span>
+                  <span>📜 Go Wallet Transactions (पासबुक हिस्ट्री)</span>
                 </h2>
                 <p className="text-xs text-slate-300">
-                  यहाँ एजेंट, दुकानदार और प्रमोटर देख सकते हैं कि उनका पैसा कहाँ से आया (+₹) और कहाँ गया (-₹)
+                  यहाँ देखें कि आपका पैसा कहाँ से आया (+₹) और कहाँ गया (-₹)
                 </p>
               </div>
             </div>
@@ -541,10 +1373,10 @@ export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
             {/* Filter Pills */}
             <div className="flex flex-wrap items-center gap-1.5">
               {[
-                { id: 'all', label: 'सभी (All History)' },
-                { id: 'sales_in', label: '🏪 + दुकान बिक्री (Quick Commerce)' },
-                { id: 'recharges_in', label: '💰 + रिचार्ज व प्रमोटर आय' },
-                { id: 'money_out', label: '💸 - पैसा कहाँ गया (Ticket / Ad / Bank)' },
+                { id: 'all', label: 'सभी (All)' },
+                ...(isShopkeeper ? [{ id: 'sales_in', label: '🏪 + दुकान बिक्री' }] : []),
+                { id: 'recharges_in', label: '💰 + रिचार्ज व कमाई' },
+                { id: 'money_out', label: '💸 - निकासी व खर्च' },
               ].map((f) => (
                 <button
                   key={f.id}
@@ -579,7 +1411,7 @@ export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
 
               const rows: UnifiedRow[] = [];
 
-              // 1. Pending / Rejected Recharges
+              // 1. Pending / Rejected Recharges for this user
               (agentWalletRecharges || []).forEach((r) => {
                 if (r.status === 'pending' || r.status === 'rejected') {
                   rows.push({
@@ -592,7 +1424,7 @@ export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
                     reference: `UTR: ${r.utr_number}`,
                     amount: Number(r.amount) || 0,
                     isCredit: true,
-                    statusBadge: r.status === 'pending' ? '⏳ PENDING' : '❌ REJECTED',
+                    statusBadge: r.status === 'pending' ? '⏳ 10-MIN PENDING' : '❌ REJECTED',
                     statusColor:
                       r.status === 'pending'
                         ? 'bg-amber-100 text-amber-800 border-amber-300'
@@ -603,7 +1435,7 @@ export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
                 }
               });
 
-              // 2. All Go Wallet Transactions
+              // 2. All Transactions
               (agentWalletTransactions || []).forEach((t) => {
                 const isCred = t.amount >= 0 && t.type !== 'ticket_booking' && t.type !== 'shop_ad_boost' && t.type !== 'bank_withdrawal';
                 let categoryLabel = 'Go Wallet ट्रांजेक्शन';
@@ -614,28 +1446,28 @@ export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
                 let filterGroup: 'sales_in' | 'recharges_in' | 'money_out' = isCred ? 'recharges_in' : 'money_out';
 
                 if (t.type === 'quick_commerce_sale') {
-                  categoryLabel = '🏪 क्विक कॉमर्स सामान बिक्री की कमाई (Dukandar Sale)';
+                  categoryLabel = '🏪 क्विक कॉमर्स सामान बिक्री की कमाई';
                   statusBadge = '✅ SALE CREDITED';
                   filterGroup = 'sales_in';
                 } else if (t.type === 'promoter_earning') {
-                  categoryLabel = '👑 प्रमोटर कमाई (Promoter Reward)';
+                  categoryLabel = '👑 प्रमोटर कमाई';
                   statusBadge = '✅ PROMOTER EARNING';
                   filterGroup = 'recharges_in';
                 } else if (t.type === 'recharge') {
-                  categoryLabel = '💰 Go Wallet में पैसे जोड़े गए (Verified Recharge)';
+                  categoryLabel = '💰 Go Wallet में पैसे जोड़े गए';
                   statusBadge = '✅ VERIFIED & ADDED';
                   filterGroup = 'recharges_in';
                 } else if (t.type === 'ticket_booking') {
-                  categoryLabel = '🚌 बस टिकट बुकिंग में पैसा गया (Bus Ticket Paid)';
+                  categoryLabel = '🚌 बस टिकट बुकिंग भुगतान';
                   statusBadge = '🚌 BUS TICKET BOOKED';
                   filterGroup = 'money_out';
                 } else if (t.type === 'shop_ad_boost') {
-                  categoryLabel = '🚀 दुकान को SafarGo TOP पर दिखाने में पैसा गया (Top Ad Boost)';
+                  categoryLabel = '🚀 दुकान को SafarGo TOP पर दिखाने में खर्च';
                   statusBadge = '👑 TOP AD BOOST';
                   statusColor = 'bg-purple-100 text-purple-800 border-purple-300';
                   filterGroup = 'money_out';
                 } else if (t.type === 'bank_withdrawal') {
-                  categoryLabel = '🏦 बैंक / UPI ID में पैसा निकाला गया (Bank/UPI Withdrawal)';
+                  categoryLabel = '🏦 बैंक / UPI ID में पैसा निकाला गया';
                   statusBadge = '🏦 SENT TO BANK / UPI';
                   statusColor = 'bg-blue-100 text-blue-800 border-blue-300';
                   filterGroup = 'money_out';
@@ -710,8 +1542,8 @@ export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
         </div>
       )}
 
-      {/* SECTION 3: PROMOTE SHOP ON SAFARGO TOP (#1 SPONSORED AD BOOST) */}
-      {activeSection === 'top_ad' && (
+      {/* SECTION 3: SHOPKEEPER ONLY - TOP AD BOOST */}
+      {isShopkeeper && activeSection === 'top_ad' && (
         <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-orange-200 shadow-md space-y-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
             <div className="space-y-1">
@@ -822,12 +1654,12 @@ export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
                 🏦 Go Wallet से बैंक या UPI ID में पैसे निकालें
               </h2>
               <p className="text-xs text-slate-500">
-                दुकानदार की क्विक कॉमर्स बिक्री या प्रमोटर/एजेंट की कमाई सीधे अपने बैंक या UPI में लें
+                अपनी कमाई या शेष राशि सीधे अपने बैंक खाते या UPI ID में प्राप्त करें
               </p>
             </div>
             <div className="text-right">
               <span className="text-[10px] text-slate-400 block font-bold uppercase">उपलब्ध बैलेंस</span>
-              <span className="text-lg font-black text-emerald-600">
+              <span className="text-lg font-black text-emerald-600 font-mono">
                 ₹{(agentWalletBalance || 0).toLocaleString('en-IN')}
               </span>
             </div>
@@ -887,7 +1719,7 @@ export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
                   required
                   value={upiId}
                   onChange={(e) => setUpiId(e.target.value)}
-                  placeholder="उदा. 9876543210@ybl या shopkeeper@okaxis"
+                  placeholder="उदा. 9876543210@ybl या user@okaxis"
                   className="w-full p-3 rounded-xl border border-slate-300 font-bold font-mono text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
                 />
               </div>

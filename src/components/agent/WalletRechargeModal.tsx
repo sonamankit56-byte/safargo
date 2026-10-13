@@ -235,26 +235,27 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
         {/* Header */}
         <div className="p-5 sm:p-6 bg-slate-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-orange-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/30">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-rose-600 text-white flex items-center justify-center shadow-lg shadow-orange-500/30 border border-amber-200">
               <Wallet className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-extrabold text-base sm:text-lg">
-                  एजेंट वॉलेट में पैसे जोड़ें (Add Money)
+                <h2 className="font-black text-base sm:text-lg flex items-center gap-1.5">
+                  <span className="bg-gradient-to-r from-amber-300 via-orange-300 to-emerald-300 bg-clip-text text-transparent">Go Wallet</span>
+                  <span>में पैसे जोड़ें (Add Money)</span>
                 </h2>
-                <span className="text-[10px] font-bold bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full">
+                <span className="text-[10px] font-black bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full">
                   Min ₹{minAmount.toLocaleString('en-IN')}
                 </span>
               </div>
               <p className="text-xs text-slate-300">
-                वर्तमान वॉलेट बैलेंस: <strong className="text-emerald-400">₹{safeWalletBalance.toFixed(2)}</strong>
+                वर्तमान Go Wallet बैलेंस: <strong className="text-emerald-400">₹{safeWalletBalance.toFixed(2)}</strong>
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition"
+            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -265,10 +266,10 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
           <AlertCircle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
           <div className="text-xs text-amber-900 space-y-0.5">
             <p className="font-bold">
-              💡 SafarGo प्रीपेड वॉलेट नियम (Prepaid Wallet Policy):
+              💡 SafarGo Go Wallet नियम (Go Wallet Policy):
             </p>
             <p className="text-amber-800 leading-relaxed text-[11px]">
-              एजेंट को वॉलेट में न्यूनतम <strong>₹{minAmount.toLocaleString('en-IN')}</strong> जोड़ना आवश्यक है। आप अपनी सुविधानुसार ₹2,000 या उससे अधिक कितनी भी राशि जमा कर सकते हैं। एडमिन सत्यापन के बाद राशि तुरंत आपके वॉलेट में क्रेडिट हो जाएगी और आप सीधे टिकट बुक कर सकेंगे!
+              Go Wallet में न्यूनतम <strong>₹{minAmount.toLocaleString('en-IN')}</strong> जोड़ना आवश्यक है। आप अपनी सुविधानुसार ₹2,000 या उससे अधिक कितनी भी राशि जमा कर सकते हैं। एडमिन सत्यापन (10-मिनट टाइमर) के बाद राशि तुरंत आपके Go Wallet में क्रेडिट हो जाएगी और आप सीधे टिकट बुक कर सकेंगे या सेवाओं में उपयोग कर सकेंगे!
             </p>
           </div>
         </div>

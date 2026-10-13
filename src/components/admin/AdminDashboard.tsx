@@ -169,6 +169,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
             <span>⚡ इंस्टेंट टिकट ({instantTicketBookings.length})</span>
           </button>
           <button
+            onClick={() => onNavigate('go-wallet')}
+            className={`px-4 py-2.5 rounded-xl font-black text-xs flex items-center gap-1.5 shadow-lg transition cursor-pointer ${
+              (walletRecharges || []).filter((r) => r.status === 'pending').length > 0
+                ? 'bg-amber-400 hover:bg-amber-300 text-slate-950 animate-pulse ring-2 ring-amber-300'
+                : 'bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 hover:from-amber-300 hover:to-orange-400'
+            }`}
+          >
+            <Wallet className="w-4 h-4" />
+            <span>👑 Go Wallet अनुरोध ({(walletRecharges || []).filter((r) => r.status === 'pending').length})</span>
+          </button>
+          <button
             onClick={() => onNavigate('admin-security-desk')}
             className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-lg transition ${
               activeOtpCount > 0
@@ -356,8 +367,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
             </div>
 
             <button
-              onClick={() => onNavigate('admin-salary')}
-              className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition"
+              onClick={() => onNavigate('go-wallet')}
+              className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition cursor-pointer"
             >
               सभी देखें ➔
             </button>
