@@ -123,6 +123,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   >('kirana');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSendingResetEmail, setIsSendingResetEmail] = useState(false);
 
   // Saved registration state to show in success screen for agents
   const [registeredInfo, setRegisteredInfo] = useState<{
@@ -267,8 +268,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   // Handle Forgot Password Submit
-  const [isSendingResetEmail, setIsSendingResetEmail] = useState(false);
-
   const handleSendGmailResetLink = async () => {
     const raw = forgotIdentifier.trim();
     if (!raw) {
