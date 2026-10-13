@@ -416,9 +416,15 @@ const AppContent: React.FC = () => {
 
             <div>
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">
-                Quick Actions
+                Quick Actions & 3D Go Wallet
               </h3>
               <div className="space-y-2">
+                <button
+                  onClick={() => setCurrentTab('go-wallet')}
+                  className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-emerald-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer"
+                >
+                  <span>👑 3D Go Wallet खोलें</span>
+                </button>
                 {!currentUser ? (
                   <>
                     <button
@@ -454,7 +460,7 @@ const AppContent: React.FC = () => {
             </div>
           </div>
 
-          <div className={`border-t border-slate-800 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4 ${currentUser ? 'pb-14' : ''}`}>
+          <div className="border-t border-slate-800 pt-6 pb-16 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
             <p>© 2026 SafarGo Technologies. All rights reserved. Manual Bus Ticketing System.</p>
             <div className="flex items-center gap-2">
               <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
