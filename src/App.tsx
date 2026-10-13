@@ -32,13 +32,15 @@ import { CustomerPortal } from './components/customer/CustomerPortal';
 import { ShopkeeperPortal } from './components/shop/ShopkeeperPortal';
 import { GoWalletHub } from './components/wallet/GoWalletHub';
 import { AuthModal } from './components/auth/AuthModal';
+import { GoAgentDashboard } from './components/agent/GoAgentDashboard';
+import { GoAgentAuthModal } from './components/agent/GoAgentAuthModal';
 import { AnnouncementBanner } from './components/common/AnnouncementBanner';
 import { HomePage } from './components/home/HomePage';
 import { SafarGoLogo } from './components/common/SafarGoLogo';
 import { BottomNav } from './components/common/BottomNav';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { getTabFromPath, getPathFromTab } from './lib/routes';
-import { Bus, ShieldCheck, Heart, UserPlus, LogIn, ExternalLink } from 'lucide-react';
+import { Bus, ShieldCheck, Heart, UserPlus, LogIn, ExternalLink, Zap } from 'lucide-react';
 
 const AppContent: React.FC = () => {
   const { currentUser, role, isAdmin, isPromoter } = useAuth();
@@ -62,6 +64,8 @@ const AppContent: React.FC = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register' | 'promoter_login'>('login');
   const [isPromoterModalOpen, setIsPromoterModalOpen] = useState(false);
+  const [isGoAuthModalOpen, setIsGoAuthModalOpen] = useState(false);
+  const [goAuthInitialMode, setGoAuthInitialMode] = useState<'login' | 'register'>('login');
   const [selectedTrackOrderId, setSelectedTrackOrderId] = useState<string | null>(null);
 
   // Extract orderId from URL query string if present (e.g. /track-order?orderId=ORD-123)
@@ -72,6 +76,11 @@ const AppContent: React.FC = () => {
   const handleOpenAuth = (initialTab: 'login' | 'register' | 'promoter_login' = 'login') => {
     setAuthInitialTab(initialTab);
     setIsAuthModalOpen(true);
+  };
+
+  const handleOpenGoAuth = (mode: 'login' | 'register' = 'login') => {
+    setGoAuthInitialMode(mode);
+    setIsGoAuthModalOpen(true);
   };
 
   // Auto-redirect to role-specific dashboard upon fresh login or logout
@@ -154,11 +163,17 @@ const AppContent: React.FC = () => {
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
         onOpenAuth={handleOpenAuth}
+        onOpenGoAuth={handleOpenGoAuth}
       />
 
       {/* Main Content View Container */}
       <main className="flex-1 pb-16">
-        {currentTab === 'go-wallet' || currentTab === 'go_wallet' ? (
+        {currentTab === 'go-agent' ? (
+          <GoAgentDashboard
+            onNavigateHome={() => setCurrentTab('home')}
+            onOpenBookingModal={() => setCurrentTab('new-booking')}
+          />
+        ) : currentTab === 'go-wallet' || currentTab === 'go_wallet' ? (
           <GoWalletHub onNavigate={setCurrentTab} onOpenAuth={handleOpenAuth} />
         ) : currentTab === 'track-order' ? (
           <FlipkartOrderTrackingView
@@ -271,6 +286,7 @@ const AppContent: React.FC = () => {
         ) : (
           <HomePage
             onOpenAuth={handleOpenAuth}
+            onOpenGoAuth={handleOpenGoAuth}
             onOpenPromoterApply={() => setIsPromoterModalOpen(true)}
             onNavigateTab={(tab) => {
               if (tab === 'promoter-modal') {
@@ -329,6 +345,19 @@ const AppContent: React.FC = () => {
         <PromoterApplicationModal
           isOpen={isPromoterModalOpen}
           onClose={() => setIsPromoterModalOpen(false)}
+        />
+      )}
+
+      {/* GO Special Agent Ultra 3D Auth Modal */}
+      {isGoAuthModalOpen && (
+        <GoAgentAuthModal
+          isOpen={isGoAuthModalOpen}
+          initialMode={goAuthInitialMode}
+          onClose={() => setIsGoAuthModalOpen(false)}
+          onSuccessLogin={() => {
+            setIsGoAuthModalOpen(false);
+            setCurrentTab('go-agent');
+          }}
         />
       )}
 
@@ -419,6 +448,20 @@ const AppContent: React.FC = () => {
                 Quick Actions & 3D Go Wallet
               </h3>
               <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    if (!currentUser) {
+                      handleOpenGoAuth('login');
+                    } else {
+                      setCurrentTab('go-agent');
+                    }
+                  }}
+                  className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-500 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer"
+                >
+                  <Zap className="w-3.5 h-3.5 text-slate-950" />
+                  <span>⚡ GO Special Agent (Ultra 3D)</span>
+                </button>
+
                 <button
                   onClick={() => {
                     if (!currentUser) {

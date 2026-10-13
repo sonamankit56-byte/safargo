@@ -9,6 +9,7 @@ export const TAB_TO_PATH: Record<string, string> = {
   'go-wallet': '/go-wallet',
 
   // Agent tabs
+  'go-agent': '/go-agent',
   'dashboard': '/agent/dashboard',
   'new-booking': '/agent/new-booking',
   'my-bookings': '/agent/my-bookings',
@@ -45,6 +46,7 @@ export const PATH_TO_TAB: Record<string, string> = {
   '/go-wallet': 'go-wallet',
 
   // Agent paths
+  '/go-agent': 'go-agent',
   '/agent': 'dashboard',
   '/agent/dashboard': 'dashboard',
   '/agent/new-booking': 'new-booking',

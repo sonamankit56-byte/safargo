@@ -41,6 +41,7 @@ import { Booking, PromotionPlatform, BusTrip } from '../../types';
 import { StatusBadge } from '../common/StatusBadge';
 import { PrintTicketModal } from '../common/PrintTicketModal';
 import { SafarGoLogo } from '../common/SafarGoLogo';
+import { Go3DUltraLogo } from '../common/Go3DUltraLogo';
 import { PromotionClaimModal } from '../promotions/PromotionClaimModal';
 import { PromoterTrackStatusWidget } from '../promoter/PromoterTrackStatusWidget';
 import { ComingSoonModal } from '../common/ComingSoonModal';
@@ -55,9 +56,10 @@ interface HomePageProps {
   onOpenAuth: (initialTab?: 'login' | 'register' | 'promoter_login') => void;
   onNavigateTab: (tab: string) => void;
   onOpenPromoterApply?: () => void;
+  onOpenGoAuth?: (mode?: 'login' | 'register') => void;
 }
 
-export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, onOpenPromoterApply }) => {
+export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, onOpenPromoterApply, onOpenGoAuth }) => {
   const { currentUser, role } = useAuth();
   const { settings, busTrips, bookings } = useData();
 
@@ -345,6 +347,59 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                 <div className="min-w-0 flex-1">
                   <span className="font-bold text-white block truncate">₹50 रेफरल</span>
                   <span className="text-[10px] text-slate-400 block truncate">5 बुकिंग पूरी पर</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 👑 ULTRA 3D GO SPECIAL AGENT FEATURE BANNER */}
+            <div className="pt-8 max-w-4xl mx-auto">
+              <div className="relative rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-2 border-amber-400 p-6 sm:p-8 shadow-[0_0_40px_rgba(245,158,11,0.25)] flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden">
+                <div className="absolute top-0 right-0 w-72 h-72 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
+                  <Go3DUltraLogo size="lg" showBadge={false} />
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 inline-block">
+                      ⚡ नया GO स्पेशल एजेंट
+                    </span>
+                    <h3 className="text-xl sm:text-2xl font-black text-white">
+                      प्रत्येक बुकिंग पर <span className="text-amber-400">फ्लैट ₹20 नकद कमीशन</span>!
+                    </h3>
+                    <p className="text-xs text-slate-300 max-w-lg leading-relaxed">
+                      असली Gmail वेरिफिकेशन, 3D एडवांस्ड डैशबोर्ड, 1-क्लिक रिफंड प्रबंधन एवं Go Wallet सुरक्षा। कोई कचरा नहीं — केवल अधिकृत GO स्पेशल एजेंट।
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!currentUser) {
+                        if (onOpenGoAuth) onOpenGoAuth('register');
+                        else onOpenAuth('register');
+                      } else {
+                        onNavigateTab('go-agent');
+                      }
+                    }}
+                    className="w-full sm:w-auto py-3 px-5 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-300 hover:from-amber-300 text-slate-950 font-black text-xs shadow-lg transition active:scale-95 cursor-pointer"
+                  >
+                    🚀 नया GO रजिस्ट्रेशन ➔
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!currentUser) {
+                        if (onOpenGoAuth) onOpenGoAuth('login');
+                        else onOpenAuth('login');
+                      } else {
+                        onNavigateTab('go-agent');
+                      }
+                    }}
+                    className="w-full sm:w-auto py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition cursor-pointer"
+                  >
+                    ⚡ GO एजेंट लॉगिन
+                  </button>
                 </div>
               </div>
             </div>

@@ -91,7 +91,10 @@ export interface Profile {
   promoter_slot_no?: number; // 1 to 5
   promoter_assigned_id?: string; // If this agent was onboarded by a promoter
   promoter_salary?: number; // ₹15,000 / month
-  promoter_fee_refunded?: boolean;
+  // GO Ultra Special Agent fields
+  is_go_agent?: boolean;
+  go_agent_tier?: 'ultra_premium';
+  go_commission_rate?: number; // Flat ₹20 per booking
 
   created_at: string;
   updated_at: string;

@@ -19,6 +19,9 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onNavigateTab 
   // Strictly only show BottomNav when user is logged in
   if (!currentUser) return null;
 
+  // If in dedicated Go Ultra Agent Dashboard, it renders its own 4-tab bottom navigation
+  if (currentTab === 'go-agent') return null;
+
   // Determine appropriate dashboard tab for the user's role
   const getDashboardTab = () => {
     if (!currentUser) return 'home';
