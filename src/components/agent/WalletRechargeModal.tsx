@@ -92,31 +92,27 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (parsedAmount < minAmount) {
-      error(
-        'न्यूनतम राशि अमान्य',
-        `वॉलेट में न्यूनतम ₹${minAmount.toLocaleString('en-IN')} जोड़ना अनिवार्य है। आप ₹${minAmount} या अधिक कोई भी राशि जमा कर सकते हैं।`
-      );
+    if (parsedAmount <= 0) {
+      error('अमान्य राशि', 'कृपया मान्य रिचार्ज राशि दर्ज करें।');
       return;
     }
 
-    if (!utrNumber.trim() || utrNumber.trim().length < 8) {
-      error('Invalid UTR', 'कृपया वैध 12-अंकों का बैंक UTR या UPI Transaction Ref No. दर्ज करें।');
+    if (!utrNumber.trim() || utrNumber.trim().length < 4) {
+      error('Invalid UTR', 'कृपया वैध बैंक UTR या UPI Transaction Ref No. दर्ज करें।');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const ok = await requestWalletRecharge(
+      await requestWalletRecharge(
         parsedAmount,
         utrNumber.trim(),
         screenshotPreview || undefined,
         paymentMethod
       );
-      if (ok) {
-        setIsSubmittedSuccess(true);
-        setCountdownSeconds(600); // Reset to 10 minutes
-      }
+      // Immediately advance to 10-minute timer screen
+      setIsSubmittedSuccess(true);
+      setCountdownSeconds(600); // 10 minutes = 600s
     } finally {
       setIsSubmitting(false);
     }
@@ -157,28 +153,27 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
               </div>
 
               <div className="space-y-2">
-                <span className="text-[11px] font-black uppercase tracking-wider px-3 py-1 bg-amber-100 text-amber-800 rounded-full inline-block border border-amber-300">
-                  अनुरोध SafarGo एडमिन को भेजा गया ✓
-                </span>
-                <h2 className="text-xl sm:text-2xl font-black text-slate-900">
-                  आपकी वॉलेट रिचार्ज रिक्वेस्ट सबमिट हो गई है!
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-700 font-semibold max-w-md mx-auto">
-                  ⚡ 10 मिनट में पैसे आपके वॉलेट में जोड़ दिए जाएंगे।
+                <div className="p-3 bg-amber-50 border border-amber-300 rounded-2xl">
+                  <h2 className="text-base sm:text-lg font-black text-amber-950 leading-snug">
+                    💥 आपका पेमेंट रिक्वेस्ट रिसीव हो गया है! टाइमर खत्म होने तक वेट कीजिए, पैसे वॉलेट में जमा हो जाएंगे।
+                  </h2>
+                </div>
+                <p className="text-xs text-slate-600 font-medium">
+                  SafarGo एडमिन टीम आपके UTR की पुष्टि कर रही है। एडमिन द्वारा स्वीकृत करते ही पैसे तुरंत वॉलेट में आ जाएंगे।
                 </p>
               </div>
 
               {/* 10-Minute Countdown Clock Banner */}
-              <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white rounded-2xl p-4 border border-slate-800 shadow-md">
-                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 flex items-center justify-center gap-1.5">
+              <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white rounded-2xl p-5 border border-slate-800 shadow-md space-y-1">
+                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center justify-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 text-amber-400" />
                   <span>10-मिनट टाइमर (काउंटडाउन चालू):</span>
                 </div>
-                <div className="text-4xl font-black font-mono tracking-widest text-amber-400">
+                <div className="text-5xl font-black font-mono tracking-widest text-amber-400">
                   {timerFormatted}
                 </div>
-                <p className="text-[11px] text-slate-300 mt-1">
-                  एडमिन द्वारा UTR सत्यापित करते ही <strong>पैसे तुरंत वॉलेट में आ जाएंगे</strong>।
+                <p className="text-[11px] text-slate-300 pt-1">
+                  समय समाप्त होने से पहले एडमिन द्वारा <strong>पैसे सीधे वॉलेट में क्रेडिट कर दिए जाएंगे</strong>।
                 </p>
               </div>
             </div>

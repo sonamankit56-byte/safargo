@@ -30,7 +30,7 @@ interface AdminDashboardProps {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOpenBooking }) => {
   const { allProfiles, approveAgent, approveAgentKyc, pendingLoginOtps } = useAuth();
-  const { bookings, commissions, salaryRecords, settings, promotionClaims, walletRecharges, approveWalletRecharge, rejectWalletRecharge } = useData();
+  const { bookings, commissions, salaryRecords, settings, promotionClaims, walletRecharges, approveWalletRecharge, rejectWalletRecharge, confirmBooking } = useData();
 
   const now = new Date();
   const todayStr = now.toISOString().split('T')[0];
@@ -128,6 +128,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
       : 0;
   }, [pendingLoginOtps]);
 
+  const instantTicketBookings = useMemo(() => {
+    return bookings.filter(
+      (b) =>
+        (b.status === 'booking_request' || b.status === 'awaiting_operator_confirmation') &&
+        (b.agent_notes?.includes('Instant Ticket') || b.agent_notes?.includes('Automatic') || b.payment_status === 'paid')
+    );
+  }, [bookings]);
+
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-8">
       
@@ -146,6 +154,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => {
+              const el = document.getElementById('instant-ticket-desk');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className={`px-4 py-2.5 rounded-xl font-black text-xs flex items-center gap-1.5 shadow-lg transition ${
+              instantTicketBookings.length > 0
+                ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
+                : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+            }`}
+          >
+            <Bus className="w-4 h-4 text-amber-300" />
+            <span>⚡ इंस्टेंट टिकट ({instantTicketBookings.length})</span>
+          </button>
           <button
             onClick={() => onNavigate('admin-security-desk')}
             className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-lg transition ${
@@ -389,6 +411,92 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
           </div>
         </div>
       )}
+
+      {/* ⚡ Instant Ticket Desk (5-Minute SLA Auto-Bookings) */}
+      <div id="instant-ticket-desk" className="bg-white rounded-3xl border-2 border-red-500 shadow-xl overflow-hidden animate-fadeIn">
+        <div className="p-5 bg-gradient-to-r from-red-900 via-rose-900 to-red-950 text-white flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center font-black shadow-md">
+              <Bus className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-base font-black flex items-center gap-2">
+                <span>⚡ इंस्टेंट टिकट डेस्क ({instantTicketBookings.length})</span>
+                <span className="text-[10px] bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full font-black">
+                  5 मिनट SLA
+                </span>
+              </h2>
+              <p className="text-xs text-red-200">
+                ऑटोमैटिक बस टिकटिंग: 1-क्लिक से टिकट स्वीकार करें और तत्काल PNR जारी करें!
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onNavigate('admin-bookings')}
+            className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition"
+          >
+            सभी बुकिंग्स ➔
+          </button>
+        </div>
+
+        {instantTicketBookings.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 text-xs">
+            🎉 कोई लंबित इंस्टेंट टिकट अनुरोध नहीं है। सभी ऑटोमैटिक टिकट संसाधित हो चुके हैं।
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100 overflow-x-auto">
+            {instantTicketBookings.map((b) => (
+              <div key={b.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-red-50/40 transition">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-xs bg-red-100 text-red-900 px-2.5 py-0.5 rounded">
+                      {b.booking_code}
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
+                      ⚡ 5-Minute Timer Active
+                    </span>
+                    <span className="text-xs text-slate-500">एजेंट: {b.agent_name}</span>
+                  </div>
+                  <p className="text-sm font-bold text-slate-900">
+                    {b.customer_name} (+91 {b.customer_mobile}) • {b.from_city} ➔ {b.to_city}
+                  </p>
+                  <p className="text-xs text-slate-600">
+                    ऑपरेटर: <strong>{b.operator_preference}</strong> • सीटें: <strong>{b.seat_category || 'Reserved Seats'}</strong> • राशि: <strong className="text-red-600 font-mono">₹{b.total_estimated_amount}</strong>
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                  <button
+                    onClick={async () => {
+                      const autoPnr = `SFG-${Math.floor(100000 + Math.random() * 900000)}`;
+                      await confirmBooking(b.id, {
+                        actual_fare: b.total_estimated_amount,
+                        confirmed_seats: b.seat_category || 'Confirmed Seat',
+                        actual_operator: b.operator_preference || 'Verified Bus Operator',
+                        actual_boarding_point: b.boarding_point || `${b.from_city} Stand`,
+                        actual_drop_point: b.drop_point || `${b.to_city} Stand`,
+                        ticket_pnr: autoPnr,
+                        admin_notes: '1-Click Instant Ticket Approved by Admin',
+                      });
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>स्वीकृत करें व टिकट जारी करें</span>
+                  </button>
+                  <button
+                    onClick={() => onOpenBooking(b.id)}
+                    className="px-3 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    विवरण
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Urgent Bookings Section (Action Required within 15 mins) */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">

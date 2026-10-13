@@ -112,15 +112,15 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
               Home
             </button>
 
-            {/* 15-Minute Rural Quick Delivery */}
+            {/* Nearby / Quick Delivery */}
             {qdMode !== 'hidden' && (
               <button
                 onClick={() => {
                   if (qdMode === 'coming_soon') {
                     setComingSoonModal({
                       isOpen: true,
-                      name: '15-मिनट क्विक डिलीवरी (Rural Blinkit)',
-                      desc: 'सिरोंज, कुरवाई, लटेरी, चंदेरी, गुना, बीना आदि कस्बों में 15 मिनट डिलीवरी सेवा बहुत जल्द शुरू हो रही है!'
+                      name: 'नजदीकी ऑर्डर डिलीवरी',
+                      desc: 'सिरोंज, कुरवाई, लटेरी, चंदेरी, गुना, बीना आदि कस्बों में डिलीवरी सेवा बहुत जल्द शुरू हो रही है!'
                     });
                   } else {
                     handleTabChange(role === 'agent' ? 'agent-deliveries' : 'quick-delivery');
@@ -133,7 +133,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                 }`}
               >
                 <Bike className="w-4 h-4 text-emerald-400" />
-                <span>15-मिनट डिलीवरी</span>
+                <span>{role === 'agent' ? 'नजदीकी ऑर्डर डिलीवर करें' : 'लोकल डिलीवरी'}</span>
                 <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${
                   qdMode === 'coming_soon' ? 'bg-amber-400 text-slate-950 animate-pulse' : 'bg-emerald-400 text-slate-900'
                 }`}>
@@ -709,8 +709,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                   if (qdMode === 'coming_soon') {
                     setComingSoonModal({
                       isOpen: true,
-                      name: '15-मिनट क्विक डिलीवरी (Rural Blinkit)',
-                      desc: '15 मिनट डिलीवरी सेवा बहुत जल्द शुरू हो रही है!'
+                      name: 'नजदीकी ऑर्डर डिलीवरी',
+                      desc: 'डिलीवरी सेवा बहुत जल्द शुरू हो रही है!'
                     });
                   } else {
                     handleTabChange(role === 'agent' ? 'agent-deliveries' : 'quick-delivery');
@@ -721,7 +721,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                 }`}
               >
                 <span className="flex items-center gap-2">
-                  <Bike className="w-4 h-4 text-emerald-400" /> 15-मिनट डिलीवरी (Rural Blinkit)
+                  <Bike className="w-4 h-4 text-emerald-400" /> {role === 'agent' ? 'अपने नजदीकी ऑर्डर डिलीवर करें और अतिरिक्त कमाई करें' : 'लोकल डिलीवरी'}
                 </span>
                 {qdMode === 'coming_soon' && (
                   <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-amber-400 text-slate-950">
@@ -898,7 +898,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                     currentTab === 'agent-deliveries' ? 'bg-emerald-600 text-white' : 'text-emerald-300 hover:bg-slate-800'
                   }`}
                 >
-                  <Bike className="w-4 h-4 text-emerald-400" /> 15-मिनट डिलीवरी रनर
+                  <Bike className="w-4 h-4 text-emerald-400" /> अपने नजदीकी ऑर्डर डिलीवर करें और अतिरिक्त कमाई करें
                 </button>
                 <button
                   onClick={() => handleTabChange('agent-profile')}
@@ -931,7 +931,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                     currentTab === 'quick-delivery' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-800'
                   }`}
                 >
-                  <Bike className="w-4 h-4 text-emerald-400" /> 15-मिनट डिलीवरी हब
+                  <Bike className="w-4 h-4 text-emerald-400" /> डिलीवरी हब
                 </button>
                 <button
                   onClick={handleLogout}
@@ -956,7 +956,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                     currentTab === 'quick-delivery' ? 'bg-emerald-600 text-white' : 'text-emerald-300 hover:bg-slate-800'
                   }`}
                 >
-                  <Bike className="w-4 h-4 text-emerald-400" /> 15-मिनट सामान मंगवाएं (Rural Blinkit)
+                  <Bike className="w-4 h-4 text-emerald-400" /> नजदीकी सामान मंगवाएं
                 </button>
                 <button
                   onClick={() => handleTabChange('home')}

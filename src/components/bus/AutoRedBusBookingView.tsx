@@ -479,7 +479,7 @@ export const AutoRedBusBookingView: React.FC<AutoRedBusBookingViewProps> = ({
           </div>
 
           <div className="text-slate-500 text-[11px] flex items-center gap-2">
-            <span>🛡️ SafarGo Assured: 150% रिफंड गारंटी</span>
+            <span className="text-emerald-700 font-bold">💰 एजेंट कमीशन: ₹19 प्रति बुकिंग • 🛡️ मानक रिफंड नीति</span>
             {onSwitchToManual && (
               <button
                 type="button"
@@ -873,7 +873,7 @@ export const AutoRedBusBookingView: React.FC<AutoRedBusBookingViewProps> = ({
                             </div>
                           </div>
                           <p className="text-[11px] text-slate-500 pt-1">
-                            * यदि बस ऑपरेटर द्वारा यात्रा रद्द की जाती है, तो SafarGo Assured के तहत 150% राशि एजेंट वॉलेट में तुरंत वापस की जाएगी।
+                            * यदि बस ऑपरेटर द्वारा यात्रा रद्द की जाती है, तो हमारे पूर्व नियमानुसार पूरी राशि एजेंट वॉलेट में तुरंत वापस की जाएगी।
                           </p>
                         </div>
                       )}

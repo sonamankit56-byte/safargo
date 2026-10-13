@@ -34,6 +34,7 @@ import { AuthModal } from './components/auth/AuthModal';
 import { AnnouncementBanner } from './components/common/AnnouncementBanner';
 import { HomePage } from './components/home/HomePage';
 import { SafarGoLogo } from './components/common/SafarGoLogo';
+import { BottomNav } from './components/common/BottomNav';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { getTabFromPath, getPathFromTab } from './lib/routes';
 import { Bus, ShieldCheck, Heart, UserPlus, LogIn, ExternalLink } from 'lucide-react';
@@ -434,7 +435,7 @@ const AppContent: React.FC = () => {
             </div>
           </div>
 
-          <div className="border-t border-slate-800 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
+          <div className={`border-t border-slate-800 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4 ${currentUser ? 'pb-14' : ''}`}>
             <p>© 2026 SafarGo Technologies. All rights reserved. Manual Bus Ticketing System.</p>
             <div className="flex items-center gap-2">
               <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
@@ -443,6 +444,9 @@ const AppContent: React.FC = () => {
           </div>
         </div>
       </footer>
+
+      {/* AbhiBus Style 4-Tab Sticky Bottom Navigation Bar (Visible after login) */}
+      <BottomNav currentTab={currentTab} onNavigateTab={setCurrentTab} />
     </div>
   );
 };

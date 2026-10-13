@@ -684,7 +684,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                           AbhiBus & RedBus प्रेरित ऑनलाइन बस टिकटिंग नेटवर्क
                         </strong>
                         <span className="px-2 py-0.2 rounded-full text-[9px] font-black bg-emerald-600 text-white">
-                          🛡️ 150% रिफंड गारंटी
+                          💰 ₹19 प्रति बुकिंग एजेंट कमीशन • 🛡️ 100% सुरक्षित
                         </span>
                       </div>
                       <span className="text-slate-600 text-[11px]">

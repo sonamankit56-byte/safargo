@@ -83,18 +83,18 @@ export const AgentDeliveryDesk: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2">
               <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-400 text-slate-950 flex items-center gap-1.5 shadow-sm">
                 <Bike className="w-4 h-4" />
-                15-मिनट क्विक डिलीवरी पार्टनर
+                नजदीकी डिलीवरी पार्टनर
               </span>
               <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-slate-300 border border-white/10">
-                एक्स्ट्रा इनकम (₹18 से ₹50+ प्रति डिलीवरी)
+                अतिरिक्त कमाई (₹18 से ₹50+ प्रति डिलीवरी)
               </span>
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
-              एजेंट 15-मिनट डिलीवरी रनर डेस्क
+              अपने नजदीकी ऑर्डर डिलीवर करें और अतिरिक्त कमाई करें
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
-              बस टिकट बुकिंग के साथ-साथ अपने शहर/कस्बे में 15 मिनट के अंदर नजदीकी दुकान से किराना, मेडिकल व दूध पहुंचाकर अतिरिक्त कमाई करें। 5 मिनट में बिल फोटो अपलोड करें और ग्राहक की पुष्टि के बाद 15 मिनट में डिलीवरी पूर्ण करें।
+              बस टिकट बुकिंग के साथ-साथ अपने शहर/कस्बे में नजदीकी दुकान से किराना, मेडिकल व जरूरी सामान पहुंचाकर अतिरिक्त कमाई करें। दुकान से बिल फोटो अपलोड करें और ग्राहक की पुष्टि के बाद ऑर्डर डिलीवर करें।
             </p>
           </div>
 

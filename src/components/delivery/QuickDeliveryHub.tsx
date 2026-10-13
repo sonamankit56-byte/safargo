@@ -164,18 +164,18 @@ export const QuickDeliveryHub: React.FC<QuickDeliveryHubProps> = ({ onOpenAuth }
             <div className="flex flex-wrap items-center gap-2">
               <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-400 text-slate-950 flex items-center gap-1.5 shadow-sm">
                 <Zap className="w-4 h-4" />
-                ब्लिंकिट का ग्रामीण विकल्प (Rural Blinkit)
+                सफ़ारगो लोकल डिलीवरी सेवा
               </span>
               <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-emerald-300 border border-white/10">
-                15-मिनट त्वरित डिलीवरी सेवा
+                त्वरित होम डिलीवरी
               </span>
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
-              सफ़ारगो 15-मिनट लोकल डिलीवरी हब
+              सफ़ारगो लोकल डिलीवरी हब
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
-              सिरोंज, कुरवाई, लटेरी, चंदेरी, गुना, बीना, विदिशा, शिवपुरी - जहाँ ब्लिंकिट, ज़ेप्टो या इंस्टामार्ट नहीं पहुँचते, वहाँ आपके नजदीकी SafarGo एजेंट 5 मिनट में लोकल दुकान से सामान खरीदकर 15 मिनट में आपके घर पहुँचाते हैं!
+              सिरोंज, कुरवाई, लटेरी, चंदेरी, गुना, बीना, विदिशा, शिवपुरी में आपके नजदीकी SafarGo एजेंट लोकल दुकान से जरूरी सामान खरीदकर सीधे आपके घर पहुँचाते हैं!
             </p>
           </div>
 

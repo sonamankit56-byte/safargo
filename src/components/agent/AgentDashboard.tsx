@@ -152,7 +152,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
         </div>
       )}
 
-      {/* ⚡ EXTRA EARNING OPPORTUNITY: 15-MINUTE QUICK DELIVERY RUNNER */}
+      {/* ⚡ EXTRA EARNING OPPORTUNITY: NEARBY ORDER DELIVERY */}
       <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 border-2 border-emerald-400 rounded-2xl p-5 text-white flex flex-col md:flex-row items-center justify-between gap-5 shadow-xl relative overflow-hidden">
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-400 to-teal-300 text-slate-950 flex items-center justify-center shrink-0 shadow-lg font-black">
@@ -161,17 +161,17 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-400 text-slate-950 shadow-xs">
-                ⚡ एक्स्ट्रा कमाई का मौका (Extra Earning Opportunity)
+                ⚡ अतिरिक्त कमाई का मौका (Extra Earning Opportunity)
               </span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-emerald-200 border border-emerald-400/30">
                 ₹18 से ₹50+ अतिरिक्त नकद प्रति डिलीवरी
               </span>
             </div>
             <h2 className="text-base sm:text-lg font-black text-white">
-              15-मिनट डिलीवरी रनर बनें: डिलीवरी करके कमाएं एक्स्ट्रा पैसे!
+              अपने नजदीकी ऑर्डर डिलीवर करें और अतिरिक्त कमाई करें
             </h2>
             <p className="text-xs text-emerald-100 max-w-2xl leading-relaxed">
-              बस बुकिंग के साथ खाली समय में अपने जन सेवा केंद्र या बाइक से नजदीकी लोकल दुकान से सामान उठाकर ग्राहक तक पहुंचाएं। 5 मिनट में सामान फोटो/बिल अपलोड करें और प्रति किलोमीटर के अनुसार सीधी कमाई अपने वॉलेट में पाएं!
+              बस बुकिंग के साथ खाली समय में अपने नजदीकी लोकल दुकान से सामान उठाकर ग्राहक तक पहुंचाएं और प्रति किलोमीटर के अनुसार सीधी कमाई अपने वॉलेट में पाएं!
             </p>
           </div>
         </div>
@@ -179,7 +179,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
           onClick={() => onNavigate('agent-deliveries')}
           className="px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-400 to-emerald-500 hover:from-emerald-500 hover:to-emerald-600 text-slate-950 font-black text-xs shadow-lg transition flex items-center gap-2 shrink-0 self-start md:self-auto cursor-pointer"
         >
-          <span>डिलीवरी रनर डेस्क खोलें</span>
+          <span>नजदीकी ऑर्डर देखें</span>
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>
