@@ -326,7 +326,7 @@ export const ManualBookingForm: React.FC = () => {
             }`}
           >
             <Bus className="w-4 h-4 text-amber-300" />
-            <span>⚡ ऑटोमैटिक लाइव बुकिंग (AbhiBus व RedBus स्टाइल)</span>
+            <span>⚡ सफ़ारगो प्रीमियम बस बुकिंग (SafarGo Premium)</span>
             <span className="bg-white/20 text-[9px] px-1.5 py-0.2 rounded-full font-bold">नया / डिफ़ॉल्ट</span>
           </button>
 
@@ -645,12 +645,12 @@ export const ManualBookingForm: React.FC = () => {
             <div className="mt-5 p-4 rounded-2xl bg-gradient-to-r from-rose-50 via-orange-50 to-amber-50 border-2 border-dashed border-rose-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded bg-rose-600 text-white uppercase tracking-wider">
-                    RedBus Inspired
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded bg-orange-600 text-white uppercase tracking-wider">
+                    👑 SafarGo Premium
                   </span>
                   <h4 className="text-sm font-black text-slate-900 flex items-center gap-1.5">
-                    <Bus className="w-4 h-4 text-rose-600" />
-                    <span>रेडबस स्टाइल इंटरैक्टिव सीट मैप (बैठने वाले Seater / सोने वाले Sleeper)</span>
+                    <Bus className="w-4 h-4 text-orange-600" />
+                    <span>सफ़ारगो इंटरैक्टिव प्रीमियम सीट मैप (बैठने वाले Seater / सोने वाले Sleeper)</span>
                   </h4>
                 </div>
                 <p className="text-xs text-slate-600">
@@ -1317,8 +1317,8 @@ export const ManualBookingForm: React.FC = () => {
 
             const seatListStr = selectedSeats.map((s) => `${s.number} (${s.type === 'sleeper' ? 'स्लीपर' : 'सीटर'})`).join(', ');
             setAgentNotes((prev) => {
-              const clean = prev.replace(/\s*\|\s*RedBus सीटें:.*$/i, '').trim();
-              return clean ? `${clean} | RedBus सीटें: ${seatListStr}` : `RedBus सीटें: ${seatListStr}`;
+              const clean = prev.replace(/\s*\|\s*सफ़ारगो सीटें:.*$/i, '').replace(/\s*\|\s*RedBus सीटें:.*$/i, '').trim();
+              return clean ? `${clean} | सफ़ारगो सीटें: ${seatListStr}` : `सफ़ारगो सीटें: ${seatListStr}`;
             });
 
             setIsSeatMapOpen(false);

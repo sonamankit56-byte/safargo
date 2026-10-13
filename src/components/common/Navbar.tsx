@@ -230,7 +230,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
 
             {/* Universal 3D Go Wallet Option (For Agent, Dukandar, Promoter & All Users) */}
             <button
-              onClick={() => handleTabChange('go-wallet')}
+              onClick={() => {
+                if (!currentUser) {
+                  onOpenAuth('login');
+                } else {
+                  handleTabChange('go-wallet');
+                }
+              }}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-black text-xs shadow-md transition border cursor-pointer ${
                 currentTab === 'go-wallet'
                   ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-emerald-500 text-slate-950 border-white'
@@ -713,7 +719,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
             </button>
 
             <button
-              onClick={() => handleTabChange('go-wallet')}
+              onClick={() => {
+                if (!currentUser) {
+                  onOpenAuth('login');
+                } else {
+                  handleTabChange('go-wallet');
+                }
+              }}
               className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-black flex items-center justify-between border ${
                 currentTab === 'go-wallet'
                   ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-emerald-500 text-slate-950 border-white'
@@ -721,9 +733,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
               }`}
             >
               <Go3DLogoBadge size="sm" showWalletText={true} />
-              <span className="bg-emerald-400 text-slate-950 text-xs px-2.5 py-0.5 rounded-full font-black">
-                ₹{(agentWalletBalance || 0).toLocaleString('en-IN')}
-              </span>
+              {currentUser && (
+                <span className="bg-emerald-400 text-slate-950 text-xs px-2.5 py-0.5 rounded-full font-black">
+                  ₹{(agentWalletBalance || 0).toLocaleString('en-IN')}
+                </span>
+              )}
             </button>
 
             {qdMode !== 'hidden' && (

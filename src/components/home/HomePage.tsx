@@ -47,6 +47,7 @@ import { ComingSoonModal } from '../common/ComingSoonModal';
 import { getFeatureMode } from '../../lib/featureFlags';
 import { RedBusSeatMapModal, SelectedSeatItem } from '../bus/RedBusSeatMapModal';
 import { AutoBusBookingCheckoutModal } from '../bus/AutoBusBookingCheckoutModal';
+import { GrandLaunchBanner } from '../common/GrandLaunchBanner';
 import { SeatCategory } from '../../types';
 import { MP_NETWORK_CITIES } from '../../lib/mockData';
 
@@ -197,6 +198,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
 
   return (
     <div className="space-y-16 lg:space-y-24">
+      {/* 🚀 15 OCTOBER GRAND LAUNCH COUNTDOWN HERO BANNER */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        <GrandLaunchBanner
+          onOpenRegister={() => onOpenAuth('register')}
+          onOpenLogin={() => onOpenAuth('login')}
+        />
+      </div>
       
       {/* ======================================================== */}
       {/* 1. HERO SECTION                                          */}
@@ -672,23 +680,23 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
 
               {/* Results Cards Grid */}
               <div className="space-y-3 pt-2">
-                {/* 🚌 AbhiBus & RedBus Inspired Live Booking Notice */}
+                {/* 🚌 SafarGo Premium Live Booking Notice */}
                 <div className="bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
                   <div className="flex items-start sm:items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-2xl bg-red-600 text-white flex items-center justify-center font-bold shrink-0 shadow-md">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-600 to-rose-600 text-white flex items-center justify-center font-bold shrink-0 shadow-md">
                       <Bus className="w-5 h-5" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2 flex-wrap mb-0.5">
                         <strong className="text-slate-900 block font-black text-sm">
-                          AbhiBus & RedBus प्रेरित ऑनलाइन बस टिकटिंग नेटवर्क
+                          सफ़ारगो प्रीमियम बस टिकटिंग नेटवर्क (SafarGo Premium Bus Booking)
                         </strong>
                         <span className="px-2 py-0.2 rounded-full text-[9px] font-black bg-emerald-600 text-white">
                           💰 ₹19 प्रति बुकिंग एजेंट कमीशन • 🛡️ 100% सुरक्षित
                         </span>
                       </div>
                       <span className="text-slate-600 text-[11px]">
-                        लाइव सीट मैप (Lower व Upper Deck), सोने वाली (Sleeper) बर्थ, सीटर (Seater) कुर्सियां, महिला सुरक्षा सीट एवं तत्काल PNR जारी!
+                        सफ़ारगो लाइव सीट मैप (Lower व Upper Deck), सोने वाली (Sleeper) बर्थ, सीटर कुर्सियां, महिला सुरक्षा सीट एवं तत्काल PNR जारी!
                       </span>
                     </div>
                   </div>
@@ -726,7 +734,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                       if (busFilterType === 'seater') return t.available_seater > 0;
                       if (busFilterType === 'sleeper') return t.available_sleeper > 0;
                       return true;
-                    }).length}) — <span className="text-red-600 font-extrabold">AbhiBus Inspired Live Inventory</span>:
+                    }).length}) — <span className="text-orange-600 font-extrabold">सफ़ारगो प्रीमियम लाइव इन्वेंट्री</span>:
                   </span>
                   <span className="text-[11px] text-slate-400 font-medium">
                     सीट मैप देखने के लिए "सीटें चुनें" पर क्लिक करें

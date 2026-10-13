@@ -193,7 +193,7 @@ export const RedBusSeatMapModal: React.FC<RedBusSeatMapModalProps> = ({
                   {trip.operator_name}
                 </h2>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-950 flex items-center gap-1 shadow-xs">
-                  ⭐ 4.6 (RedBus Verified)
+                  ⭐ 4.9 (SafarGo Verified Premium)
                 </span>
               </div>
               <p className="text-xs text-rose-100 font-medium">

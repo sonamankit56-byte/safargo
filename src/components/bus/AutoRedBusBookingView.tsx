@@ -16,6 +16,7 @@ import {
   Wifi,
   Clock,
   Sparkles,
+  Crown,
   ShieldCheck,
   Tag,
   Star,
@@ -236,22 +237,22 @@ export const AutoRedBusBookingView: React.FC<AutoRedBusBookingViewProps> = ({
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-white text-red-600 shadow-sm flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-red-600" /> AbhiBus Inspired Platform
+              <span className="px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-white text-rose-600 shadow-sm flex items-center gap-1">
+                <Crown className="w-3.5 h-3.5 text-amber-500" /> SafarGo Premium Platform
               </span>
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/20 text-white backdrop-blur-xs">
                 ⚡ 100% ऑनलाइन ऑटोमैटिक बस टिकटिंग
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-slate-950">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-slate-950">
                 🛡️ SafarGo Assured
               </span>
             </div>
 
             <h1 className="text-xl sm:text-2xl font-black text-white leading-tight">
-              भारत का अग्रणी बस बुकिंग नेटवर्क — लाइव सीट चयन एवं तत्काल PNR
+              सफ़ारगो प्रीमियम बस बुकिंग नेटवर्क — लाइव सीट चयन एवं तत्काल PNR
             </h1>
             <p className="text-xs text-red-100 max-w-xl leading-relaxed">
-              अभिबैनर/रेडबस स्टाइल इंटरैक्टिव सीट मैप: स्लीपर (Sleeper) बर्थ, सीटर (Seater) कुर्सियां, महिला सुरक्षा सीट एवं बोर्डिंग पॉइंट्स के साथ तुरंत बुकिंग। 
+              सफ़ारगो एक्सक्लूसिव प्रीमियम सीट मैप: स्लीपर (Sleeper) बर्थ, सीटर (Seater) कुर्सियां, महिला सुरक्षा सीट एवं बोर्डिंग पॉइंट्स के साथ तुरंत 1-क्लिक बुकिंग। 
             </p>
           </div>
 
@@ -311,7 +312,7 @@ export const AutoRedBusBookingView: React.FC<AutoRedBusBookingViewProps> = ({
               <MapPin className="w-4 h-4 text-red-500 absolute left-3 top-3 pointer-events-none" />
               <input
                 type="text"
-                list="mp-abhibus-cities"
+                list="mp-safargo-cities"
                 value={searchSource}
                 onChange={(e) => setSearchSource(e.target.value)}
                 placeholder="उदा. Bhopal / Sironj"
@@ -342,7 +343,7 @@ export const AutoRedBusBookingView: React.FC<AutoRedBusBookingViewProps> = ({
               <MapPin className="w-4 h-4 text-emerald-600 absolute left-3 top-3 pointer-events-none" />
               <input
                 type="text"
-                list="mp-abhibus-cities"
+                list="mp-safargo-cities"
                 value={searchDestination}
                 onChange={(e) => setSearchDestination(e.target.value)}
                 placeholder="उदा. Indore / Pune / Jaipur"
@@ -385,7 +386,7 @@ export const AutoRedBusBookingView: React.FC<AutoRedBusBookingViewProps> = ({
         </div>
 
         {/* Datalist */}
-        <datalist id="mp-abhibus-cities">
+        <datalist id="mp-safargo-cities">
           {MP_NETWORK_CITIES.map((c) => (
             <option key={c} value={c} />
           ))}

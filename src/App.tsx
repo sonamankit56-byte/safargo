@@ -420,7 +420,13 @@ const AppContent: React.FC = () => {
               </h3>
               <div className="space-y-2">
                 <button
-                  onClick={() => setCurrentTab('go-wallet')}
+                  onClick={() => {
+                    if (!currentUser) {
+                      handleOpenAuth('login');
+                    } else {
+                      setCurrentTab('go-wallet');
+                    }
+                  }}
                   className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-emerald-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer"
                 >
                   <span>👑 3D Go Wallet खोलें</span>

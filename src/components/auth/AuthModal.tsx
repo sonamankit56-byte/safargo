@@ -25,7 +25,8 @@ import {
   ShoppingBag,
   Sparkles,
   HelpCircle,
-  Award
+  Award,
+  Rocket
 } from 'lucide-react';
 
 interface AuthModalProps {
@@ -56,9 +57,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   } = useAuth();
   const { error, success, info } = useToast();
 
+  // Target Grand Launch Date: 15 October 2026, 09:00:00 IST
+  const isPreLaunch = Date.now() < new Date('2026-10-15T09:00:00+05:30').getTime();
+
   const [activeTab, setActiveTab] = useState<
     'login' | 'otp_verify' | 'register' | 'forgot_password' | 'registered_success' | 'promoter_login'
-  >(initialTab);
+  >(initialTab === 'login' && isPreLaunch ? 'register' : initialTab);
 
   // Promoter Login state
   const [promoterIdentifier, setPromoterIdentifier] = useState('9826012345');
@@ -69,9 +73,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   useEffect(() => {
     if (initialTab) {
-      setActiveTab(initialTab);
+      if (initialTab === 'login' && isPreLaunch) {
+        setActiveTab('register');
+      } else {
+        setActiveTab(initialTab);
+      }
+    } else if (isPreLaunch) {
+      setActiveTab('register');
     }
-  }, [initialTab, isOpen]);
+  }, [initialTab, isOpen, isPreLaunch]);
 
   // Login inputs
   const [loginIdentifier, setLoginIdentifier] = useState('');
@@ -148,7 +158,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       const term = loginIdentifier.trim().toLowerCase();
 
       // Super Admin special direct login
-      if (term === 'jia647155@gmail.com') {
+      if (term === 'jia647155@gmail.com' || term === 'admin' || term.includes('9876543210')) {
         const ok = await login(loginIdentifier.trim(), loginPassword.trim());
         if (ok) {
           onClose();
@@ -156,13 +166,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
       }
 
-      // Check if user is an agent
+      // Check if user is an agent or admin
       const foundProfile = (allProfiles || []).find(
         (p) =>
           p.email.toLowerCase() === term ||
           p.mobile.replace(/\D/g, '') === term.replace(/\D/g, '') ||
           p.id.toLowerCase() === term
       );
+
+      // Pre-Launch Lock: 15 October Launch Enforcement (Only Admin can log in before 15 Oct)
+      if (isPreLaunch && foundProfile?.role !== 'admin') {
+        info(
+          '🚀 15 अक्टूबर महा-लॉन्च!',
+          'आपका रजिस्ट्रेशन सुरक्षित है! SafarGo का आधिकारिक लॉगिन 15 अक्टूबर 2026 सुबह 09:00 बजे से लाइव अनलॉक होगा। कृपया नए साथियों का रजिस्ट्रेशन कराएं!'
+        );
+        setActiveTab('register');
+        return;
+      }
 
       if (foundProfile && foundProfile.role === 'agent') {
         // Enforce OTP Verification for Agent Login!
@@ -1399,6 +1419,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             /* 5. UNIVERSAL SIGN IN FORM                                  */
             /* ========================================================== */
             <form onSubmit={handleLoginSubmit} className="space-y-4">
+              {isPreLaunch && (
+                <div className="p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-400 rounded-2xl text-xs space-y-1.5 shadow-xs">
+                  <div className="flex items-center gap-1.5 font-black text-amber-950">
+                    <Rocket className="w-4 h-4 text-orange-600 animate-bounce" />
+                    <span>🚀 15 अक्टूबर महा-लॉन्च: हम आ रहे हैं!</span>
+                  </div>
+                  <p className="text-[11px] text-slate-700 leading-snug">
+                    SafarGo का आधिकारिक लॉगिन <strong>15 अक्टूबर 2026 सुबह 09:00 बजे</strong> से लाइव होगा। अभी <strong>प्री-लॉन्च रजिस्ट्रेशन चालू है</strong> — सभी एजेंट, दुकानदार और प्रमोटर साथी अभी रजिस्ट्रेशन कर लें!
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('register')}
+                    className="w-full py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer"
+                  >
+                    📝 अभी नया रजिस्ट्रेशन करें (Register Open) ➔
+                  </button>
+                </div>
+              )}
+
               <div className="bg-orange-50 border border-orange-200 rounded-xl p-2.5 text-xs text-orange-950 flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-orange-600 shrink-0" />
                 <span>🔒 ग्राहक, दुकानदार, एजेंट एवं एडमिन के लिए सुरक्षित लॉगिन</span>
