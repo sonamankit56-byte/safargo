@@ -112,6 +112,14 @@ const AppContent: React.FC = () => {
 
   // Strict Role-Based Route Guard: Protect admin, agent, promoter areas safely
   useEffect(() => {
+    // GO Agent Isolation: Immediately redirect GO Agent to their dedicated 3D /go-agent portal
+    if (role === 'agent') {
+      if (location.pathname !== '/go-agent') {
+        navigate('/go-agent', { replace: true });
+        return;
+      }
+    }
+
     if (location.pathname === '/login' && !currentUser) {
       setAuthInitialTab('login');
       setIsAuthModalOpen(true);
@@ -150,32 +158,36 @@ const AppContent: React.FC = () => {
       } else if (role !== 'promoter' && role !== 'admin') {
         if (role === 'customer') navigate('/customer', { replace: true });
         else if (role === 'shopkeeper') navigate('/shop', { replace: true });
-        else if (role === 'agent') navigate('/agent/dashboard', { replace: true });
+        else if (role === 'agent') navigate('/go-agent', { replace: true });
       }
     }
   }, [location.pathname, currentUser, role, isAdmin, navigate]);
 
   const selectedReviewBooking = bookings.find((b) => b.id === selectedReviewBookingId) || null;
 
-  return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans selection:bg-orange-500 selection:text-white">
-      {/* Platform Live Announcement Broadcast Banner */}
-      <AnnouncementBanner />
+  const isGoAgentView = role === 'agent' || currentTab === 'go-agent';
 
-      {/* Navigation Header */}
-      <Navbar
-        currentTab={currentTab}
-        setCurrentTab={setCurrentTab}
-        onOpenAuth={handleOpenAuth}
-        onOpenGoAuth={handleOpenGoAuth}
-      />
+  return (
+    <div className={`min-h-screen ${isGoAgentView ? 'bg-slate-950' : 'bg-slate-50'} flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950 overflow-x-hidden`}>
+      {/* Platform Live Announcement Broadcast Banner (Hidden for GO Agent to ensure clean isolated terminal) */}
+      {!isGoAgentView && <AnnouncementBanner />}
+
+      {/* Navigation Header (Three-Dot / Main Menu hidden for GO Agent: GoAgentDashboard has its dedicated header) */}
+      {!isGoAgentView && (
+        <Navbar
+          currentTab={currentTab}
+          setCurrentTab={setCurrentTab}
+          onOpenAuth={handleOpenAuth}
+          onOpenGoAuth={handleOpenGoAuth}
+        />
+      )}
 
       {/* Main Content View Container */}
-      <main className="flex-1 pb-16">
-        {currentTab === 'go-agent' ? (
+      <main className={`flex-1 ${isGoAgentView ? 'pb-0' : 'pb-16'}`}>
+        {isGoAgentView ? (
           <GoAgentDashboard
-            onNavigateHome={() => setCurrentTab('home')}
-            onOpenBookingModal={() => setCurrentTab('new-booking')}
+            onNavigateHome={() => navigate('/go-agent')}
+            onOpenBookingModal={() => navigate('/go-agent')}
           />
         ) : currentTab === 'go-wallet' || currentTab === 'go_wallet' ? (
           <GoWalletHub onNavigate={setCurrentTab} onOpenAuth={handleOpenAuth} />
@@ -365,166 +377,168 @@ const AppContent: React.FC = () => {
         />
       )}
 
-      {/* Footer */}
-      <footer className="bg-slate-900 text-white border-t border-slate-800 py-10 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            <div className="space-y-3">
-              <SafarGoLogo size="md" variant="light" showTagline={false} />
-              <p className="text-xs text-slate-400 leading-relaxed">
-                ग्रामीण जन सेवा केंद्रों (CSC) को अधिकृत बस बुकिंग सेंटर बनाकर स्थानीय युवाओं को स्थायी रोजगार प्रदान करने वाला भारत का पहला मैनुअल बस बुकिंग नेटवर्क।
-              </p>
-              <p className="text-[11px] text-orange-400 font-bold">
-                टैगलाइन: "अब हर सफर होगा आसान"
-              </p>
-            </div>
+      {/* Footer (Hidden for GO Agent to ensure clean isolated terminal) */}
+      {!isGoAgentView && (
+        <footer className="bg-slate-900 text-white border-t border-slate-800 py-10 mt-auto">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+              <div className="space-y-3">
+                <SafarGoLogo size="md" variant="light" showTagline={false} />
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  ग्रामीण जन सेवा केंद्रों (CSC) को अधिकृत बस बुकिंग सेंटर बनाकर स्थानीय युवाओं को स्थायी रोजगार प्रदान करने वाला भारत का पहला मैनुअल बस बुकिंग नेटवर्क।
+                </p>
+                <p className="text-[11px] text-orange-400 font-bold">
+                  टैगलाइन: "अब हर सफर होगा आसान"
+                </p>
+              </div>
 
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">
-                Quick Navigation
-              </h3>
-              <ul className="space-y-2 text-xs text-slate-400">
-                <li>
-                  <button onClick={() => setCurrentTab('home')} className="hover:text-white transition">
-                    पोर्टल होम (Home)
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => {
-                      if (!currentUser) handleOpenAuth('login');
-                      else setCurrentTab(role === 'admin' ? 'admin-dashboard' : 'dashboard');
-                    }}
-                    className="hover:text-white transition"
-                  >
-                    एजेंट डैशबोर्ड (Agent Portal)
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => {
-                      if (!currentUser) handleOpenAuth('login');
-                      else setCurrentTab('new-booking');
-                    }}
-                    className="hover:text-white transition"
-                  >
-                    नई टिकट बुक करें (New Request)
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => {
-                      if (!isAdmin) handleOpenAuth('login');
-                      else setCurrentTab('admin-dashboard');
-                    }}
-                    className="hover:text-white transition"
-                  >
-                    एडमिन कंट्रोल डेस्क (Admin Desk)
-                  </button>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">
-                SafarGo Trust & Support
-              </h3>
-              <ul className="space-y-2 text-xs text-slate-400">
-                <li className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>100% सत्यापित बस ऑपरेटर</span>
-                </li>
-                <li className="flex items-center gap-1.5">
-                  <Heart className="w-3.5 h-3.5 text-rose-400" />
-                  <span>ग्रामीण सशक्तिकरण पहल</span>
-                </li>
-                <li>
-                  <span className="text-[11px]">हेल्पलाइन WhatsApp: +91 98765 43210</span>
-                </li>
-                <li>
-                  <span className="text-[11px]">ईमेल: support@safargo.in</span>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">
-                Quick Actions & 3D Go Wallet
-              </h3>
-              <div className="space-y-2">
-                <button
-                  onClick={() => {
-                    if (!currentUser) {
-                      handleOpenGoAuth('login');
-                    } else {
-                      setCurrentTab('go-agent');
-                    }
-                  }}
-                  className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-500 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer"
-                >
-                  <Zap className="w-3.5 h-3.5 text-slate-950" />
-                  <span>⚡ GO Special Agent (Ultra 3D)</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    if (!currentUser) {
-                      handleOpenAuth('login');
-                    } else {
-                      setCurrentTab('go-wallet');
-                    }
-                  }}
-                  className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-emerald-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer"
-                >
-                  <span>👑 3D Go Wallet खोलें</span>
-                </button>
-                {!currentUser ? (
-                  <>
-                    <button
-                      onClick={() => handleOpenAuth('register')}
-                      className="w-full py-2 px-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition"
-                    >
-                      <UserPlus className="w-3.5 h-3.5" />
-                      नया एजेंट बनें (Free Signup)
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">
+                  Quick Navigation
+                </h3>
+                <ul className="space-y-2 text-xs text-slate-400">
+                  <li>
+                    <button onClick={() => setCurrentTab('home')} className="hover:text-white transition">
+                      पोर्टल होम (Home)
                     </button>
+                  </li>
+                  <li>
                     <button
-                      onClick={() => handleOpenAuth('login')}
-                      className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition"
+                      onClick={() => {
+                        if (!currentUser) handleOpenAuth('login');
+                        else setCurrentTab(role === 'admin' ? 'admin-dashboard' : 'dashboard');
+                      }}
+                      className="hover:text-white transition"
                     >
-                      <LogIn className="w-3.5 h-3.5" />
-                      लॉगिन करें (Sign In)
+                      एजेंट डैशबोर्ड (Agent Portal)
                     </button>
-                  </>
-                ) : (
+                  </li>
+                  <li>
+                    <button
+                      onClick={() => {
+                        if (!currentUser) handleOpenAuth('login');
+                        else setCurrentTab('new-booking');
+                      }}
+                      className="hover:text-white transition"
+                    >
+                      नई टिकट बुक करें (New Request)
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={() => {
+                        if (!isAdmin) handleOpenAuth('login');
+                        else setCurrentTab('admin-dashboard');
+                      }}
+                      className="hover:text-white transition"
+                    >
+                      एडमिन कंट्रोल डेस्क (Admin Desk)
+                    </button>
+                  </li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">
+                  SafarGo Trust & Support
+                </h3>
+                <ul className="space-y-2 text-xs text-slate-400">
+                  <li className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>100% सत्यापित बस ऑपरेटर</span>
+                  </li>
+                  <li className="flex items-center gap-1.5">
+                    <Heart className="w-3.5 h-3.5 text-rose-400" />
+                    <span>ग्रामीण सशक्तिकरण पहल</span>
+                  </li>
+                  <li>
+                    <span className="text-[11px]">हेल्पलाइन WhatsApp: +91 98765 43210</span>
+                  </li>
+                  <li>
+                    <span className="text-[11px]">ईमेल: support@safargo.in</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">
+                  Quick Actions & 3D Go Wallet
+                </h3>
+                <div className="space-y-2">
                   <button
                     onClick={() => {
-                      if (role === 'admin') setCurrentTab('admin-dashboard');
-                      else if (role === 'promoter') setCurrentTab('promoter-dashboard');
-                      else if (role === 'customer') setCurrentTab('customer-portal');
-                      else if (role === 'shopkeeper') setCurrentTab('shopkeeper-portal');
-                      else setCurrentTab('dashboard');
+                      if (!currentUser) {
+                        handleOpenGoAuth('login');
+                      } else {
+                        setCurrentTab('go-agent');
+                      }
                     }}
-                    className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                    className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-500 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer"
                   >
-                    <span>माई अकाउंट खोलें</span>
+                    <Zap className="w-3.5 h-3.5 text-slate-950" />
+                    <span>⚡ GO Special Agent (Ultra 3D)</span>
                   </button>
-                )}
+
+                  <button
+                    onClick={() => {
+                      if (!currentUser) {
+                        handleOpenAuth('login');
+                      } else {
+                        setCurrentTab('go-wallet');
+                      }
+                    }}
+                    className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-emerald-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer"
+                  >
+                    <span>👑 3D Go Wallet खोलें</span>
+                  </button>
+                  {!currentUser ? (
+                    <>
+                      <button
+                        onClick={() => handleOpenAuth('register')}
+                        className="w-full py-2 px-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        नया एजेंट बनें (Free Signup)
+                      </button>
+                      <button
+                        onClick={() => handleOpenAuth('login')}
+                        className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition"
+                      >
+                        <LogIn className="w-3.5 h-3.5" />
+                        लॉगिन करें (Sign In)
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        if (role === 'admin') setCurrentTab('admin-dashboard');
+                        else if (role === 'promoter') setCurrentTab('promoter-dashboard');
+                        else if (role === 'customer') setCurrentTab('customer-portal');
+                        else if (role === 'shopkeeper') setCurrentTab('shopkeeper-portal');
+                        else setCurrentTab('dashboard');
+                      }}
+                      className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                    >
+                      <span>माई अकाउंट खोलें</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-800 pt-6 pb-16 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
+              <p>© 2026 SafarGo Technologies. All rights reserved. Manual Bus Ticketing System.</p>
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                <span className="text-slate-400 font-medium">SafarGo Central Verification Desk Online</span>
               </div>
             </div>
           </div>
+        </footer>
+      )}
 
-          <div className="border-t border-slate-800 pt-6 pb-16 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-            <p>© 2026 SafarGo Technologies. All rights reserved. Manual Bus Ticketing System.</p>
-            <div className="flex items-center gap-2">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-              <span className="text-slate-400 font-medium">SafarGo Central Verification Desk Online</span>
-            </div>
-          </div>
-        </div>
-      </footer>
-
-      {/* AbhiBus Style 4-Tab Sticky Bottom Navigation Bar (Visible after login) */}
-      <BottomNav currentTab={currentTab} onNavigateTab={setCurrentTab} />
+      {/* Global Bottom Navigation Bar (Hidden for GO Agent: GoAgentDashboard has its dedicated 4-tab bar) */}
+      {!isGoAgentView && <BottomNav currentTab={currentTab} onNavigateTab={setCurrentTab} />}
     </div>
   );
 };

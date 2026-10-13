@@ -54,7 +54,7 @@ export const AutoBusBookingCheckoutModal: React.FC<AutoBusBookingCheckoutModalPr
 
   const [modalStep, setModalStep] = useState<'form' | 'timer' | 'confirmed'>('form');
   const [createdBooking, setCreatedBooking] = useState<Booking | null>(null);
-  const [timerSeconds, setTimerSeconds] = useState(300); // 5-minute countdown = 300s
+  const [timerSeconds, setTimerSeconds] = useState(180); // 3-minute countdown = 180s (3:00)
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
   const [customerName, setCustomerName] = useState(currentUser?.full_name || '');
@@ -150,7 +150,7 @@ export const AutoBusBookingCheckoutModal: React.FC<AutoBusBookingCheckoutModalPr
 
       setCreatedBooking(newBooking);
       setModalStep('timer');
-      setTimerSeconds(300); // 5-minute timer
+      setTimerSeconds(180); // 3-minute countdown
     } catch (err: any) {
       console.error('Instant auto booking failed:', err);
       error('Booking Failed', err.message || 'स्वचालित बुकिंग में समस्या आई।');
@@ -178,7 +178,7 @@ export const AutoBusBookingCheckoutModal: React.FC<AutoBusBookingCheckoutModalPr
                 {modalStep === 'form'
                   ? 'तत्काल बस टिकट चेकआउट'
                   : modalStep === 'timer'
-                  ? '⚡ टिकट सत्यापन 5-मिनट टाइमर'
+                  ? '⚡ टिकट सत्यापन 3-मिनट टाइमर'
                   : '🎉 टिकट सफलतापूर्वक कन्फर्म!'}
               </h2>
               <p className="text-xs text-red-100 font-medium truncate max-w-[260px] sm:max-w-xs">
@@ -330,7 +330,7 @@ export const AutoBusBookingCheckoutModal: React.FC<AutoBusBookingCheckoutModalPr
                     </span>
                   </div>
                   <span className="text-[9px] text-amber-200 font-bold mt-1 block">
-                    ✓ एजेंट / दुकानदार / प्रमोटर 1-Click Pay (+₹19.34 कमीशन)
+                    ✓ 1-Click Go Wallet Pay (+₹20.00 फ्लैट कमीशन)
                   </span>
                 </button>
 
@@ -355,7 +355,7 @@ export const AutoBusBookingCheckoutModal: React.FC<AutoBusBookingCheckoutModalPr
                     GPay / PhonePe / Paytm
                   </span>
                   <span className="text-[9px] text-emerald-700 font-black block mt-1">
-                    ✓ +₹19 (₹19.34) एजेंट कमीशन
+                    ✓ +₹20.00 फ्लैट GO एजेंट कमीशन
                   </span>
                 </button>
               </div>
@@ -364,7 +364,7 @@ export const AutoBusBookingCheckoutModal: React.FC<AutoBusBookingCheckoutModalPr
               <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 flex items-center gap-2 text-[11px] text-emerald-900 font-bold">
                 <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>
-                  ऑटोमैटिक बस बुकिंग में भी एजेंट को प्रति बुकिंग <strong>₹19 (₹19.34) का गारंटीड कमीशन</strong> मिलेगा!
+                  GO बस स्पेशल बुकिंग में एजेंट को प्रति बुकिंग <strong>फ्लैट ₹20.00 का गारंटीड नकद कमीशन</strong> मिलेगा!
                 </span>
               </div>
             </div>
@@ -404,15 +404,15 @@ export const AutoBusBookingCheckoutModal: React.FC<AutoBusBookingCheckoutModalPr
                 आपकी टिकट बुकिंग रिक्वेस्ट प्राप्त हो गई है!
               </h2>
               <p className="text-xs sm:text-sm text-slate-700 font-semibold max-w-md mx-auto leading-relaxed">
-                ⚡ 5 मिनट के अंदर एडमिन द्वारा आपकी टिकट स्वीकृत व कन्फर्म कर दी जाएगी।
+                ⚡ 3 मिनट के अंदर एडमिन द्वारा आपकी टिकट स्वीकृत व कन्फर्म कर दी जाएगी।
               </p>
             </div>
 
-            {/* 5-Minute Countdown Clock Banner */}
+            {/* 3-Minute Countdown Clock Banner */}
             <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white rounded-3xl p-5 border border-slate-800 shadow-xl space-y-1">
               <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center justify-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-amber-400" />
-                <span>5-मिनट टाइमर (काउंटडाउन चालू):</span>
+                <span>3-मिनट टाइमर (काउंटडाउन चालू):</span>
               </div>
               <div className="text-5xl font-black font-mono tracking-widest text-amber-400">
                 {timerFormatted}
@@ -441,8 +441,8 @@ export const AutoBusBookingCheckoutModal: React.FC<AutoBusBookingCheckoutModalPr
                 <span className="font-bold text-slate-800">{createdBooking.operator_preference} ({seatsString})</span>
               </div>
               <div className="flex justify-between items-center text-emerald-700 font-bold">
-                <span>एजेंट कमीशन (कन्फर्म होने पर):</span>
-                <span>+₹19 (₹19.34) प्रति बुकिंग</span>
+                <span>GO एजेंट कमीशन (कन्फर्म होने पर):</span>
+                <span>+₹20.00 (फ्लैट Go नकद कमीशन)</span>
               </div>
               <div className="flex justify-between items-center text-slate-600 pt-2 border-t border-slate-200">
                 <span>कुल किराया:</span>

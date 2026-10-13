@@ -1161,10 +1161,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const now = new Date();
-    const dateCode = now.toISOString().slice(0, 10).replace(/-/g, '');
     const randomSuffix = Math.floor(100 + Math.random() * 900);
     const bookingCode = `SFG-${dateCode}-${randomSuffix}`;
-    const timerMins = isInstantAutoRequest ? 5 : 15;
+    const isGoAgentBooking =
+      activeActor.role === 'agent' ||
+      isInstantAutoRequest ||
+      Boolean(bookingData.agent_notes?.includes('GO Edition'));
+    const timerMins = isGoAgentBooking ? 3 : 15;
     const deadline = new Date(now.getTime() + timerMins * 60 * 1000).toISOString();
 
     // Advance Payment Verification (SafarGo QR or Agent Prepaid Wallet)
