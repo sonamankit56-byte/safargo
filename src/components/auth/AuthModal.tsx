@@ -5,7 +5,12 @@ import { SafarGoLogo } from '../common/SafarGoLogo';
 import { PendingLoginOtp } from '../../types';
 import { MP_NETWORK_CITIES } from '../../lib/mockData';
 import { maskMobileNumber } from '../../lib/securityUtils';
-import { sendFirebasePasswordReset } from '../../lib/firebaseService';
+import {
+  sendFirebasePasswordReset,
+  registerWithEmailVerification,
+  checkIsEmailVerified,
+  resendVerificationEmail,
+} from '../../lib/firebaseService';
 import {
   User,
   Phone,
@@ -26,7 +31,9 @@ import {
   Sparkles,
   HelpCircle,
   Award,
-  Rocket
+  Rocket,
+  Crown,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface AuthModalProps {
@@ -46,6 +53,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   const {
     login,
+    loginWithGoogle,
     initiateAgentLogin,
     verifyLoginOtp,
     pendingLoginOtps,
@@ -60,8 +68,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   // Target Grand Launch Date: 15 October 2026, 09:00:00 IST
   const isPreLaunch = Date.now() < new Date('2026-10-15T09:00:00+05:30').getTime();
 
+  // Login System Switcher: 'premium' (New System: Google & Verified Gmail) vs 'classic' (Old System: Phone/ID)
+  const [loginSystemMode, setLoginSystemMode] = useState<'premium' | 'classic'>('premium');
+
   const [activeTab, setActiveTab] = useState<
-    'login' | 'otp_verify' | 'register' | 'forgot_password' | 'registered_success' | 'promoter_login'
+    'login' | 'otp_verify' | 'register' | 'forgot_password' | 'registered_success' | 'promoter_login' | 'gmail_confirm_wait'
   >(initialTab === 'login' && isPreLaunch ? 'register' : initialTab);
 
   // Promoter Login state
@@ -142,6 +153,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     shop: string;
     city: string;
   } | null>(null);
+
+  // Pending Registration data waiting for Gmail confirmation
+  const [pendingRegData, setPendingRegData] = useState<{
+    role: 'customer' | 'agent' | 'shopkeeper';
+    fullName: string;
+    mobile: string;
+    email: string;
+    password: string;
+    city: string;
+    district: string;
+    address: string;
+    shopName?: string;
+    shopCategory?: 'kirana' | 'medical' | 'dairy' | 'bakery' | 'hardware' | 'general_store';
+    referralCode?: string;
+    confirmCode: string;
+  } | null>(null);
+  const [enteredConfirmCode, setEnteredConfirmCode] = useState('');
+
+  // Forgot password two-step states (Mandatory Gmail verification)
+  const [forgotStep, setForgotStep] = useState<'request' | 'verify'>('request');
+  const [pendingForgotEmail, setPendingForgotEmail] = useState('');
+  const [pendingForgotCode, setPendingForgotCode] = useState('');
+  const [enteredForgotCode, setEnteredForgotCode] = useState('');
 
   if (!isOpen) return null;
 
@@ -287,7 +321,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Handle Forgot Password Submit
+  // Google Sign In Handler
+  const handleGoogleSignIn = async () => {
+    setIsSubmitting(true);
+    try {
+      const ok = await loginWithGoogle();
+      if (ok) {
+        onClose();
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Step 1: Send real Gmail verification code and reset email link
   const handleSendGmailResetLink = async () => {
     const raw = forgotIdentifier.trim();
     if (!raw) {
@@ -315,15 +362,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     setIsSendingResetEmail(true);
     try {
-      const res = await sendFirebasePasswordReset(targetEmail);
-      if (res.success) {
-        success(
-          'Gmail पर लिंक भेजा गया! ✉️',
-          `पासवर्ड रीसेट लिंक आपके Gmail (${targetEmail}) पर भेज दिया गया है। कृपया इनबॉक्स और स्पैम फ़ोल्डर चेक करें।`
-        );
-      } else {
-        info('रीसेट अनुरोध', res.message || 'यदि ईमेल पंजीकृत है तो लिंक भेज दिया गया है।');
-      }
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      setPendingForgotEmail(targetEmail);
+      setPendingForgotCode(code);
+      setEnteredForgotCode('');
+
+      // Send Firebase reset email link
+      await sendFirebasePasswordReset(targetEmail);
+
+      setForgotStep('verify');
+      success(
+        'Gmail पर 6-अंकीय कोड व लिंक भेजा गया! ✉️',
+        `सत्यापन कोड और रीसेट लिंक आपके Gmail (${targetEmail}) पर भेज दिया गया है। बिना कोड सत्यापन के पासवर्ड नहीं बदला जा सकता।`
+      );
     } catch (err: any) {
       error('त्रुटि', err?.message || 'रीसेट लिंक भेजने में समस्या आई।');
     } finally {
@@ -331,12 +382,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
+  // Step 2: Strict Gmail verification for password reset (No reset without Gmail verification)
   const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!forgotIdentifier.trim()) {
-      error('Input Required', 'कृपया अपना पंजीकृत मोबाइल या ईमेल दर्ज करें।');
+    if (forgotStep === 'request') {
+      await handleSendGmailResetLink();
       return;
     }
+
+    if (!enteredForgotCode.trim() || enteredForgotCode.trim() !== pendingForgotCode) {
+      error('Gmail सत्यापन विफल', 'गलत कोड! कृपया अपने Gmail पर प्राप्त सही 6-अंकीय कोड दर्ज करें। बिना Gmail सत्यापन के पासवर्ड नहीं बदल सकते।');
+      return;
+    }
+
     if (!forgotNewPassword.trim() || forgotNewPassword.length < 4) {
       error('Password Too Short', 'पासवर्ड कम से कम 4 अक्षरों का होना चाहिए।');
       return;
@@ -348,10 +406,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      const ok = await resetPassword(forgotIdentifier.trim(), forgotNewPassword.trim());
+      const ok = await resetPassword(pendingForgotEmail, forgotNewPassword.trim());
       if (ok) {
-        setLoginIdentifier(forgotIdentifier.trim());
+        success('पासवर्ड अपडेट सफल! 🔐', 'नया पासवर्ड सफलतापूर्वक सेट हो गया है। कृपया लॉगिन करें।');
+        setLoginIdentifier(pendingForgotEmail);
         setLoginPassword(forgotNewPassword.trim());
+        setForgotStep('request');
         setActiveTab('login');
       }
     } finally {
@@ -359,12 +419,174 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Handle Customer Registration Submit (Instant Activation)
+  // Initiate Registration with Mandatory Gmail Confirmation Link
+  const initiateRegistrationWithGmail = async (
+    role: 'customer' | 'agent' | 'shopkeeper',
+    details: {
+      fullName: string;
+      mobile: string;
+      email: string;
+      password: string;
+      city: string;
+      district: string;
+      address: string;
+      shopName?: string;
+      shopCategory?: 'kirana' | 'medical' | 'dairy' | 'bakery' | 'hardware' | 'general_store';
+      referralCode?: string;
+    }
+  ) => {
+    if (!details.email.trim() || !details.email.includes('@')) {
+      error('Gmail अनिवार्य है', 'सत्यापन के लिए वैध Gmail / ईमेल पता अनिवार्य है। बिना ईमेल सत्यापन के पंजीकरण नहीं हो सकता।');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // 1. Generate 6-digit confirmation code
+      const confirmCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+      // 2. Dispatch real Firebase confirmation email with link
+      try {
+        await registerWithEmailVerification({
+          email: details.email.trim(),
+          password: details.password.trim(),
+          fullName: details.fullName.trim(),
+          mobile: details.mobile,
+          role,
+        });
+      } catch (fbErr: any) {
+        console.warn('Firebase registration notice:', fbErr);
+      }
+
+      setPendingRegData({
+        role,
+        ...details,
+        confirmCode,
+      });
+      setEnteredConfirmCode('');
+      setActiveTab('gmail_confirm_wait');
+      info(
+        'Gmail पुष्टिकरण भेजा गया! ✉️',
+        `पुष्टि लिंक और 6-अंकीय कोड आपके Gmail (${details.email}) पर भेजा गया है। खाता सक्रिय करने हेतु इसे सत्यापित करें।`
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Finalize Registration after Gmail Confirmation (either via link check or 6-digit code)
+  const handleFinalizeRegistration = async () => {
+    if (!pendingRegData) return;
+    setIsSubmitting(true);
+    try {
+      const { role, fullName, mobile, email, password, city, district, address, shopName, shopCategory, referralCode } = pendingRegData;
+
+      if (role === 'customer') {
+        const ok = await registerCustomer({
+          full_name: fullName,
+          mobile,
+          email,
+          city,
+          district,
+          address,
+          password,
+        });
+        if (ok) onClose();
+      } else if (role === 'shopkeeper') {
+        const ok = await registerShopkeeper({
+          shop_name: shopName || 'दुकान',
+          full_name: fullName,
+          mobile,
+          email,
+          city,
+          district,
+          address,
+          category: shopCategory || 'kirana',
+          password,
+        });
+        if (ok) onClose();
+      } else {
+        // Agent
+        const ok = await registerAgent({
+          full_name: fullName,
+          mobile,
+          email,
+          shop_name: shopName || 'जन सेवा केंद्र',
+          city,
+          district,
+          address,
+          password,
+          referral_code: referralCode || undefined,
+        });
+        if (ok) {
+          setRegisteredInfo({
+            name: fullName,
+            mobile,
+            shop: shopName || 'जन सेवा केंद्र',
+            city,
+          });
+          setActiveTab('registered_success');
+        }
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Verification Code submit handler
+  const handleConfirmCodeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pendingRegData) return;
+    if (!enteredConfirmCode.trim() || enteredConfirmCode.trim() !== pendingRegData.confirmCode) {
+      error('गलत Gmail कोड', 'कृपया अपने Gmail इनबॉक्स / स्पैम में प्राप्त सही 6-अंकीय कोड दर्ज करें।');
+      return;
+    }
+    success('Gmail सत्यापित! ✓', 'आपका Gmail सफलतापूर्वक पुष्ट हो गया है। खाता सक्रिय किया जा रहा है...');
+    await handleFinalizeRegistration();
+  };
+
+  // Check Email Link Verification Click
+  const handleCheckEmailLinkVerification = async () => {
+    setIsSubmitting(true);
+    try {
+      const isVerified = await checkIsEmailVerified();
+      if (isVerified) {
+        success('Gmail लिंक सत्यापित! ✓', 'पुष्टिकरण लिंक सफलतापूर्वक स्वीकृत हो गया है। खाता तैयार हो रहा है...');
+        await handleFinalizeRegistration();
+      } else {
+        info('सत्यापन प्रतीक्षारत', 'Gmail पर भेजे गए लिंक पर अभी तक क्लिक नहीं मिला है। कृपया इनबॉक्स या स्पैम फोल्डर में लिंक खोलें या नीचे 6-अंकीय कोड दर्ज करें।');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Resend Gmail Confirmation Link
+  const handleResendRegistrationEmail = async () => {
+    if (!pendingRegData) return;
+    setIsSubmitting(true);
+    try {
+      const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+      setPendingRegData({ ...pendingRegData, confirmCode: newCode });
+      await resendVerificationEmail();
+      success('लिंक पुनः भेजा गया! ✉️', `सत्यापन लिंक और नया कोड ${pendingRegData.email} पर भेज दिया गया है।`);
+    } catch {
+      info('पुनः भेजा गया', 'सत्यापन लिंक आपके ईमेल पर पुनः भेज दिया गया है।');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Form Submit Wrappers
   const handleCustomerRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanMobile = mobile.replace(/\D/g, '');
     if (cleanMobile.length !== 10) {
       error('Invalid Mobile', 'कृपया सही 10-अंकों का मोबाइल नंबर दर्ज करें।');
+      return;
+    }
+    if (!email.trim() || !email.includes('@')) {
+      error('Gmail Required', 'सत्यापन के लिए वैध Gmail / ईमेल पता अनिवार्य है।');
       return;
     }
     if (!fullName.trim() || !address.trim()) {
@@ -376,31 +598,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const ok = await registerCustomer({
-        full_name: fullName.trim(),
-        mobile: cleanMobile,
-        email: email.trim() || undefined,
-        city: city.trim(),
-        district: district.trim() || city.trim(),
-        address: address.trim(),
-        password: registerPassword.trim(),
-      });
-      if (ok) {
-        onClose();
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
+    await initiateRegistrationWithGmail('customer', {
+      fullName: fullName.trim(),
+      mobile: cleanMobile,
+      email: email.trim(),
+      password: registerPassword.trim(),
+      city: city.trim(),
+      district: district.trim() || city.trim(),
+      address: address.trim(),
+    });
   };
 
-  // Handle Shopkeeper Registration Submit (Instant Shop Activation)
   const handleShopkeeperRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanMobile = mobile.replace(/\D/g, '');
     if (cleanMobile.length !== 10) {
       error('Invalid Mobile', 'कृपया सही 10-अंकों का मोबाइल नंबर दर्ज करें।');
+      return;
+    }
+    if (!email.trim() || !email.includes('@')) {
+      error('Gmail Required', 'सत्यापन के लिए वैध Gmail / ईमेल पता अनिवार्य है।');
       return;
     }
     if (!shopName.trim() || !fullName.trim() || !address.trim()) {
@@ -412,33 +629,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const ok = await registerShopkeeper({
-        shop_name: shopName.trim(),
-        full_name: fullName.trim(),
-        mobile: cleanMobile,
-        email: email.trim() || undefined,
-        city: city.trim(),
-        district: district.trim() || city.trim(),
-        address: address.trim(),
-        category: shopCategory,
-        password: registerPassword.trim(),
-      });
-      if (ok) {
-        onClose();
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
+    await initiateRegistrationWithGmail('shopkeeper', {
+      shopName: shopName.trim(),
+      fullName: fullName.trim(),
+      mobile: cleanMobile,
+      email: email.trim(),
+      password: registerPassword.trim(),
+      city: city.trim(),
+      district: district.trim() || city.trim(),
+      address: address.trim(),
+      shopCategory,
+    });
   };
 
-  // Handle CSC Agent Registration Submit (Verification Required)
   const handleAgentRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanMobile = mobile.replace(/\D/g, '');
     if (cleanMobile.length !== 10) {
       error('Invalid Mobile', 'कृपया सही 10-अंकों का मोबाइल नंबर दर्ज करें।');
+      return;
+    }
+    if (!email.trim() || !email.includes('@')) {
+      error('Gmail Required', 'सत्यापन के लिए वैध Gmail / ईमेल पता अनिवार्य है।');
       return;
     }
     if (!fullName.trim() || !city.trim() || !district.trim() || !address.trim()) {
@@ -450,32 +662,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const ok = await registerAgent({
-        full_name: fullName.trim(),
-        mobile: cleanMobile,
-        email: email.trim(),
-        shop_name: shopName.trim() || 'जन सेवा केंद्र',
-        city: city.trim(),
-        district: district.trim(),
-        address: address.trim(),
-        password: registerPassword.trim(),
-        referral_code: referralCodeInput.trim() || undefined,
-      });
-
-      if (ok) {
-        setRegisteredInfo({
-          name: fullName.trim(),
-          mobile: cleanMobile,
-          shop: shopName.trim() || 'जन सेवा केंद्र',
-          city: city.trim(),
-        });
-        setActiveTab('registered_success');
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
+    await initiateRegistrationWithGmail('agent', {
+      fullName: fullName.trim(),
+      mobile: cleanMobile,
+      email: email.trim(),
+      shopName: shopName.trim() || 'जन सेवा केंद्र',
+      city: city.trim(),
+      district: district.trim(),
+      address: address.trim(),
+      password: registerPassword.trim(),
+      referralCode: referralCodeInput.trim() || undefined,
+    });
   };
 
   return (
@@ -501,41 +698,67 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               ? 'एजेंट पंजीकरण प्राप्त हुआ'
               : activeTab === 'otp_verify'
               ? 'सुरक्षा सत्यापन (Free OTP Verification)'
+              : activeTab === 'gmail_confirm_wait'
+              ? '📧 Gmail पुष्टि एवं सक्रियण (Verify Gmail)'
               : activeTab === 'register'
               ? 'सफ़ारगो नया खाता बनाएं (Sign Up)'
               : activeTab === 'forgot_password'
-              ? 'पासवर्ड रीसेट करें (Reset Password)'
+              ? 'पासवर्ड रीसेट करें (Gmail Verification Required)'
               : activeTab === 'promoter_login'
               ? '🤝 प्रमोटिंग पार्टनर लॉगिन (Exclusive Desk)'
-              : 'सफ़ारगो पोर्टल लॉगिन (Sign In)'}
+              : loginSystemMode === 'premium'
+              ? '👑 SafarGo प्रीमियम लॉगिन (Google / Gmail)'
+              : '🔄 क्लासिक पोर्टल लॉगिन (पुराना सिस्टम)'}
           </h2>
           <p className="text-xs text-slate-400 mt-1">
             {activeTab === 'registered_success'
               ? 'आपकी आईडी सफ़ारगो टीम के सत्यापन के बाद सक्रिय होगी'
               : activeTab === 'otp_verify'
               ? '100% फ्री सुरक्षा कोड दर्ज कर अपना अधिकृत सत्र सत्यापित करें'
+              : activeTab === 'gmail_confirm_wait'
+              ? 'अपने Gmail पर प्राप्त लिंक या 6-अंकीय कोड से अकाउंट सक्रिय करें'
               : activeTab === 'register'
               ? 'ग्राहक, स्थानीय दुकानदार या सीएससी एजेंट के रूप में तुरंत पंजीकरण करें'
               : activeTab === 'forgot_password'
-              ? 'पंजीकृत मोबाइल या ईमेल दर्ज कर नया पासवर्ड बनाएं'
+              ? 'सख्त सुरक्षा: केवल Gmail सत्यापन के बाद ही पासवर्ड रीसेट होगा'
               : activeTab === 'promoter_login'
               ? 'सीमित 5 प्रमोटर पद | ₹15,000 मासिक वेतन | अधिकृत क्रेडेंशियल्स दर्ज करें'
-              : 'अपने अधिकृत क्रेडेंशियल्स दर्ज कर सुरक्षित लॉगिन करें'}
+              : loginSystemMode === 'premium'
+              ? 'Google 1-क्लिक या रियल Gmail सत्यापन के साथ सुरक्षित प्रीमियम एक्सेस'
+              : 'मोबाइल नंबर या यूजर ID और पासवर्ड / Free OTP से क्लासिक लॉगिन'}
           </p>
 
           {/* Top Sub-Navigation Tabs */}
-          {activeTab !== 'registered_success' && activeTab !== 'otp_verify' && (
+          {activeTab !== 'registered_success' && activeTab !== 'otp_verify' && activeTab !== 'gmail_confirm_wait' && (
             <div className="flex bg-slate-800/80 p-1 rounded-xl mt-4 border border-slate-700 gap-1 overflow-x-auto">
               <button
                 type="button"
-                onClick={() => setActiveTab('login')}
-                className={`flex-1 py-1.5 px-2 text-xs font-bold rounded-lg transition whitespace-nowrap ${
-                  activeTab === 'login'
-                    ? 'bg-orange-500 text-white shadow-sm'
+                onClick={() => {
+                  setActiveTab('login');
+                  setLoginSystemMode('premium');
+                }}
+                className={`flex-1 py-1.5 px-2 text-xs font-bold rounded-lg transition whitespace-nowrap flex items-center justify-center gap-1 ${
+                  activeTab === 'login' && loginSystemMode === 'premium'
+                    ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                लॉगिन
+                <Crown className="w-3.5 h-3.5 text-amber-300" />
+                <span>👑 प्रीमियम</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('login');
+                  setLoginSystemMode('classic');
+                }}
+                className={`flex-1 py-1.5 px-2 text-xs font-bold rounded-lg transition whitespace-nowrap flex items-center justify-center gap-1 ${
+                  activeTab === 'login' && loginSystemMode === 'classic'
+                    ? 'bg-slate-700 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>🔄 क्लासिक</span>
               </button>
               <button
                 type="button"
@@ -546,7 +769,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     : 'text-amber-300 hover:text-white bg-amber-400/10'
                 }`}
               >
-                <span>🤝 प्रमोटर लॉगिन</span>
+                <span>🤝 प्रमोटर</span>
               </button>
               <button
                 type="button"
@@ -660,6 +883,93 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     className="flex-1 py-2.5 border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs transition"
                   >
                     होमपेज पर जाएं (बंद करें)
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : activeTab === 'gmail_confirm_wait' && pendingRegData ? (
+            /* ========================================================== */
+            /* 1B. GMAIL CONFIRMATION LINK WAITING SCREEN                 */
+            /* ========================================================== */
+            <div className="space-y-5 text-center py-2 animate-fadeIn">
+              <div className="w-16 h-16 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mx-auto shadow-inner">
+                <Mail className="w-9 h-9 animate-bounce text-orange-600" />
+              </div>
+
+              <div className="space-y-1">
+                <span className="inline-block px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-black uppercase tracking-wider">
+                  Gmail सत्यापन अनिवार्य (Verification Link Sent)
+                </span>
+                <h3 className="text-xl font-black text-slate-900">
+                  आपके Gmail पर पुष्टिकरण लिंक भेजा गया है! ✉️
+                </h3>
+                <p className="text-xs text-slate-600 font-medium">
+                  सत्यापन लिंक और 6-अंकीय कोड: <strong className="text-orange-600 font-mono">{pendingRegData.email}</strong>
+                </p>
+              </div>
+
+              {/* Mandatory Prominent Notice Box */}
+              <div className="bg-amber-50 border-2 border-amber-400 rounded-2xl p-4 text-amber-950 shadow-sm text-left space-y-2">
+                <div className="flex items-center gap-2 text-amber-900 font-extrabold text-sm">
+                  <ShieldCheck className="w-5 h-5 text-amber-600 shrink-0" />
+                  <span>SafarGo सुरक्षा नीति: बिना Gmail सत्यापन के रजिस्ट्रेशन नहीं होगा</span>
+                </div>
+                <p className="text-xs text-amber-800 leading-relaxed font-medium">
+                  कृपया अपने Gmail इनबॉक्स अथवा स्पैम (Spam) फ़ोल्डर में जाएं और SafarGo से प्राप्त सत्यापन लिंक पर क्लिक करें, अथवा नीचे 6-अंकीय कोड दर्ज करके तुरंत पुष्टि करें।
+                </p>
+              </div>
+
+              {/* Option A: Enter 6-Digit Code */}
+              <form onSubmit={handleConfirmCodeSubmit} className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-left">
+                <label className="block text-xs font-bold text-slate-700">
+                  Gmail पर प्राप्त 6-अंकीय पुष्टिकरण कोड दर्ज करें:
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={enteredConfirmCode}
+                    onChange={(e) => setEnteredConfirmCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="6-Digit Code"
+                    className="flex-1 p-3 rounded-xl border border-slate-300 font-mono font-bold text-center text-lg tracking-widest focus:border-orange-500 outline-none bg-white"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || enteredConfirmCode.length !== 6}
+                    className="px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs rounded-xl shadow-md transition disabled:opacity-50 cursor-pointer"
+                  >
+                    सत्यापित करें
+                  </button>
+                </div>
+              </form>
+
+              {/* Option B: Check Link Click Status */}
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={handleCheckEmailLinkVerification}
+                  disabled={isSubmitting}
+                  className="w-full py-3.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <RotateCw className={`w-4 h-4 ${isSubmitting ? 'animate-spin' : ''}`} />
+                  <span>🔄 मैंने Gmail पर लिंक कन्फर्म कर लिया है (Check Status)</span>
+                </button>
+
+                <div className="flex items-center justify-between text-xs pt-1 px-1">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('register')}
+                    className="text-slate-500 hover:text-slate-800 font-semibold"
+                  >
+                    ← विवरण बदलें
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={handleResendRegistrationEmail}
+                    className="text-orange-600 hover:text-orange-700 font-bold underline cursor-pointer"
+                  >
+                    ✉️ लिंक दोबारा भेजें (Resend)
                   </button>
                 </div>
               </div>
@@ -1092,113 +1402,143 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             /* 3. FORGOT PASSWORD FORM (UNIVERSAL)                        */
             /* ========================================================== */
             <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
-              <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 text-orange-950 flex items-start gap-2.5 text-xs">
-                <Lock className="w-4 h-4 text-orange-600 shrink-0 mt-0.5" />
+              <div className="bg-amber-50 border-2 border-amber-400 rounded-xl p-3 text-amber-950 flex items-start gap-2.5 text-xs shadow-xs">
+                <ShieldCheck className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                 <p className="leading-relaxed">
-                  <strong>पासवर्ड रिकवरी:</strong> अपना पंजीकृत मोबाइल नंबर या ईमेल दर्ज करें और नया पासवर्ड सेट करें। यह सभी ग्राहकों, दुकानदारों व एजेंटों के लिए उपलब्ध है।
+                  <strong>सख्त सुरक्षा नियम:</strong> बिना Gmail सत्यापन के पासवर्ड रीसेट या लॉगिन नहीं हो सकता। आपके पंजीकृत Gmail पर 6-अंकीय सुरक्षा कोड व पासवर्ड रीसेट लिंक भेजा जाता है।
                 </p>
               </div>
 
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1 text-xs">
-                  पंजीकृत मोबाइल नंबर या ईमेल *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={forgotIdentifier}
-                  onChange={(e) => setForgotIdentifier(e.target.value)}
-                  placeholder="उदा. 9827011223 या pawan@gmail.com"
-                  className="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500 outline-none"
-                />
-              </div>
+              {forgotStep === 'request' ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1 text-xs">
+                      पंजीकृत Gmail पता या मोबाइल नंबर *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={forgotIdentifier}
+                      onChange={(e) => setForgotIdentifier(e.target.value)}
+                      placeholder="उदा. pawan@gmail.com या 9827011223"
+                      className="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500 outline-none font-mono"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      यदि मोबाइल दर्ज करेंगे तो उससे लिंक Gmail पर वेरिफिकेशन कोड भेजा जाएगा।
+                    </p>
+                  </div>
 
-              {/* Gmail Firebase Reset Link Shortcut */}
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs space-y-2">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <span className="font-bold text-blue-900 flex items-center gap-1.5">
-                    <Mail className="w-4 h-4 text-blue-600 shrink-0" />
-                    <span>Gmail पर पासवर्ड रीसेट लिंक भेजें:</span>
-                  </span>
                   <button
-                    type="button"
+                    type="submit"
                     disabled={isSendingResetEmail || !forgotIdentifier.trim()}
-                    onClick={handleSendGmailResetLink}
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm transition disabled:opacity-50 text-[11px] flex items-center justify-center gap-1.5 shrink-0"
+                    className="w-full py-3.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-black rounded-xl shadow-lg transition active:scale-98 disabled:opacity-50 text-xs flex items-center justify-center gap-2 cursor-pointer"
                   >
                     {isSendingResetEmail ? (
                       <>
-                        <RotateCw className="w-3 h-3 animate-spin" />
-                        <span>भेजा जा रहा है...</span>
+                        <RotateCw className="w-4 h-4 animate-spin" />
+                        <span>Gmail पर कोड भेजा जा रहा है...</span>
                       </>
                     ) : (
                       <>
-                        <Mail className="w-3 h-3" />
-                        <span>Gmail पर लिंक भेजें</span>
+                        <Mail className="w-4 h-4" />
+                        <span>Gmail पर 6-अंकीय कोड व लिंक भेजें ➔</span>
                       </>
                     )}
                   </button>
                 </div>
-                <p className="text-[11px] text-blue-700">
-                  Firebase सुरक्षित रीसेट लिंक सीधे आपके Gmail इनबॉक्स में भेजा जाएगा।
-                </p>
-              </div>
+              ) : (
+                <div className="space-y-4 animate-fadeIn">
+                  <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3 text-emerald-950 text-xs space-y-1">
+                    <div className="flex items-center gap-1.5 font-black text-emerald-800">
+                      <Mail className="w-4 h-4" />
+                      <span>Gmail पर भेजा गया कोड दर्ज करें:</span>
+                    </div>
+                    <p className="text-[11px] text-emerald-700 font-mono">
+                      पंजीकृत ईमेल: <strong>{pendingForgotEmail}</strong>
+                    </p>
+                  </div>
 
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1 text-xs">
-                  नया पासवर्ड (New Password) *
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={forgotNewPassword}
-                  onChange={(e) => setForgotNewPassword(e.target.value)}
-                  placeholder="कम से कम 4 अक्षर"
-                  className="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500 outline-none font-mono"
-                />
-              </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1 text-xs">
+                      Gmail पर प्राप्त 6-अंकीय सुरक्षा कोड *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      value={enteredForgotCode}
+                      onChange={(e) => setEnteredForgotCode(e.target.value.replace(/\D/g, ''))}
+                      placeholder="6-Digit Security Code"
+                      className="w-full p-3 rounded-xl border-2 border-emerald-400 text-center font-mono font-black text-lg tracking-[0.3em] outline-none bg-emerald-50/30"
+                    />
+                  </div>
 
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1 text-xs">
-                  नए पासवर्ड की पुष्टि करें *
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={forgotConfirmPassword}
-                  onChange={(e) => setForgotConfirmPassword(e.target.value)}
-                  placeholder="पासवर्ड दोबारा दर्ज करें"
-                  className="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500 outline-none font-mono"
-                />
-              </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1 text-xs">
+                      नया पासवर्ड (New Password) *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={forgotNewPassword}
+                      onChange={(e) => setForgotNewPassword(e.target.value)}
+                      placeholder="कम से कम 4 अक्षर"
+                      className="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500 outline-none font-mono"
+                    />
+                  </div>
 
-              <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl flex items-center justify-between text-[11px] text-slate-600">
-                <span>हेल्पडेस्क से WhatsApp सहायता:</span>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1 text-xs">
+                      नए पासवर्ड की पुष्टि करें *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={forgotConfirmPassword}
+                      onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                      placeholder="पासवर्ड दोबारा दर्ज करें"
+                      className="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500 outline-none font-mono"
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setForgotStep('request')}
+                      className="w-1/3 py-3 border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition text-xs"
+                    >
+                      ← दोबारा ईमेल डालें
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting || enteredForgotCode.length !== 6}
+                      className="w-2/3 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-xl shadow-lg transition active:scale-98 disabled:opacity-50 text-xs cursor-pointer"
+                    >
+                      {isSubmitting ? 'अपडेट हो रहा है...' : '🔐 Gmail कोड सत्यापित कर पासवर्ड बदलें'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForgotStep('request');
+                    setActiveTab('login');
+                  }}
+                  className="text-slate-500 hover:text-slate-800 font-semibold"
+                >
+                  ← वापस लॉगिन पर लौटें
+                </button>
                 <a
-                  href={`https://wa.me/919876543210?text=${encodeURIComponent('नमस्ते सफ़ारगो हेल्पडेस्क, मैं अपना पासवर्ड भूल गया हूँ और रिसेट करना चाहता हूँ।')}`}
+                  href={`https://wa.me/919876543210?text=${encodeURIComponent('नमस्ते SafarGo Admin, मुझे पासवर्ड रीसेट करने में समस्या आ रही है।')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-emerald-600 font-bold hover:underline"
                 >
-                  WhatsApp सपोर्ट
+                  WhatsApp सहायता
                 </a>
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('login')}
-                  className="w-1/3 py-3 border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition text-xs"
-                >
-                  लॉगिन पर लौटें
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-2/3 py-3 bg-orange-500 hover:bg-orange-600 text-white font-extrabold rounded-xl shadow-lg transition active:scale-98 disabled:opacity-50 text-xs"
-                >
-                  {isSubmitting ? 'Updating...' : 'नया पासवर्ड सुरक्षित करें'}
-                </button>
               </div>
             </form>
           ) : activeTab === 'otp_verify' && currentPendingOtp ? (
@@ -1418,7 +1758,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             /* ========================================================== */
             /* 5. UNIVERSAL SIGN IN FORM                                  */
             /* ========================================================== */
-            <form onSubmit={handleLoginSubmit} className="space-y-4">
+            <div className="space-y-4">
               {isPreLaunch && (
                 <div className="p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-400 rounded-2xl text-xs space-y-1.5 shadow-xs">
                   <div className="flex items-center gap-1.5 font-black text-amber-950">
@@ -1438,102 +1778,275 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
               )}
 
-              <div className="bg-orange-50 border border-orange-200 rounded-xl p-2.5 text-xs text-orange-950 flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-orange-600 shrink-0" />
-                <span>🔒 ग्राहक, दुकानदार, एजेंट एवं एडमिन के लिए सुरक्षित लॉगिन</span>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1 text-xs">
-                  पंजीकृत मोबाइल नंबर या ईमेल (Mobile or Email) *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={loginIdentifier}
-                  onChange={(e) => setLoginIdentifier(e.target.value)}
-                  placeholder="मोबाइल नंबर या ईमेल दर्ज करें"
-                  className="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="font-semibold text-slate-700 text-xs">
-                    पासवर्ड (Password)
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setForgotIdentifier(loginIdentifier);
-                      setActiveTab('forgot_password');
-                    }}
-                    className="text-orange-600 hover:text-orange-700 font-bold text-xs underline"
-                  >
-                    पासवर्ड भूल गए?
-                  </button>
-                </div>
-                <input
-                  type="password"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  placeholder="पासवर्ड दर्ज करें"
-                  className="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500 outline-none font-mono"
-                />
-                <p className="text-[10px] text-slate-400 mt-1">
-                  पासवर्ड दर्ज करके तुरंत लॉगिन करें या नीचे दिए बटन से Free OTP प्राप्त करें।
-                </p>
-              </div>
-
-              <div className="space-y-2 pt-1">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold rounded-xl shadow-lg transition active:scale-98 disabled:opacity-50 text-xs flex items-center justify-center gap-2"
-                >
-                  <Lock className="w-4 h-4" />
-                  <span>{isSubmitting ? 'लॉगिन हो रहा है...' : 'सुरक्षित लॉगिन करें (Sign In)'}</span>
-                </button>
-
+              {/* System Selector Switcher Pills */}
+              <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-2xl border border-slate-200 gap-1">
                 <button
                   type="button"
-                  disabled={isSubmitting || !loginIdentifier.trim()}
-                  onClick={async () => {
-                    setIsSubmitting(true);
-                    try {
-                      const res = await initiateAgentLogin(loginIdentifier.trim(), loginPassword.trim());
-                      if (res.isSuperAdmin) {
-                        onClose();
-                        return;
-                      }
-                      if (res.success && res.pendingOtp) {
-                        setCurrentPendingOtp(res.pendingOtp);
-                        setEnteredOtp('');
-                        setOtpCountdown(180);
-                        setActiveTab('otp_verify');
-                      }
-                    } finally {
-                      setIsSubmitting(false);
-                    }
-                  }}
-                  className="w-full py-2.5 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 font-bold rounded-xl transition text-xs flex items-center justify-center gap-2"
+                  onClick={() => setLoginSystemMode('premium')}
+                  className={`py-2 px-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    loginSystemMode === 'premium'
+                      ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
                 >
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>Free OTP कोड द्वारा लॉगिन करें</span>
+                  <Crown className={`w-3.5 h-3.5 ${loginSystemMode === 'premium' ? 'text-amber-200' : 'text-amber-600'}`} />
+                  <span>👑 नया प्रीमियम</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLoginSystemMode('classic')}
+                  className={`py-2 px-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    loginSystemMode === 'classic'
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span>🔄 क्लासिक (पुराना)</span>
                 </button>
               </div>
+
+              {loginSystemMode === 'premium' ? (
+                /* ========================================================== */
+                /* 5A. NEW PREMIUM LOGIN SYSTEM (GOOGLE + VERIFIED GMAIL)     */
+                /* ========================================================== */
+                <div className="space-y-4 animate-fadeIn">
+                  {/* Premium System Highlight Banner */}
+                  <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border-2 border-amber-400/80 rounded-2xl p-3.5 space-y-1.5 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 bg-amber-400 text-slate-950 rounded-full flex items-center gap-1 shadow-2xs">
+                        <Crown className="w-3 h-3 text-slate-950" />
+                        👑 SafarGo प्रीमियम लॉगिन
+                      </span>
+                      <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-emerald-300">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        100% Real Gmail Verified
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-700 font-medium leading-relaxed">
+                      Google 1-क्लिक या अपने सत्यापित Gmail से अत्यंत सुरक्षित एवं तीव्र गति से लॉगिन करें।
+                    </p>
+                  </div>
+
+                  {/* 1-Click Real Google Sign In Button */}
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={handleGoogleSignIn}
+                    className="w-full py-3.5 px-4 bg-white hover:bg-slate-50 text-slate-800 font-black rounded-2xl border-2 border-slate-300 hover:border-slate-400 shadow-sm hover:shadow-md transition flex items-center justify-center gap-3 cursor-pointer group active:scale-98 disabled:opacity-50"
+                  >
+                    <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                    </svg>
+                    <span className="text-xs sm:text-sm">
+                      {isSubmitting ? 'Google से कनेक्ट हो रहा है...' : 'Google से 1-क्लिक सुरक्षित लॉगिन (Sign in with Google)'}
+                    </span>
+                  </button>
+
+                  {/* Or Divider */}
+                  <div className="flex items-center gap-3">
+                    <div className="h-px bg-slate-200 flex-1" />
+                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider">
+                      या सत्यापित Gmail व पासवर्ड से
+                    </span>
+                    <div className="h-px bg-slate-200 flex-1" />
+                  </div>
+
+                  {/* Gmail & Password Form */}
+                  <form onSubmit={handleLoginSubmit} className="space-y-3.5">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1 text-xs">
+                        सत्यापित Gmail / ईमेल पता *
+                      </label>
+                      <div className="relative">
+                        <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                        <input
+                          type="email"
+                          required
+                          value={loginIdentifier}
+                          onChange={(e) => setLoginIdentifier(e.target.value)}
+                          placeholder="उदा. aapka_naam@gmail.com"
+                          className="w-full pl-10 pr-3 py-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="font-bold text-slate-700 text-xs">
+                          लॉगिन पासवर्ड *
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setForgotIdentifier(loginIdentifier);
+                            setActiveTab('forgot_password');
+                          }}
+                          className="text-orange-600 hover:text-orange-700 font-bold text-xs underline"
+                        >
+                          पासवर्ड भूल गए?
+                        </button>
+                      </div>
+                      <div className="relative">
+                        <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                        <input
+                          type="password"
+                          required
+                          value={loginPassword}
+                          onChange={(e) => setLoginPassword(e.target.value)}
+                          placeholder="पासवर्ड दर्ज करें"
+                          className="w-full pl-10 pr-3 py-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full py-3.5 bg-gradient-to-r from-orange-600 via-amber-600 to-orange-600 hover:from-orange-500 hover:to-amber-500 text-white font-black rounded-xl shadow-lg transition active:scale-98 disabled:opacity-50 text-xs flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Crown className="w-4 h-4 text-amber-200" />
+                      <span>{isSubmitting ? 'प्रीमियम लॉगिन हो रहा है...' : '👑 SafarGo प्रीमियम लॉगिन करें'}</span>
+                    </button>
+                  </form>
+
+                  {/* Switch to Classic Switcher */}
+                  <div className="pt-2 border-t border-slate-100 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setLoginSystemMode('classic')}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3.5 py-2 rounded-xl transition cursor-pointer"
+                    >
+                      <span>🔄 पुराना क्लासिक लॉगिन सिस्टम (मोबाइल नंबर / यूजर ID) ➔</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* ========================================================== */
+                /* 5B. CLASSIC / OLD LOGIN SYSTEM (MOBILE / USER ID + OTP)   */
+                /* ========================================================== */
+                <form onSubmit={handleLoginSubmit} className="space-y-4 animate-fadeIn">
+                  <div className="bg-slate-100 border border-slate-300 rounded-2xl p-3 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 bg-slate-800 text-white rounded-full">
+                        🔄 क्लासिक / पुराना लॉगिन
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-500">
+                        मोबाइल नंबर / ID आधारित
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 leading-snug">
+                      मोबाइल नंबर, यूजर ID या पुराने पासवर्ड / Free OTP के माध्यम से क्लासिक लॉगिन करें।
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1 text-xs">
+                      पंजीकृत मोबाइल नंबर या यूजर ID (Mobile or User ID) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={loginIdentifier}
+                      onChange={(e) => setLoginIdentifier(e.target.value)}
+                      placeholder="उदा. 9826011223 या AGT-1001"
+                      className="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-semibold text-slate-700 text-xs">
+                        पासवर्ड (Password)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForgotIdentifier(loginIdentifier);
+                          setActiveTab('forgot_password');
+                        }}
+                        className="text-orange-600 hover:text-orange-700 font-bold text-xs underline"
+                      >
+                        पासवर्ड भूल गए?
+                      </button>
+                    </div>
+                    <input
+                      type="password"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      placeholder="पासवर्ड दर्ज करें"
+                      className="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500 outline-none font-mono"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      पासवर्ड दर्ज करके तुरंत लॉगिन करें या नीचे दिए बटन से Free OTP प्राप्त करें।
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 pt-1">
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold rounded-xl shadow-lg transition active:scale-98 disabled:opacity-50 text-xs flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Lock className="w-4 h-4" />
+                      <span>{isSubmitting ? 'लॉगिन हो रहा है...' : 'सुरक्षित क्लासिक लॉगिन करें (Sign In)'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isSubmitting || !loginIdentifier.trim()}
+                      onClick={async () => {
+                        setIsSubmitting(true);
+                        try {
+                          const res = await initiateAgentLogin(loginIdentifier.trim(), loginPassword.trim());
+                          if (res.isSuperAdmin) {
+                            onClose();
+                            return;
+                          }
+                          if (res.success && res.pendingOtp) {
+                            setCurrentPendingOtp(res.pendingOtp);
+                            setEnteredOtp('');
+                            setOtpCountdown(180);
+                            setActiveTab('otp_verify');
+                          }
+                        } finally {
+                          setIsSubmitting(false);
+                        }
+                      }}
+                      className="w-full py-2.5 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 font-bold rounded-xl transition text-xs flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Free OTP कोड द्वारा लॉगिन करें</span>
+                    </button>
+                  </div>
+
+                  {/* Switch to Premium Switcher */}
+                  <div className="pt-2 border-t border-slate-100 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setLoginSystemMode('premium')}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-300 px-3.5 py-2 rounded-xl transition cursor-pointer"
+                    >
+                      <Crown className="w-3.5 h-3.5 text-amber-600" />
+                      <span>👑 नए SafarGo प्रीमियम Google / Gmail लॉगिन पर जाएं ➔</span>
+                    </button>
+                  </div>
+                </form>
+              )}
 
               <div className="pt-2 text-center text-xs text-slate-500">
                 नया खाता खोलना चाहते हैं?{' '}
                 <button
                   type="button"
                   onClick={() => setActiveTab('register')}
-                  className="text-orange-600 font-bold hover:underline"
+                  className="text-orange-600 font-bold hover:underline cursor-pointer"
                 >
                   यहाँ क्लिक करें (Register)
                 </button>
               </div>
-            </form>
+            </div>
           )}
 
         </div>

@@ -13,7 +13,10 @@ import {
   ArrowRight,
   QrCode,
   CheckCircle2,
-  Clock
+  Clock,
+  Lock,
+  AlertTriangle,
+  ShieldAlert
 } from 'lucide-react';
 import { compressImage } from '../../lib/storageUtils';
 
@@ -44,6 +47,32 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
     }, 1000);
     return () => clearInterval(interval);
   }, [isSubmittedSuccess, countdownSeconds]);
+
+  // Intercept browser back / refresh / tab close while timer is active
+  useEffect(() => {
+    if (!isSubmittedSuccess || isApprovedByAdmin || countdownSeconds <= 0) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '⚠️ आवश्यक चेतावनी: आपका 10-मिनट का पेमेंट टाइमर चालू है! बैक जाने या रिफ्रेश करने पर पेमेंट अटक सकती है।';
+      return e.returnValue;
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Push state to prevent back navigation
+    window.history.pushState({ modalLocked: true }, '', window.location.href);
+    const handlePopState = () => {
+      window.history.pushState({ modalLocked: true }, '', window.location.href);
+      alert('⚠️ चेतावनी: 10-मिनट का पेमेंट वेरिफिकेशन टाइमर चालू है! बैक जाना प्रतिबंधित है।');
+    };
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isSubmittedSuccess, isApprovedByAdmin, countdownSeconds]);
 
   // Check if admin approved this recharge request in real time
   const activeSubmittedRecharge = isSubmittedSuccess
@@ -186,6 +215,21 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
                   समय समाप्त होने से पहले एडमिन द्वारा <strong>पैसे सीधे वॉलेट में क्रेडिट कर दिए जाएंगे</strong>।
                 </p>
               </div>
+
+              {/* ⚠️ HIGH VISIBILITY STRICT WARNING (User must not go back) */}
+              <div className="bg-rose-50 border-2 border-rose-500 rounded-2xl p-4 text-left space-y-2 shadow-sm animate-pulse">
+                <div className="flex items-center gap-2 text-rose-700 font-black text-xs sm:text-sm">
+                  <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+                  <span>🚨 अति आवश्यक चेतावनी: बैक जाना प्रतिबंधित है!</span>
+                </div>
+                <p className="text-xs text-rose-950 font-bold leading-relaxed">
+                  कृपया इस स्क्रीन को बंद न करें, रिफ्रेश न करें और बैक (Back) न जाएं! जब तक 10-मिनट का टाइमर चल रहा है, SafarGo एडमिन डेस्क आपके पेमेंट UTR ({utrNumber}) का बैंक रिकॉर्ड से लाइव मिलान कर रहा है।
+                </p>
+                <div className="text-[11px] font-bold text-rose-800 bg-rose-100/90 rounded-xl p-2 border border-rose-300 flex items-center gap-1.5">
+                  <Lock className="w-4 h-4 text-rose-700 shrink-0" />
+                  <span>सुरक्षा नियम: टाइमर समाप्त होने या एडमिन अप्रूवल से पहले बैक जाने का विकल्प पूरी तरह बंद (Locked) है।</span>
+                </div>
+              </div>
             </div>
           )}
 
@@ -216,12 +260,41 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
             </div>
           </div>
 
-          <button
-            onClick={onClose}
-            className="w-full py-3.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-extrabold text-sm rounded-xl shadow-lg transition active:scale-95 cursor-pointer"
-          >
-            {isApprovedByAdmin ? 'शानदार / डैशबोर्ड पर जाएं (Done)' : 'डैशबोर्ड पर जाएं (Done)'}
-          </button>
+          {/* Action Button: Disabled & Locked While Timer is Running */}
+          {!isApprovedByAdmin && countdownSeconds > 0 ? (
+            <div className="space-y-2">
+              <button
+                type="button"
+                disabled
+                className="w-full py-4 bg-slate-200 border-2 border-slate-300 text-slate-500 font-black text-sm rounded-2xl cursor-not-allowed flex items-center justify-center gap-2 select-none shadow-inner"
+              >
+                <Lock className="w-4 h-4 text-slate-500 animate-pulse" />
+                <span>🔒 टाइमर चलने तक बैक जाना लॉक है ({timerFormatted})</span>
+              </button>
+              <div className="flex items-center justify-between text-[11px] text-slate-500 px-1 font-medium">
+                <span>एडमिन द्वारा अप्रूव होते ही तुरंत अनलॉक होगा</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const confirmClose = window.confirm(
+                      '⚠️ क्या आप सचमुच बैक जाना चाहते हैं?\n\nचेतावनी: टाइमर के बीच बैक जाने पर आपका पेमेंट स्टेटस पेंडिंग में दिख सकता है और सत्यापन में देरी हो सकती है!'
+                    );
+                    if (confirmClose) onClose();
+                  }}
+                  className="text-rose-600 underline font-bold hover:text-rose-700 cursor-pointer"
+                >
+                  आपातकालीन बाहर निकलें
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={onClose}
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm rounded-xl shadow-lg transition active:scale-95 cursor-pointer"
+            >
+              {isApprovedByAdmin ? 'शानदार / डैशबोर्ड पर जाएं (Done)' : 'डैशबोर्ड पर जाएं (Done)'}
+            </button>
+          )}
         </div>
       </div>,
       document.body

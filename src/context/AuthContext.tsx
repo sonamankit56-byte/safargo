@@ -7,7 +7,7 @@ import { isSupabaseConfigured } from '../lib/supabase';
 import { getClientDeviceString, fetchClientIpAddress, generateSecureOtpCode } from '../lib/securityUtils';
 import { safeSetItem } from '../lib/storageUtils';
 import { isFirebaseConfigured } from '../lib/firebase';
-import { registerWithEmailVerification, sendFirebasePasswordReset } from '../lib/firebaseService';
+import { registerWithEmailVerification, sendFirebasePasswordReset, signInWithGoogle } from '../lib/firebaseService';
 
 interface AuthContextType {
   currentUser: Profile | null;
@@ -19,6 +19,7 @@ interface AuthContextType {
   isCustomer: boolean;
   isShopkeeper: boolean;
   login: (emailOrMobile: string, password?: string) => Promise<boolean>;
+  loginWithGoogle: () => Promise<boolean>;
   pendingLoginOtps: PendingLoginOtp[];
   initiateAgentLogin: (
     emailOrMobile: string,
@@ -285,6 +286,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     } else {
       error('User Not Found', 'यह ईमेल या मोबाइल नंबर पंजीकृत नहीं है। कृपया रजिस्ट्रेशन करें।');
+      return false;
+    }
+  };
+
+  const loginWithGoogle = async (): Promise<boolean> => {
+    try {
+      const res = await signInWithGoogle();
+      if (!res.success || !res.user) {
+        if (res.message) error('Google Sign-In', res.message);
+        return false;
+      }
+
+      const googleUser = res.user;
+      const gEmail = (googleUser.email || '').toLowerCase().trim();
+      const gName = googleUser.displayName || 'Google User';
+      const gUid = googleUser.uid;
+      const gPhoto = googleUser.photoURL || undefined;
+
+      // Special check for primary Super Administrator
+      if (gEmail === 'jia647155@gmail.com') {
+        const jia = profiles.find((p) => p.email.toLowerCase() === 'jia647155@gmail.com');
+        if (jia) {
+          setCurrentUserId(jia.id);
+          success('Welcome, Jia!', 'Google Sign-In सफल: Super Admin access.');
+          return true;
+        }
+      }
+
+      // Check if existing profile matches email or uid
+      const existing = profiles.find(
+        (p) => (p.email && p.email.toLowerCase() === gEmail) || p.id === gUid
+      );
+
+      if (existing) {
+        const nowIso = new Date().toISOString();
+        const updated = profiles.map((p) =>
+          p.id === existing.id
+            ? { ...p, last_login_at: nowIso, avatar_url: p.avatar_url || gPhoto, photo_verified: true }
+            : p
+        );
+        setProfiles(updated);
+        setCurrentUserId(existing.id);
+        success(`Welcome back, ${existing.full_name}!`, '👑 Google 1-क्लिक प्रीमियम लॉगिन सफल!');
+        return true;
+      }
+
+      // If new user via Google Sign-In, create verified profile immediately
+      const newProfile: Profile = {
+        id: gUid,
+        email: gEmail,
+        mobile: '9876543210',
+        full_name: gName,
+        role: 'agent',
+        agent_status: 'approved',
+        photo_verified: true,
+        avatar_url: gPhoto,
+        city: 'Indore',
+        district: 'Indore',
+        created_at: new Date().toISOString(),
+        last_login_at: new Date().toISOString(),
+      };
+
+      setProfiles((prev) => [newProfile, ...prev]);
+      setCurrentUserId(newProfile.id);
+      success(`Welcome, ${gName}!`, '👑 Google द्वारा SafarGo प्रीमियम खाता तैयार और लॉगिन सफल!');
+      return true;
+    } catch (err: any) {
+      console.error('loginWithGoogle error:', err);
+      error('Google Sign-In Error', err?.message || 'गूगल लॉगिन में समस्या आई।');
       return false;
     }
   };
@@ -1052,6 +1122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isCustomer,
         isShopkeeper,
         login,
+        loginWithGoogle,
         pendingLoginOtps,
         initiateAgentLogin,
         verifyLoginOtp,

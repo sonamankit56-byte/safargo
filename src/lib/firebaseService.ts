@@ -10,6 +10,8 @@ import {
   updateProfile,
   User,
   sendPasswordResetEmail,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from 'firebase/auth';
 import {
   collection,
@@ -118,6 +120,41 @@ export async function loginWithFirebase(
   } catch (err: any) {
     console.error('[Firebase] Sign in error:', err);
     return { success: false, message: err.message || 'लॉगिन में त्रुटि हुई।' };
+  }
+}
+
+/**
+ * Sign in with Google (1-Click Popup Auth)
+ */
+export async function signInWithGoogle(): Promise<{ success: boolean; user?: User; message?: string }> {
+  if (!isFirebaseConfigured || !auth) {
+    return { success: false, message: 'Firebase कॉन्फ़िगर नहीं है।' };
+  }
+
+  try {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    const cred = await signInWithPopup(auth, provider);
+    return { success: true, user: cred.user };
+  } catch (err: any) {
+    console.error('[Firebase] Google sign in error:', err);
+    if (err?.code === 'auth/popup-closed-by-user') {
+      return { success: false, message: 'गूगल साइन-इन विंडो बंद कर दी गई।' };
+    }
+    return { success: false, message: err?.message || 'गूगल साइन-इन में समस्या आई।' };
+  }
+}
+
+/**
+ * Check if the currently authenticated Firebase user has verified their email
+ */
+export async function checkIsEmailVerified(): Promise<boolean> {
+  if (!auth?.currentUser) return false;
+  try {
+    await auth.currentUser.reload();
+    return Boolean(auth.currentUser.emailVerified);
+  } catch {
+    return false;
   }
 }
 
