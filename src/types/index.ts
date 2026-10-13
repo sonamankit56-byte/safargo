@@ -372,7 +372,15 @@ export interface WalletTransaction {
   id: string;
   agent_id: string;
   amount: number; // Positive for credit, negative for debit
-  type: 'recharge' | 'ticket_booking' | 'refund' | 'adjustment';
+  type:
+    | 'recharge'
+    | 'ticket_booking'
+    | 'refund'
+    | 'adjustment'
+    | 'quick_commerce_sale'
+    | 'shop_ad_boost'
+    | 'bank_withdrawal'
+    | 'promoter_earning';
   booking_id?: string;
   booking_code?: string;
   recharge_id?: string;
@@ -537,6 +545,9 @@ export interface PartnerShop {
   promoter_id: string;
   promoter_name: string;
   catalog_items: PartnerShopItem[];
+  is_top_sponsored?: boolean;
+  sponsored_until?: string;
+  sponsored_badge?: string;
   created_at: string;
 }
 

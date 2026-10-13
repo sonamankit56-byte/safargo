@@ -429,9 +429,35 @@ export const QuickDeliveryHub: React.FC<QuickDeliveryHubProps> = ({ onOpenAuth }
               </div>
             </div>
 
-            {/* Step 2: Items Picker */}
+            {/* Step 2: Items Picker (Go Wallet Top Sponsored Shops Ranked #1) */}
             {orderMode === 'partner_shop' ? (
               <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                {/* Top Sponsored Shop Strip */}
+                <div className="flex flex-wrap items-center gap-2 pb-1">
+                  {[...partnerShops]
+                    .sort((a, b) => (b.is_top_sponsored ? 1 : 0) - (a.is_top_sponsored ? 1 : 0))
+                    .map((s) => (
+                      <button
+                        key={`top-pill-${s.id}`}
+                        type="button"
+                        onClick={() => {
+                          setSelectedShopId(s.id);
+                          setCartItems([]);
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer border ${
+                          selectedShopId === s.id
+                            ? 'bg-slate-900 text-white border-amber-400 shadow'
+                            : s.is_top_sponsored
+                            ? 'bg-gradient-to-r from-amber-100 to-orange-100 text-orange-950 border-orange-300'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        {s.is_top_sponsored && <span className="text-[10px]">👑 TOP #1</span>}
+                        <span>{s.shop_name}</span>
+                      </button>
+                    ))}
+                </div>
+
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-800">
                     पार्टनर दुकान चुनें:
@@ -444,11 +470,14 @@ export const QuickDeliveryHub: React.FC<QuickDeliveryHubProps> = ({ onOpenAuth }
                     }}
                     className="px-3 py-1 text-xs rounded-lg border border-slate-300 bg-white font-medium"
                   >
-                    {partnerShops.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.shop_name} ({s.city})
-                      </option>
-                    ))}
+                    {[...partnerShops]
+                      .sort((a, b) => (b.is_top_sponsored ? 1 : 0) - (a.is_top_sponsored ? 1 : 0))
+                      .map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.is_top_sponsored ? '👑 [TOP #1 AD] ' : ''}
+                          {s.shop_name} ({s.city})
+                        </option>
+                      ))}
                   </select>
                 </div>
 

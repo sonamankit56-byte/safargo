@@ -6,6 +6,7 @@ export const TAB_TO_PATH: Record<string, string> = {
   'promoter-dashboard': '/promoter/dashboard',
   'customer-portal': '/customer',
   'shopkeeper-portal': '/shop',
+  'go-wallet': '/go-wallet',
 
   // Agent tabs
   'dashboard': '/agent/dashboard',
@@ -41,6 +42,7 @@ export const PATH_TO_TAB: Record<string, string> = {
   '/customer-portal': 'customer-portal',
   '/shop': 'shopkeeper-portal',
   '/shopkeeper-portal': 'shopkeeper-portal',
+  '/go-wallet': 'go-wallet',
 
   // Agent paths
   '/agent': 'dashboard',

@@ -120,6 +120,8 @@ interface DataContextType {
   approveWalletRecharge: (rechargeId: string, adminNotes?: string) => Promise<boolean>;
   rejectWalletRecharge: (rechargeId: string, reason: string) => Promise<boolean>;
   adjustAgentWallet: (agentId: string, amount: number, type: 'credit' | 'debit', reason: string) => Promise<boolean>;
+  withdrawFromGoWallet: (amount: number, method: 'upi' | 'bank', destination: string) => Promise<boolean>;
+  boostShopOnSafarGoTop: (shopId: string, shopName: string, planPrice: number, durationDays: number, planTitle: string) => Promise<boolean>;
 
   // Viral Creator & Social Media Promotion (Instagram 1M => ₹500, YouTube 10k => ₹100, 24-hr SLA)
   promotionClaims: PromotionClaim[];
@@ -700,15 +702,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
   }, [walletRecharges, currentUser]);
 
-  // Agent's Wallet Transactions Filter (self-healing: includes approved recharges from Firestore/multi-tab)
+  // Universal Go Wallet Transactions (includes Approved Recharges, Dukandar Quick Commerce Sales, Promoter Earnings, Ticket Bookings, Top Ad Boosts & Bank/UPI Withdrawals)
   const agentWalletTransactions = useMemo(() => {
     if (!currentUser) return [];
     if (currentUser.role === 'admin') return walletTransactions;
+
     const myRechargeIds = new Set(agentWalletRecharges.map((r) => r.id));
     const directTxns = walletTransactions.filter(
       (t) => t.agent_id === currentUser.id || (t.recharge_id && myRechargeIds.has(t.recharge_id))
     );
     const existingRechargeIds = new Set(directTxns.map((t) => t.recharge_id).filter(Boolean));
+    const existingIds = new Set(directTxns.map((t) => t.id));
+
+    // 1. Synthesize Approved Recharges
     const synthesizedFromApproved: WalletTransaction[] = agentWalletRecharges
       .filter((r) => r.status === 'approved' && !existingRechargeIds.has(r.id))
       .map((r) => ({
@@ -717,14 +723,98 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         amount: Number(r.amount) || 0,
         type: 'recharge' as const,
         recharge_id: r.id,
-        description: `वॉलेट रिचार्ज सत्यापित (UTR: ${r.utr_number})`,
+        description: `Go Wallet रिचार्ज सत्यापित (UTR: ${r.utr_number})`,
         balance_after: Number(r.amount) || 0,
         created_at: r.approved_at || r.created_at,
       }));
-    return [...directTxns, ...synthesizedFromApproved].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-  }, [walletTransactions, agentWalletRecharges, currentUser]);
+
+    // 2. Synthesize Dukandar Quick Commerce Item Sales into Go Wallet
+    const userMobClean = currentUser.mobile ? currentUser.mobile.replace(/\D/g, '') : '';
+    const myShop =
+      (partnerShops || []).find(
+        (s) =>
+          (currentUser.shop_id && s.id === currentUser.shop_id) ||
+          s.user_id === currentUser.id ||
+          (userMobClean && s.mobile.replace(/\D/g, '') === userMobClean)
+      ) || (currentUser.role === 'shopkeeper' && partnerShops.length > 0 ? partnerShops[0] : null);
+
+    const synthesizedShopSales: WalletTransaction[] = [];
+    if (myShop) {
+      const shopOrders = (quickDeliveryOrders || []).filter(
+        (o) =>
+          o.status !== 'cancelled' &&
+          (o.partner_shop_id === myShop.id || o.partner_shop_name === myShop.shop_name)
+      );
+      shopOrders.forEach((o) => {
+        const txId = `wtx-qsale-${o.id}`;
+        if (!existingIds.has(txId)) {
+          const saleAmt =
+            Number(o.actual_item_price) ||
+            (o.total_order_amount ? Math.max(50, Number(o.total_order_amount) - Number(o.delivery_fee || 0)) : 285);
+          synthesizedShopSales.push({
+            id: txId,
+            agent_id: currentUser.id,
+            amount: saleAmt,
+            type: 'quick_commerce_sale',
+            booking_code: o.order_code,
+            description: `क्विक कॉमर्स सामान बिक्री (${myShop.shop_name}): ${o.items_description}`,
+            balance_after: saleAmt,
+            created_at: o.delivered_at || o.created_at,
+          });
+        }
+      });
+    }
+
+    // 3. Synthesize Promoter Earnings (Viral Reel Claims & Shop Onboarding Rewards) into Go Wallet
+    const synthesizedPromoterEarnings: WalletTransaction[] = [];
+    if (currentUser.role === 'promoter') {
+      const myPromoClaims = (promotionClaims || []).filter(
+        (c) => (c.user_id === currentUser.id || c.user_mobile === currentUser.mobile) && (c.status === 'approved' || c.status === 'paid')
+      );
+      myPromoClaims.forEach((c) => {
+        const txId = `wtx-prm-${c.id}`;
+        if (!existingIds.has(txId)) {
+          synthesizedPromoterEarnings.push({
+            id: txId,
+            agent_id: currentUser.id,
+            amount: Number(c.reward_amount) || 500,
+            type: 'promoter_earning',
+            booking_code: c.claim_code,
+            description: `प्रमोटर वायरल प्रमोशन रिवॉर्ड (${c.platform.toUpperCase()} - ${c.channel_or_handle})`,
+            balance_after: Number(c.reward_amount) || 500,
+            created_at: c.reviewed_at || c.created_at,
+          });
+        }
+      });
+
+      const onboardedShops = (partnerShops || []).filter(
+        (s) => s.promoter_id === currentUser.id || s.promoter_name === currentUser.full_name || s.city === currentUser.city
+      );
+      onboardedShops.forEach((s) => {
+        const txId = `wtx-prmshop-${s.id}`;
+        if (!existingIds.has(txId)) {
+          const bonusAmt = (s.monthly_fee || 0) >= 699 ? 200 : 100;
+          synthesizedPromoterEarnings.push({
+            id: txId,
+            agent_id: currentUser.id,
+            amount: bonusAmt,
+            type: 'promoter_earning',
+            booking_code: s.id.toUpperCase(),
+            description: `दुकान पार्टनर सब्सक्रिप्शन कमीशन (${s.shop_name} - ${s.subscription_plan_name})`,
+            balance_after: bonusAmt,
+            created_at: s.created_at,
+          });
+        }
+      });
+    }
+
+    return [
+      ...directTxns,
+      ...synthesizedFromApproved,
+      ...synthesizedShopSales,
+      ...synthesizedPromoterEarnings,
+    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [walletTransactions, agentWalletRecharges, partnerShops, quickDeliveryOrders, promotionClaims, currentUser]);
 
   // Agent's Viral Promotion Claims Filter
   const agentPromotionClaims = useMemo(() => {
@@ -733,7 +823,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return promotionClaims.filter((p) => p.user_id === currentUser.id);
   }, [promotionClaims, currentUser]);
 
-  // Helper to compute any agent's true live wallet balance from approved recharges & transactions
+  // Helper to compute any user's (Agent / Dukandar / Promoter) true live Go Wallet balance
   const computeWalletBalanceForAgent = useCallback(
     (agentId?: string, agentMobile?: string, profileBalance?: number): number => {
       if (!agentId && !agentMobile) return 0;
@@ -746,39 +836,100 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         )
         .reduce((sum, r) => sum + Number(r.amount || 0), 0);
 
-      const ticketDebitsTotal = walletTransactions
-        .filter((t) => t.agent_id === agentId && t.type === 'ticket_booking')
+      // Direct credits & debits recorded in walletTransactions
+      const myTxns = walletTransactions.filter((t) => t.agent_id === agentId);
+
+      const ticketDebitsTotal = myTxns
+        .filter((t) => t.type === 'ticket_booking')
         .reduce((sum, t) => sum + Math.abs(Number(t.amount || 0)), 0);
 
-      const refundsTotal = walletTransactions
-        .filter((t) => t.agent_id === agentId && t.type === 'refund')
+      const bankWithdrawalsTotal = myTxns
+        .filter((t) => t.type === 'bank_withdrawal')
         .reduce((sum, t) => sum + Math.abs(Number(t.amount || 0)), 0);
 
-      const adjustmentsTotal = walletTransactions
-        .filter((t) => t.agent_id === agentId && t.type === 'adjustment')
+      const shopAdBoostTotal = myTxns
+        .filter((t) => t.type === 'shop_ad_boost')
+        .reduce((sum, t) => sum + Math.abs(Number(t.amount || 0)), 0);
+
+      const refundsTotal = myTxns
+        .filter((t) => t.type === 'refund')
+        .reduce((sum, t) => sum + Math.abs(Number(t.amount || 0)), 0);
+
+      const adjustmentsTotal = myTxns
+        .filter((t) => t.type === 'adjustment')
         .reduce(
           (sum, t) =>
             sum +
-            (t.description?.includes('डेबिट (-)')
+            (t.description?.includes('डेबिट (-)') || t.amount < 0
               ? -Math.abs(Number(t.amount || 0))
               : Math.abs(Number(t.amount || 0))),
           0
         );
 
-      if (approvedRechargesTotal > 0) {
-        const ledgerBalance = Math.max(
-          0,
-          approvedRechargesTotal + refundsTotal + adjustmentsTotal - ticketDebitsTotal
-        );
-        return ledgerBalance;
+      // Dukandar Quick Commerce Sales Earnings
+      let shopSalesTotal = 0;
+      if (currentUser && currentUser.id === agentId) {
+        const userMobClean = agentMobile ? agentMobile.replace(/\D/g, '') : '';
+        const myShop =
+          (partnerShops || []).find(
+            (s) =>
+              (currentUser.shop_id && s.id === currentUser.shop_id) ||
+              s.user_id === agentId ||
+              (userMobClean && s.mobile.replace(/\D/g, '') === userMobClean)
+          ) || (currentUser.role === 'shopkeeper' && partnerShops.length > 0 ? partnerShops[0] : null);
+
+        if (myShop) {
+          shopSalesTotal = (quickDeliveryOrders || [])
+            .filter(
+              (o) =>
+                o.status !== 'cancelled' &&
+                (o.partner_shop_id === myShop.id || o.partner_shop_name === myShop.shop_name)
+            )
+            .reduce((sum, o) => {
+              const saleAmt =
+                Number(o.actual_item_price) ||
+                (o.total_order_amount ? Math.max(50, Number(o.total_order_amount) - Number(o.delivery_fee || 0)) : 285);
+              return sum + saleAmt;
+            }, 0);
+        }
       }
 
-      return Math.max(0, (profileBalance || 0) + refundsTotal + adjustmentsTotal - ticketDebitsTotal);
+      // Promoter Earnings
+      let promoterEarningsTotal = 0;
+      if (currentUser && currentUser.id === agentId && currentUser.role === 'promoter') {
+        const promoClaimsAmt = (promotionClaims || [])
+          .filter(
+            (c) =>
+              (c.user_id === agentId || c.user_mobile === agentMobile) &&
+              (c.status === 'approved' || c.status === 'paid')
+          )
+          .reduce((sum, c) => sum + (Number(c.reward_amount) || 500), 0);
+
+        const onboardedShopsAmt = (partnerShops || [])
+          .filter(
+            (s) =>
+              s.promoter_id === agentId ||
+              s.promoter_name === currentUser.full_name ||
+              s.city === currentUser.city
+          )
+          .reduce((sum, s) => sum + ((s.monthly_fee || 0) >= 699 ? 200 : 100), 0);
+
+        promoterEarningsTotal = promoClaimsAmt + onboardedShopsAmt;
+      }
+
+      const totalEarnedOrRecharged = approvedRechargesTotal + shopSalesTotal + promoterEarningsTotal;
+      const totalDebits = ticketDebitsTotal + bankWithdrawalsTotal + shopAdBoostTotal;
+
+      if (totalEarnedOrRecharged > 0) {
+        return Math.max(0, totalEarnedOrRecharged + refundsTotal + adjustmentsTotal - totalDebits);
+      }
+
+      return Math.max(0, (profileBalance || 0) + refundsTotal + adjustmentsTotal - totalDebits);
     },
-    [walletRecharges, walletTransactions]
+    [walletRecharges, walletTransactions, partnerShops, quickDeliveryOrders, promotionClaims, currentUser]
   );
 
-  // Agent's live wallet balance (automatically includes all approved recharges)
+  // User's live Go Wallet balance (Agent, Dukandar, Promoter, Customer)
   const agentWalletBalance = useMemo(() => {
     if (!currentUser) return 0;
     return computeWalletBalanceForAgent(
@@ -798,6 +949,94 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateUserProfile(currentUser.id, { wallet_balance: agentWalletBalance });
     }
   }, [currentUser, agentWalletBalance, updateUserProfile]);
+
+  // Go Wallet: Withdraw Balance to Bank Account or UPI ID
+  const withdrawFromGoWallet = useCallback(
+    async (amount: number, method: 'upi' | 'bank', destination: string): Promise<boolean> => {
+      if (!currentUser) return false;
+      const cleanAmt = Number(amount) || 0;
+      if (cleanAmt <= 0 || cleanAmt > agentWalletBalance) {
+        error('अपर्याप्त Go Wallet बैलेंस', `आपके Go Wallet में ₹${agentWalletBalance.toLocaleString('en-IN')} उपलब्ध हैं।`);
+        return false;
+      }
+      const newBalance = Math.max(0, agentWalletBalance - cleanAmt);
+      const newTxn: WalletTransaction = {
+        id: `wtx-wd-${Date.now()}`,
+        agent_id: currentUser.id,
+        amount: -cleanAmt,
+        type: 'bank_withdrawal',
+        booking_code: `WD-${Math.floor(100000 + Math.random() * 900000)}`,
+        description: `Go Wallet से ${method === 'upi' ? 'UPI ID' : 'बैंक खाते'} (${destination}) में निकासी`,
+        balance_after: newBalance,
+        created_at: new Date().toISOString(),
+      };
+      setWalletTransactions((prev) => [newTxn, ...prev]);
+      updateUserProfile(currentUser.id, { wallet_balance: newBalance });
+      success(
+        '🎉 Go Wallet से पैसे ट्रांसफर अनुरोध सफल!',
+        `₹${cleanAmt.toLocaleString('en-IN')} आपके ${method === 'upi' ? 'UPI ID' : 'बैंक खाते'} (${destination}) में भेजे जा रहे हैं।`
+      );
+      return true;
+    },
+    [currentUser, agentWalletBalance, updateUserProfile, success, error]
+  );
+
+  // Go Wallet: Boost Shop / Business on SafarGo Top (#1 Sponsored Ranking)
+  const boostShopOnSafarGoTop = useCallback(
+    async (
+      shopId: string,
+      shopName: string,
+      planPrice: number,
+      durationDays: number,
+      planTitle: string
+    ): Promise<boolean> => {
+      if (!currentUser) return false;
+      const cleanPrice = Number(planPrice) || 0;
+      if (cleanPrice <= 0 || cleanPrice > agentWalletBalance) {
+        error(
+          'Go Wallet बैलेंस कम है',
+          `इस Ad Boost प्लान के लिए ₹${cleanPrice} चाहिए। कृपया "+ पैसे जोड़ें" पर क्लिक करके Go Wallet रिचार्ज करें।`
+        );
+        return false;
+      }
+
+      const newBalance = Math.max(0, agentWalletBalance - cleanPrice);
+      const expiryDate = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+      // Mark the shop as #1 Top Sponsored in partnerShops
+      setPartnerShops((prev) =>
+        prev.map((s) =>
+          s.id === shopId || s.shop_name === shopName
+            ? {
+                ...s,
+                is_top_sponsored: true,
+                sponsored_until: expiryDate,
+                sponsored_badge: `👑 #1 TOP SPONSORED (${planTitle})`,
+              }
+            : s
+        )
+      );
+
+      const newTxn: WalletTransaction = {
+        id: `wtx-ad-${Date.now()}`,
+        agent_id: currentUser.id,
+        amount: -cleanPrice,
+        type: 'shop_ad_boost',
+        booking_code: `AD-${Math.floor(100000 + Math.random() * 900000)}`,
+        description: `SafarGo TOP Ad Boost (${shopName}) - ${planTitle} (${durationDays} दिन तक #1 Top रैंकिंग)`,
+        balance_after: newBalance,
+        created_at: new Date().toISOString(),
+      };
+      setWalletTransactions((prev) => [newTxn, ...prev]);
+      updateUserProfile(currentUser.id, { wallet_balance: newBalance });
+      success(
+        '🚀 Boom! आपकी दुकान अब SafarGo TOP #1 पर लाइव है!',
+        `Go Wallet से ₹${cleanPrice} कटकर "${shopName}" को ${durationDays} दिनों के लिए SafarGo Top Sponsored बना दिया गया है!`
+      );
+      return true;
+    },
+    [currentUser, agentWalletBalance, updateUserProfile, success, error]
+  );
 
 
   // Current month's salary record for current agent
@@ -2923,6 +3162,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         approveWalletRecharge,
         rejectWalletRecharge,
         adjustAgentWallet,
+        withdrawFromGoWallet,
+        boostShopOnSafarGoTop,
         promotionClaims,
         agentPromotionClaims,
         submitPromotionClaim,

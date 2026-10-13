@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { NewFeaturesSection } from './NewFeaturesSection';
 import { SafarGoLogo } from '../common/SafarGoLogo';
+import { Go3DLogoBadge } from '../wallet/GoWalletHub';
 import { WalletRechargeModal } from './WalletRechargeModal';
 import { AgentKycModal } from './AgentKycModal';
 import { AgentPosterModal } from './AgentPosterModal';
@@ -478,18 +479,13 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
         </div>
       </div>
 
-      {/* 💰 AGENT WALLET & 10-MINUTE RECHARGE DESK */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-7 text-white border border-indigo-500/30 shadow-xl space-y-5">
+      {/* 💰 3D GO WALLET & 10-MINUTE RECHARGE DESK */}
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-7 text-white border-2 border-amber-400/40 shadow-xl space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center font-black shadow-lg shadow-emerald-500/20">
-              <Wallet className="w-6 h-6 text-slate-950" />
-            </div>
+            <Go3DLogoBadge size="md" showWalletText={true} exclusive={true} />
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[10px] bg-emerald-400 text-slate-950 px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
-                  SafarGo Prepaid Wallet
-                </span>
                 {agentWalletRecharges && agentWalletRecharges.some((r) => r.status === 'pending') ? (
                   <span className="text-[10px] bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider animate-pulse">
                     ⏳ Pending Verification
@@ -501,19 +497,25 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
                 ) : null}
               </div>
               <h2 className="text-xl sm:text-2xl font-black text-white mt-0.5">
-                एजेंट वॉलेट बैलेंस: <span className="text-emerald-400">₹{(agentWalletBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                Go Wallet बैलेंस: <span className="text-emerald-400">₹{(agentWalletBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
               </h2>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              onClick={() => onNavigate('go-wallet')}
+              className="px-4 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow-lg transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+            >
+              <span>👑 3D Go Wallet (बैंक निकासी / Top Ad / Transactions)</span>
+            </button>
             {agentWalletBalance > 0 && (
               <button
                 onClick={() => onNavigate('new-booking')}
                 className="px-4 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-xs shadow-lg transition flex items-center gap-1.5 cursor-pointer active:scale-95"
               >
                 <PlusCircle className="w-4 h-4" />
-                <span>वॉलेट से बस टिकट बुक करें</span>
+                <span>Exclusive Go बस टिकट बुक करें</span>
               </button>
             )}
             <button

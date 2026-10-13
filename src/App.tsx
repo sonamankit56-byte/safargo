@@ -30,6 +30,7 @@ import { FlipkartOrderTrackingView } from './components/delivery/FlipkartOrderTr
 import { AgentDeliveryDesk } from './components/agent/AgentDeliveryDesk';
 import { CustomerPortal } from './components/customer/CustomerPortal';
 import { ShopkeeperPortal } from './components/shop/ShopkeeperPortal';
+import { GoWalletHub } from './components/wallet/GoWalletHub';
 import { AuthModal } from './components/auth/AuthModal';
 import { AnnouncementBanner } from './components/common/AnnouncementBanner';
 import { HomePage } from './components/home/HomePage';
@@ -117,9 +118,15 @@ const AppContent: React.FC = () => {
         else navigate('/', { replace: true });
       }
     } else if (location.pathname.startsWith('/agent')) {
+      const isSharedBookingRoute =
+        location.pathname === '/agent/new-booking' || location.pathname === '/agent/my-bookings';
       if (!currentUser) {
         navigate('/', { replace: true });
-      } else if (role !== 'agent' && role !== 'admin') {
+      } else if (
+        role !== 'agent' &&
+        role !== 'admin' &&
+        !(isSharedBookingRoute && (role === 'promoter' || role === 'shopkeeper'))
+      ) {
         if (role === 'customer') navigate('/customer', { replace: true });
         else if (role === 'shopkeeper') navigate('/shop', { replace: true });
         else if (role === 'promoter') navigate('/promoter/dashboard', { replace: true });
@@ -151,7 +158,9 @@ const AppContent: React.FC = () => {
 
       {/* Main Content View Container */}
       <main className="flex-1 pb-16">
-        {currentTab === 'track-order' ? (
+        {currentTab === 'go-wallet' ? (
+          <GoWalletHub onNavigate={setCurrentTab} />
+        ) : currentTab === 'track-order' ? (
           <FlipkartOrderTrackingView
             orderId={activeTrackOrderId}
             onBack={() => setCurrentTab('quick-delivery')}
@@ -213,11 +222,11 @@ const AppContent: React.FC = () => {
             <QuickDeliveryHub onOpenAuth={handleOpenAuth} />
           </div>
         ) : currentTab === 'promoter-dashboard' ? (
-          <PromoterDashboard />
+          <PromoterDashboard onNavigate={setCurrentTab} />
         ) : currentTab === 'customer-portal' ? (
           <CustomerPortal onNavigateTab={setCurrentTab} />
         ) : currentTab === 'shopkeeper-portal' ? (
-          <ShopkeeperPortal />
+          <ShopkeeperPortal onNavigate={setCurrentTab} />
         ) : currentTab === 'dashboard' ? (
           <AgentDashboard onNavigate={setCurrentTab} />
         ) : currentTab === 'agent-deliveries' ? (

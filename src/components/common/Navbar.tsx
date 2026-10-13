@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { SafarGoLogo } from './SafarGoLogo';
+import { Go3DLogoBadge } from '../wallet/GoWalletHub';
 import { WalletRechargeModal } from '../agent/WalletRechargeModal';
 import {
   Bus,
@@ -227,17 +228,26 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
               </button>
             )}
 
+            {/* Universal 3D Go Wallet Option (For Agent, Dukandar, Promoter & All Users) */}
+            <button
+              onClick={() => handleTabChange('go-wallet')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-black text-xs shadow-md transition border cursor-pointer ${
+                currentTab === 'go-wallet'
+                  ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-emerald-500 text-slate-950 border-white'
+                  : 'bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 hover:from-indigo-900 hover:to-slate-800 text-white border-amber-400/50'
+              }`}
+              title="3D Go Wallet — दुकानदार बिक्री, प्रमोटर कमाई, बस बुकिंग, Top Ad व Transactions"
+            >
+              <Go3DLogoBadge size="sm" showWalletText={true} />
+              {currentUser && (
+                <span className="bg-emerald-400 text-slate-950 text-[10px] px-2 py-0.5 rounded-full font-black">
+                  ₹{(agentWalletBalance || 0).toLocaleString('en-IN')}
+                </span>
+              )}
+            </button>
+
             {currentUser && role === 'agent' && (
               <>
-                <button
-                  onClick={() => setIsWalletModalOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-md transition border border-emerald-400/40 cursor-pointer"
-                  title="एजेंट वॉलेट में पैसे जोड़ें या बैलेंस चेक करें"
-                >
-                  <Wallet className="w-4 h-4 text-amber-300" />
-                  <span>वॉलेट: ₹{(agentWalletBalance || 0).toLocaleString('en-IN')}</span>
-                  <span className="bg-white/20 text-[10px] px-1.5 py-0.2 rounded-full font-bold">+जोड़ें</span>
-                </button>
 
                 <button
                   onClick={() => handleTabChange('dashboard')}
@@ -700,6 +710,20 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
               }`}
             >
               <Home className="w-4 h-4" /> Home
+            </button>
+
+            <button
+              onClick={() => handleTabChange('go-wallet')}
+              className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-black flex items-center justify-between border ${
+                currentTab === 'go-wallet'
+                  ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-emerald-500 text-slate-950 border-white'
+                  : 'bg-slate-950/90 text-white border-amber-400/40'
+              }`}
+            >
+              <Go3DLogoBadge size="sm" showWalletText={true} />
+              <span className="bg-emerald-400 text-slate-950 text-xs px-2.5 py-0.5 rounded-full font-black">
+                ₹{(agentWalletBalance || 0).toLocaleString('en-IN')}
+              </span>
             </button>
 
             {qdMode !== 'hidden' && (

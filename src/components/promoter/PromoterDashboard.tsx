@@ -32,8 +32,13 @@ import {
   Eye,
   CreditCard
 } from 'lucide-react';
+import { GoWalletHub, Go3DLogoBadge } from '../wallet/GoWalletHub';
 
-export const PromoterDashboard: React.FC = () => {
+interface PromoterDashboardProps {
+  onNavigate?: (tab: string) => void;
+}
+
+export const PromoterDashboard: React.FC<PromoterDashboardProps> = ({ onNavigate }) => {
   const { currentUser, allProfiles, approveAgent, rejectAgent, approveAgentKyc, rejectAgentKyc } = useAuth();
   const {
     bookings,
@@ -45,10 +50,11 @@ export const PromoterDashboard: React.FC = () => {
     agentCallLogs,
     logAgentCall,
     quickDeliveryOrders,
+    agentWalletBalance,
   } = useData();
   const { success, error, info, warning } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'target' | 'agent_manager' | 'shops' | 'calling' | 'deliveries'>('target');
+  const [activeTab, setActiveTab] = useState<'target' | 'go_wallet' | 'agent_manager' | 'shops' | 'calling' | 'deliveries'>('target');
 
   // New Shop Modal State
   const [isAddShopModalOpen, setIsAddShopModalOpen] = useState(false);
@@ -334,11 +340,45 @@ export const PromoterDashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* 2.5 PROMOTER 3D GO WALLET & BUS BOOKING QUICK BANNER */}
+      <div className="bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 rounded-3xl p-5 sm:p-6 text-white border-2 border-amber-400/50 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <Go3DLogoBadge size="md" showWalletText={true} exclusive={true} />
+          <div>
+            <h2 className="text-base sm:text-lg font-black text-white">
+              प्रमोटर Exclusive Go Wallet बैलेंस:{' '}
+              <span className="text-emerald-400 font-mono">
+                ₹{(agentWalletBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
+            </h2>
+            <p className="text-xs text-slate-300">
+              प्रमोटर को सभी सुविधाएं: अपनी कमाई या रिचार्ज से सीधे बस टिकट बुक करें, दुकानों को Top Ad में प्रमोट करें या बैंक/UPI में पैसे निकालें!
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {onNavigate && (
+            <button
+              onClick={() => onNavigate('new-booking')}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-xs shadow-lg transition cursor-pointer"
+            >
+              🚌 Go Wallet से बस टिकट बुक करें ➔
+            </button>
+          )}
+          <button
+            onClick={() => setActiveTab('go_wallet')}
+            className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow transition cursor-pointer"
+          >
+            👑 Go Wallet, बैंक निकासी, Top Ad & Transactions
+          </button>
+        </div>
+      </div>
+
       {/* 3. Navigation Tabs */}
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
         <button
           onClick={() => setActiveTab('target')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
             activeTab === 'target'
               ? 'bg-indigo-600 text-white shadow-sm'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
@@ -346,6 +386,18 @@ export const PromoterDashboard: React.FC = () => {
         >
           <Award className="w-4 h-4" />
           <span>500 एजेंट टारगेट व लिस्ट ({networkAgents.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('go_wallet')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer ${
+            activeTab === 'go_wallet'
+              ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 shadow-md'
+              : 'bg-slate-900 text-amber-300 hover:bg-slate-800 border border-amber-400/40'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>👑 3D Go Wallet (बस बुकिंग, बैंक निकासी, Top Ad & Transactions)</span>
         </button>
 
         <button
@@ -396,6 +448,9 @@ export const PromoterDashboard: React.FC = () => {
           <span>15-मिनट डिलीवरी निगरानी ({(quickDeliveryOrders || []).length})</span>
         </button>
       </div>
+
+      {/* TAB: PROMOTER 3D GO WALLET HUB */}
+      {activeTab === 'go_wallet' && <GoWalletHub onNavigate={onNavigate} />}
 
       {/* ======================================================== */}
       {/* TAB 1: 500 AGENT TARGET & VERIFIED STATUS                */}

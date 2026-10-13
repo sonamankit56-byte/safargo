@@ -4,6 +4,7 @@ import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { PartnerShop, PartnerShopItem } from '../../types';
 import { SHOP_SUBSCRIPTION_PLANS } from '../../lib/mockData';
+import { GoWalletHub, Go3DLogoBadge } from '../wallet/GoWalletHub';
 import {
   Store,
   Package,
@@ -25,7 +26,11 @@ import {
   X
 } from 'lucide-react';
 
-export const ShopkeeperPortal: React.FC = () => {
+interface ShopkeeperPortalProps {
+  onNavigate?: (tab: string) => void;
+}
+
+export const ShopkeeperPortal: React.FC<ShopkeeperPortalProps> = ({ onNavigate }) => {
   const { currentUser } = useAuth();
   const {
     partnerShops,
@@ -33,10 +38,11 @@ export const ShopkeeperPortal: React.FC = () => {
     addPartnerShopItem,
     togglePartnerShopItemStock,
     quickDeliveryOrders,
+    agentWalletBalance,
   } = useData();
   const { success, error, info } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'catalog' | 'orders' | 'subscription'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'go_wallet' | 'catalog' | 'orders' | 'subscription'>('overview');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Add Item Modal
@@ -173,6 +179,40 @@ export const ShopkeeperPortal: React.FC = () => {
         </div>
       </div>
 
+      {/* 1.5 DUKANDAR 3D GO WALLET QUICK BANNER */}
+      <div className="bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 rounded-3xl p-5 sm:p-6 text-white border-2 border-amber-400/50 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <Go3DLogoBadge size="md" showWalletText={true} exclusive={true} />
+          <div>
+            <h2 className="text-base sm:text-lg font-black text-white">
+              दुकानदार Go Wallet बैलेंस:{' '}
+              <span className="text-emerald-400 font-mono">
+                ₹{(agentWalletBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
+            </h2>
+            <p className="text-xs text-slate-300">
+              क्विक कॉमर्स में बिके आपके सामान का पैसा सीधे यहाँ जुड़ता है • बैंक/UPI निकासी • SafarGo #1 Top Ad Boost • बस बुकिंग
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <button
+            onClick={() => setActiveTab('go_wallet')}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-xs shadow transition cursor-pointer"
+          >
+            🚀 Go Wallet, बैंक निकासी, Top Ad व Transactions खोलें ➔
+          </button>
+          {onNavigate && (
+            <button
+              onClick={() => onNavigate('new-booking')}
+              className="px-3.5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow transition cursor-pointer"
+            >
+              🚌 Go Wallet से बस टिकट बुक करें
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* 2. Top Stats Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
@@ -225,10 +265,10 @@ export const ShopkeeperPortal: React.FC = () => {
       </div>
 
       {/* 3. Navigation Tabs */}
-      <div className="flex border-b border-slate-200 gap-2">
+      <div className="flex flex-wrap border-b border-slate-200 gap-2">
         <button
           onClick={() => setActiveTab('overview')}
-          className={`flex items-center gap-2 px-5 py-3 text-xs sm:text-sm font-bold border-b-2 transition ${
+          className={`flex items-center gap-2 px-5 py-3 text-xs sm:text-sm font-bold border-b-2 transition cursor-pointer ${
             activeTab === 'overview'
               ? 'border-emerald-600 text-emerald-700'
               : 'border-transparent text-slate-600 hover:text-slate-900'
@@ -236,6 +276,18 @@ export const ShopkeeperPortal: React.FC = () => {
         >
           <Store className="w-4 h-4" />
           <span>दुकान विवरण एवं लाइव ऑर्डर</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('go_wallet')}
+          className={`flex items-center gap-2 px-5 py-3 text-xs sm:text-sm font-black border-b-2 transition cursor-pointer ${
+            activeTab === 'go_wallet'
+              ? 'border-amber-500 text-amber-700 bg-amber-50/70 rounded-t-xl'
+              : 'border-transparent text-indigo-700 hover:text-indigo-900'
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-amber-500" />
+          <span>👑 3D Go Wallet (बिक्री आय, बैंक निकासी, Top Ad & Transactions)</span>
         </button>
 
         <button
@@ -274,6 +326,9 @@ export const ShopkeeperPortal: React.FC = () => {
           <span>सब्सक्रिप्शन पैकेज प्रबंधन</span>
         </button>
       </div>
+
+      {/* TAB: 3D GO WALLET HUB FOR DUKANDAR */}
+      {activeTab === 'go_wallet' && <GoWalletHub onNavigate={onNavigate} />}
 
       {/* ========================================================== */}
       {/* TAB 1: OVERVIEW & LIVE ORDERS                               */}

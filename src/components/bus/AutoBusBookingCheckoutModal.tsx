@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { PrintTicketModal } from '../common/PrintTicketModal';
+import { Go3DLogoBadge } from '../wallet/GoWalletHub';
 import {
   X,
   Bus,
@@ -60,16 +61,8 @@ export const AutoBusBookingCheckoutModal: React.FC<AutoBusBookingCheckoutModalPr
   const [customerMobile, setCustomerMobile] = useState(currentUser?.mobile || '');
   const [customerAge, setCustomerAge] = useState('28');
   const [customerGender, setCustomerGender] = useState<'M' | 'F' | 'O'>('M');
-  const [paymentOption, setPaymentOption] = useState<'wallet' | 'upi'>(
-    agentWalletBalance >= totalFare ? 'wallet' : 'upi'
-  );
+  const [paymentOption, setPaymentOption] = useState<'wallet' | 'upi'>('wallet');
   const [isProcessing, setIsProcessing] = useState(false);
-
-  useEffect(() => {
-    if (agentWalletBalance >= totalFare) {
-      setPaymentOption('wallet');
-    }
-  }, [agentWalletBalance, totalFare]);
 
   // 5-Minute Countdown Timer
   useEffect(() => {
@@ -301,34 +294,43 @@ export const AutoBusBookingCheckoutModal: React.FC<AutoBusBookingCheckoutModalPr
 
             {/* Payment Method Selector */}
             <div className="space-y-2.5 pt-1">
-              <h3 className="font-black text-slate-900 flex items-center gap-1.5 text-xs">
-                <CreditCard className="w-4 h-4 text-emerald-600" />
-                भुगतान विधि (Payment Method)
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="font-black text-slate-900 flex items-center gap-1.5 text-xs">
+                  <CreditCard className="w-4 h-4 text-emerald-600" />
+                  भुगतान विधि (Payment Method)
+                </h3>
+                <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-black text-[9px] uppercase">
+                  👑 Exclusive Go Wallet Active
+                </span>
+              </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                {/* Agent Wallet Option */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* 👑 EXCLUSIVE GO • GO WALLET (3D LOGO PREMIUM OPTION) */}
                 <button
                   type="button"
                   onClick={() => setPaymentOption('wallet')}
-                  className={`p-3 rounded-2xl border text-left transition flex flex-col justify-between cursor-pointer ${
+                  className={`p-3.5 rounded-2xl border-2 text-left transition flex flex-col justify-between cursor-pointer relative overflow-hidden ${
                     paymentOption === 'wallet'
-                      ? 'border-emerald-500 bg-emerald-50/80 shadow-xs ring-2 ring-emerald-400'
-                      : 'border-slate-200 bg-white hover:border-slate-300'
+                      ? 'border-amber-400 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white shadow-xl ring-2 ring-amber-400/60'
+                      : 'border-slate-300 bg-slate-900 text-white hover:border-amber-400/60'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-black text-slate-900 text-xs flex items-center gap-1">
-                      <Wallet className="w-4 h-4 text-emerald-600" />
-                      एजेंट वॉलेट
-                    </span>
-                    {paymentOption === 'wallet' && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                  <div className="flex items-center justify-between mb-1.5">
+                    <Go3DLogoBadge size="sm" showWalletText={true} exclusive={true} />
+                    {paymentOption === 'wallet' && (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    )}
                   </div>
-                  <span className="text-[10px] text-slate-500 block font-mono">
-                    शेष: ₹{agentWalletBalance.toFixed(2)}
-                  </span>
-                  <span className="text-[9px] text-emerald-700 font-black mt-1">
-                    ✓ +₹19 (₹19.34) एजेंट कमीशन
+                  <div className="flex items-center justify-between mt-1 pt-1.5 border-t border-white/10">
+                    <span className="text-[11px] text-emerald-300 font-black font-mono">
+                      Go बैलेंस: ₹{agentWalletBalance.toFixed(2)}
+                    </span>
+                    <span className="text-[9px] bg-amber-400 text-slate-950 px-1.5 py-0.5 rounded font-black uppercase">
+                      Exclusive Go
+                    </span>
+                  </div>
+                  <span className="text-[9px] text-amber-200 font-bold mt-1 block">
+                    ✓ एजेंट / दुकानदार / प्रमोटर 1-Click Pay (+₹19.34 कमीशन)
                   </span>
                 </button>
 
@@ -336,7 +338,7 @@ export const AutoBusBookingCheckoutModal: React.FC<AutoBusBookingCheckoutModalPr
                 <button
                   type="button"
                   onClick={() => setPaymentOption('upi')}
-                  className={`p-3 rounded-2xl border text-left transition flex flex-col justify-between cursor-pointer ${
+                  className={`p-3.5 rounded-2xl border text-left transition flex flex-col justify-between cursor-pointer ${
                     paymentOption === 'upi'
                       ? 'border-red-500 bg-red-50/80 shadow-xs ring-2 ring-red-400'
                       : 'border-slate-200 bg-white hover:border-slate-300'

@@ -5,6 +5,7 @@ import { useToast } from '../../context/ToastContext';
 import { SeatCategory, Passenger, Booking, PromoCode, BusTrip } from '../../types';
 import { BookingSuccessModal } from './BookingSuccessModal';
 import { WalletRechargeModal } from './WalletRechargeModal';
+import { Go3DLogoBadge } from '../wallet/GoWalletHub';
 import { RedBusSeatMapModal, SelectedSeatItem } from '../bus/RedBusSeatMapModal';
 import { AutoBusBookingCheckoutModal } from '../bus/AutoBusBookingCheckoutModal';
 import { AutoRedBusBookingView } from '../bus/AutoRedBusBookingView';
@@ -64,10 +65,8 @@ export const ManualBookingForm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdBooking, setCreatedBooking] = useState<Booking | null>(null);
 
-  // Advance Payment Mode States (SafarGo QR vs Agent Wallet Min ₹2,000)
-  const [paymentMode, setPaymentMode] = useState<'safargo_qr' | 'agent_wallet'>(
-    agentWalletBalance > 0 ? 'agent_wallet' : 'safargo_qr'
-  );
+  // Advance Payment Mode States (Default to Exclusive Go Wallet)
+  const [paymentMode, setPaymentMode] = useState<'safargo_qr' | 'agent_wallet'>('agent_wallet');
   const [paymentUtr, setPaymentUtr] = useState('');
   const [paymentScreenshot, setPaymentScreenshot] = useState('');
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
@@ -964,12 +963,26 @@ export const ManualBookingForm: React.FC = () => {
                 </div>
               </div>
 
-              {/* Payment Mode Selector Tabs */}
-              <div className="inline-flex p-1 bg-slate-800 rounded-2xl border border-slate-700">
+              {/* Payment Mode Selector Tabs (Exclusive Go Wallet First) */}
+              <div className="inline-flex flex-wrap p-1.5 bg-slate-950 rounded-2xl border-2 border-amber-400/50 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMode('agent_wallet')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 cursor-pointer ${
+                    paymentMode === 'agent_wallet'
+                      ? 'bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-950 text-white border border-amber-400 shadow-lg'
+                      : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  <Go3DLogoBadge size="sm" showWalletText={true} exclusive={true} />
+                  <span className="bg-emerald-400 text-slate-950 px-2 py-0.5 rounded-full text-[10px] font-black">
+                    ₹{agentWalletBalance.toFixed(2)}
+                  </span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setPaymentMode('safargo_qr')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                     paymentMode === 'safargo_qr'
                       ? 'bg-orange-600 text-white shadow-md'
                       : 'text-slate-400 hover:text-white'
@@ -977,18 +990,6 @@ export const ManualBookingForm: React.FC = () => {
                 >
                   <QrCode className="w-4 h-4" />
                   <span>SafarGo QR / UPI</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMode('agent_wallet')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                    paymentMode === 'agent_wallet'
-                      ? 'bg-orange-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Wallet className="w-4 h-4" />
-                  <span>एजेंट वॉलेट (₹{agentWalletBalance.toFixed(2)})</span>
                 </button>
               </div>
             </div>
@@ -1178,17 +1179,22 @@ export const ManualBookingForm: React.FC = () => {
               </div>
             )}
 
-            {/* Mode 2: Agent Prepaid Wallet Deduction (Min ₹2,000 Model) */}
+            {/* Mode 2: Exclusive Go Wallet (3D Logo) Deduction */}
             {paymentMode === 'agent_wallet' && (
               <div className="space-y-4 animate-in fade-in">
-                <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <span className="text-xs text-slate-400 block font-medium">आपका वर्तमान एजेंट वॉलेट बैलेंस</span>
-                    <span className="text-3xl font-black text-emerald-400">
-                      ₹{agentWalletBalance.toFixed(2)}
-                    </span>
+                <div className="bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 p-5 rounded-2xl border-2 border-amber-400/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+                  <div className="space-y-2">
+                    <Go3DLogoBadge size="md" showWalletText={true} exclusive={true} />
+                    <div>
+                      <span className="text-xs text-slate-300 block font-medium">
+                        आपका वर्तमान Exclusive Go Wallet बैलेंस
+                      </span>
+                      <span className="text-3xl font-black text-emerald-400 font-mono">
+                        ₹{agentWalletBalance.toFixed(2)}
+                      </span>
+                    </div>
                     <p className="text-[11px] text-slate-300">
-                      टिकट किराया: <strong className="text-white">₹{totalAmount.toLocaleString('en-IN')}</strong>
+                      टिकट किराया: <strong className="text-white">₹{totalAmount.toLocaleString('en-IN')}</strong> • एजेंट, प्रमोटर व दुकानदार सभी उपयोग कर सकते हैं
                     </p>
                   </div>
 
@@ -1196,13 +1202,13 @@ export const ManualBookingForm: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setIsWalletModalOpen(true)}
-                      className="px-4 py-2.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-2 active:scale-95"
+                      className="px-4 py-2.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-2 active:scale-95 cursor-pointer"
                     >
                       <Wallet className="w-4 h-4" />
-                      <span>वॉलेट रिचार्ज करें (+₹2,000 न्यूनतम)</span>
+                      <span>+ Go Wallet में पैसे जोड़ें</span>
                     </button>
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      (एजेंट न्यूनतम ₹2,000 जोड़कर कभी भी तुरंत टिकट बुक कर सकते हैं)
+                    <span className="text-[10px] text-amber-300 font-bold">
+                      👑 Exclusive Go Wallet से तुरंत 1-Click टिकट बुकिंग
                     </span>
                   </div>
                 </div>
