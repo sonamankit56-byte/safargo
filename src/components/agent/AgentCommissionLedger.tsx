@@ -500,7 +500,7 @@ export const AgentCommissionLedger: React.FC = () => {
                   .map((r) => (
                     <tr key={`rec-${r.id}`} className="hover:bg-slate-50 transition">
                       <td className="p-4 font-bold text-slate-900">
-                        वॉलेट रिचार्ज अनुरोध ({r.payment_method === 'qr_upi' ? 'UPI / QR' : 'Bank'})
+                        वॉलेट रिचार्ज अनुरोध ({r.payment_method === 'upi_qr' ? 'UPI / QR' : 'Bank'})
                       </td>
                       <td className="p-4 font-mono text-slate-700">UTR: {r.utr_number}</td>
                       <td className="p-4 font-black text-sm text-amber-600">

@@ -133,10 +133,10 @@ export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
   // Withdrawal Form State
   const [withdrawMethod, setWithdrawMethod] = useState<'upi' | 'bank'>('upi');
   const [withdrawAmount, setWithdrawAmount] = useState('');
-  const [upiId, setUpiId] = useState(currentUser?.upi_id || '');
+  const [upiId, setUpiId] = useState((currentUser as any)?.upi_id || '');
   const [bankAccount, setBankAccount] = useState(currentUser?.bank_account_number || '');
-  const [bankIfsc, setBankIfsc] = useState(currentUser?.bank_ifsc_code || '');
-  const [bankHolder, setBankHolder] = useState(currentUser?.bank_holder_name || currentUser?.full_name || '');
+  const [bankIfsc, setBankIfsc] = useState(currentUser?.ifsc_code || '');
+  const [bankHolder, setBankHolder] = useState(currentUser?.account_holder_name || currentUser?.full_name || '');
 
   // Top Ad Boost State
   const userMobClean = currentUser?.mobile ? currentUser.mobile.replace(/\D/g, '') : '';

@@ -701,7 +701,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
                       : 'वॉलेट रिचार्ज अस्वीकृत (Rejected)',
                   subtitle: r.admin_notes
                     ? `नोट: ${r.admin_notes}`
-                    : `${r.payment_method === 'qr_upi' ? 'UPI / QR पेमेंट' : 'बैंक ट्रांसफर'} • 10-मिनट वेरिफिकेशन डेस्क`,
+                    : `${r.payment_method === 'upi_qr' ? 'UPI / QR पेमेंट' : 'बैंक ट्रांसफर'} • 10-मिनट वेरिफिकेशन डेस्क`,
                   amount: Number(r.amount) || 0,
                   isCredit: true,
                   status: r.status === 'pending' ? 'pending' : 'rejected',
