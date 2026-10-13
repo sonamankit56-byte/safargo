@@ -102,7 +102,13 @@ const AppContent: React.FC = () => {
 
   // Strict Role-Based Route Guard: Protect admin, agent, promoter areas safely
   useEffect(() => {
-    if (location.pathname.startsWith('/admin')) {
+    if (location.pathname === '/login' && !currentUser) {
+      setAuthInitialTab('login');
+      setIsAuthModalOpen(true);
+    } else if (location.pathname === '/register' && !currentUser) {
+      setAuthInitialTab('register');
+      setIsAuthModalOpen(true);
+    } else if (location.pathname.startsWith('/admin')) {
       if (!currentUser || (role !== 'admin' && !isAdmin)) {
         if (role === 'customer') navigate('/customer', { replace: true });
         else if (role === 'shopkeeper') navigate('/shop', { replace: true });
@@ -287,31 +293,35 @@ const AppContent: React.FC = () => {
       )}
 
       {/* Auth / Register Modal */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        initialTab={authInitialTab}
-        onClose={() => setIsAuthModalOpen(false)}
-        onOpenTrackPromoter={() => {
-          setIsAuthModalOpen(false);
-          setCurrentTab('home');
-          setTimeout(() => {
-            const el = document.getElementById('promoter-track-section');
-            if (el) {
-              el.scrollIntoView({ behavior: 'smooth' });
-            }
-          }, 100);
-        }}
-        onOpenApplyPromoter={() => {
-          setIsAuthModalOpen(false);
-          setIsPromoterModalOpen(true);
-        }}
-      />
+      {isAuthModalOpen && (
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          initialTab={authInitialTab}
+          onClose={() => setIsAuthModalOpen(false)}
+          onOpenTrackPromoter={() => {
+            setIsAuthModalOpen(false);
+            setCurrentTab('home');
+            setTimeout(() => {
+              const el = document.getElementById('promoter-track-section');
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth' });
+              }
+            }, 100);
+          }}
+          onOpenApplyPromoter={() => {
+            setIsAuthModalOpen(false);
+            setIsPromoterModalOpen(true);
+          }}
+        />
+      )}
 
       {/* Promoter Partner Application Modal */}
-      <PromoterApplicationModal
-        isOpen={isPromoterModalOpen}
-        onClose={() => setIsPromoterModalOpen(false)}
-      />
+      {isPromoterModalOpen && (
+        <PromoterApplicationModal
+          isOpen={isPromoterModalOpen}
+          onClose={() => setIsPromoterModalOpen(false)}
+        />
+      )}
 
       {/* Footer */}
       <footer className="bg-slate-900 text-white border-t border-slate-800 py-10 mt-auto">

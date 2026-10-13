@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import {
   X,
   Wallet,
-  Smartphone,
-  Building2,
   Copy,
   Check,
   Upload,
@@ -14,10 +13,8 @@ import {
   ArrowRight,
   QrCode,
   CheckCircle2,
-  Clock,
-  Sparkles
+  Clock
 } from 'lucide-react';
-import { SafarGoLogo } from '../common/SafarGoLogo';
 import { compressImage } from '../../lib/storageUtils';
 
 interface WalletRechargeModalProps {
@@ -28,10 +25,11 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
   const { settings, requestWalletRecharge, agentWalletBalance, agentWalletRecharges } = useData();
   const { error, success } = useToast();
 
-  const minAmount = settings.min_wallet_recharge || 2000;
+  const safeWalletBalance = Number(agentWalletBalance) || 0;
+  const minAmount = Number(settings?.min_wallet_recharge) || 2000;
   const [amount, setAmount] = useState<string>(minAmount.toString());
   const [utrNumber, setUtrNumber] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'upi_qr' | 'bank_transfer'>('upi_qr');
+  const [paymentMethod] = useState<'upi_qr' | 'bank_transfer'>('upi_qr');
   const [screenshotPreview, setScreenshotPreview] = useState<string>('');
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,14 +46,19 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
   }, [isSubmittedSuccess, countdownSeconds]);
 
   // Check if admin approved this recharge request in real time
-  const activeSubmittedRecharge = agentWalletRecharges?.find(
-    (r) =>
-      r.utr_number?.trim() === utrNumber.trim() ||
-      (r.amount === (parseFloat(amount) || 0) && r.status === 'approved' && new Date(r.created_at).getTime() > Date.now() - 3600000)
-  );
+  const activeSubmittedRecharge = isSubmittedSuccess
+    ? (agentWalletRecharges || []).find(
+        (r) =>
+          (utrNumber.trim().length > 0 && r?.utr_number?.trim() === utrNumber.trim()) ||
+          (Number(r?.amount) === (parseFloat(amount) || 0) &&
+            r?.status === 'approved' &&
+            r?.created_at &&
+            new Date(r.created_at).getTime() > Date.now() - 3600000)
+      )
+    : undefined;
   const isApprovedByAdmin = activeSubmittedRecharge?.status === 'approved';
 
-  const upiId = settings.safargo_upi_id || 'safargo.booking@icici';
+  const upiId = settings?.safargo_upi_id || 'safargo.booking@icici';
   const parsedAmount = parseFloat(amount) || 0;
 
   // Real UPI deep link for QR code
@@ -123,8 +126,8 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
     const seconds = countdownSeconds % 60;
     const timerFormatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in">
+    return createPortal(
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in">
         <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 my-8 p-6 sm:p-8 text-center space-y-6">
           
           {isApprovedByAdmin ? (
@@ -141,7 +144,7 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
                   ₹{parsedAmount.toLocaleString('en-IN')} आपके वॉलेट में जुड़ चुके हैं!
                 </h2>
                 <p className="text-xs text-slate-600">
-                  वर्तमान कुल वॉलेट बैलेंस: <strong className="text-emerald-600 text-sm">₹{agentWalletBalance.toFixed(2)}</strong>
+                  वर्तमान कुल वॉलेट बैलेंस: <strong className="text-emerald-600 text-sm">₹{safeWalletBalance.toFixed(2)}</strong>
                 </p>
               </div>
             </div>
@@ -185,12 +188,12 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
               <strong className="text-slate-900 text-base font-black">₹{parsedAmount.toLocaleString('en-IN')}</strong>
             </div>
             <div className="flex justify-between items-center text-slate-600">
-              <span>बैंक UTR / UPI Ref:</span>
+              <span>UTR / UPI Ref:</span>
               <strong className="font-mono text-slate-900 font-bold">{utrNumber}</strong>
             </div>
             <div className="flex justify-between items-center text-slate-600">
               <span>भुगतान विधि:</span>
-              <span className="font-bold text-slate-800">{paymentMethod === 'upi_qr' ? 'SafarGo UPI QR' : 'बैंक ट्रांसफर'}</span>
+              <span className="font-bold text-slate-800">SafarGo UPI QR</span>
             </div>
             <div className="flex justify-between items-center text-slate-600 pt-2 border-t border-slate-200">
               <span>स्थिति (Status):</span>
@@ -213,12 +216,13 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
             {isApprovedByAdmin ? 'शानदार / डैशबोर्ड पर जाएं (Done)' : 'डैशबोर्ड पर जाएं (Done)'}
           </button>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs animate-in fade-in">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs animate-in fade-in">
       <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 my-8">
         
         {/* Header */}
@@ -237,7 +241,7 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
                 </span>
               </div>
               <p className="text-xs text-slate-300">
-                वर्तमान वॉलेट बैलेंस: <strong className="text-emerald-400">₹{agentWalletBalance.toFixed(2)}</strong>
+                वर्तमान वॉलेट बैलेंस: <strong className="text-emerald-400">₹{safeWalletBalance.toFixed(2)}</strong>
               </p>
             </div>
           </div>
@@ -414,18 +418,6 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
                     </div>
                   )}
                 </div>
-
-                {/* Bank Transfer Details */}
-                <div className="bg-white p-2.5 rounded-xl border border-slate-200 text-[11px] text-slate-600 space-y-1">
-                  <div className="font-bold text-slate-800">बैंक ट्रांसफर विवरण (Official Bank Transfer / NEFT / IMPS):</div>
-                  <div>खाताधारक: <strong>{settings.safargo_bank_holder_name || 'SafarGo Travel Services'}</strong></div>
-                  <div>
-                    A/C: <span className="font-mono font-bold text-slate-900">{settings.safargo_bank_account_no || '50200088991122'}</span> • IFSC: <span className="font-mono font-bold text-slate-900">{settings.safargo_bank_ifsc || 'ICIC0001234'}</span>
-                  </div>
-                  {settings.safargo_bank_name && (
-                    <div className="text-[10px] text-slate-500">बैंक: {settings.safargo_bank_name}</div>
-                  )}
-                </div>
               </div>
             </div>
           </div>
@@ -433,7 +425,7 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
           {/* UTR / Transaction No */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-700 block">
-              12-अंकों का बैंक UTR / UPI Ref Number *
+              12-अंकों का UTR / UPI Ref Number *
             </label>
             <input
               type="text"
@@ -513,6 +505,7 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
         </form>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
