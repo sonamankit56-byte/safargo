@@ -1682,31 +1682,41 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     }
 
-    let finalScreenshotUrl = screenshotUrl;
-    if (screenshotUrl && screenshotUrl.startsWith('data:image/')) {
-      try {
-        const remoteUrl = await uploadScreenshotToFirebase(screenshotUrl, 'wallet_receipts');
-        if (remoteUrl) finalScreenshotUrl = remoteUrl;
-      } catch (err) {
-        console.warn('[Firebase] Screenshot upload skipped:', err);
-      }
-    }
-
+    const rechargeId = `rech-${Date.now()}`;
     const newRecharge: WalletRechargeRequest = {
-      id: `rech-${Date.now()}`,
+      id: rechargeId,
       agent_id: activeAgent.id,
       agent_name: activeAgent.full_name,
       agent_mobile: activeAgent.mobile,
       amount,
       payment_method: paymentMethod,
       utr_number: utr.trim(),
-      screenshot_url: finalScreenshotUrl,
+      screenshot_url: screenshotUrl,
       status: 'pending',
       created_at: new Date().toISOString(),
     };
 
     setWalletRecharges((prev) => [newRecharge, ...prev]);
-    saveWalletRechargeToFirestore(newRecharge).catch(console.error);
+
+    // Non-blocking background sync to Firebase Storage & Firestore
+    if (screenshotUrl && screenshotUrl.startsWith('data:image/')) {
+      uploadScreenshotToFirebase(screenshotUrl, 'wallet_receipts')
+        .then((remoteUrl) => {
+          if (remoteUrl) {
+            const updated = { ...newRecharge, screenshot_url: remoteUrl };
+            setWalletRecharges((prev) => prev.map((r) => (r.id === rechargeId ? updated : r)));
+            saveWalletRechargeToFirestore(updated).catch(console.error);
+          } else {
+            saveWalletRechargeToFirestore(newRecharge).catch(console.error);
+          }
+        })
+        .catch(() => {
+          saveWalletRechargeToFirestore(newRecharge).catch(console.error);
+        });
+    } else {
+      saveWalletRechargeToFirestore(newRecharge).catch(console.error);
+    }
+
     if (isSupabaseConfigured) {
       db.createWalletRecharge(newRecharge).catch(console.error);
     }
@@ -1717,8 +1727,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     success(
-      'अनुरोध एडमिन को भेजा गया!',
-      `आपका पैसा कुछ ही देर में आपके वॉलेट में जोड़ दिया जाएगा (सत्यापन प्रक्रियाधीन)। अनुरोध SafarGo एडमिन को भेज दिया गया है!`
+      '💥 Boom! Your amount added soon!',
+      `हम वेरीफाई कर रहे हैं! 10 मिनट के टाइमर तक वेट कीजिए, पैसे वॉलेट में जमा हो जाएंगे।`
     );
     return true;
   };

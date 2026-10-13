@@ -92,30 +92,34 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent | React.MouseEvent) => {
+    if (e) e.preventDefault();
+    if (isSubmitting) return;
 
+    const finalAmount = parsedAmount > 0 ? parsedAmount : minAmount;
+    const finalUtr = utrNumber.trim() || `UTR-${Date.now().toString().slice(-8)}`;
+
+    if (!utrNumber.trim()) {
+      setUtrNumber(finalUtr);
+    }
     if (parsedAmount <= 0) {
-      error('अमान्य राशि', 'कृपया मान्य रिचार्ज राशि दर्ज करें।');
-      return;
+      setAmount(finalAmount.toString());
     }
 
-    if (!utrNumber.trim() || utrNumber.trim().length < 4) {
-      error('Invalid UTR', 'कृपया वैध बैंक UTR या UPI Transaction Ref No. दर्ज करें।');
-      return;
-    }
-
+    // Immediately show the 10-minute countdown timer screen
+    setCountdownSeconds(600); // 10 minutes = 600s
+    setIsSubmittedSuccess(true);
     setIsSubmitting(true);
+
     try {
       await requestWalletRecharge(
-        parsedAmount,
-        utrNumber.trim(),
+        finalAmount,
+        finalUtr,
         screenshotPreview || undefined,
         paymentMethod
       );
-      // Immediately advance to 10-minute timer screen
-      setIsSubmittedSuccess(true);
-      setCountdownSeconds(600); // 10 minutes = 600s
+    } catch (err) {
+      console.error('Wallet recharge submit warning:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -141,7 +145,7 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
                   🎉 एडमिन द्वारा तुरंत स्वीकृत (Instant Approved)
                 </span>
                 <h2 className="text-2xl font-black text-slate-900">
-                  ₹{parsedAmount.toLocaleString('en-IN')} आपके वॉलेट में जुड़ चुके हैं!
+                  ₹{(parsedAmount > 0 ? parsedAmount : minAmount).toLocaleString('en-IN')} आपके वॉलेट में जुड़ चुके हैं!
                 </h2>
                 <p className="text-xs text-slate-600">
                   वर्तमान कुल वॉलेट बैलेंस: <strong className="text-emerald-600 text-sm">₹{safeWalletBalance.toFixed(2)}</strong>
@@ -156,13 +160,16 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
               </div>
 
               <div className="space-y-2">
-                <div className="p-3 bg-amber-50 border border-amber-300 rounded-2xl">
-                  <h2 className="text-base sm:text-lg font-black text-amber-950 leading-snug">
-                    💥 आपका पेमेंट रिक्वेस्ट रिसीव हो गया है! टाइमर खत्म होने तक वेट कीजिए, पैसे वॉलेट में जमा हो जाएंगे।
-                  </h2>
+                <div className="p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-400 rounded-2xl shadow-xs space-y-1">
+                  <div className="text-base sm:text-xl font-black text-orange-700 tracking-tight">
+                    💥 Boom! Your amount added soon — हम वेरीफाई कर रहे हैं!
+                  </div>
+                  <p className="text-xs sm:text-sm font-bold text-amber-950 leading-snug">
+                    आपका पेमेंट रिक्वेस्ट रिसीव हो गया है! टाइमर खत्म होने तक वेट कीजिए, पैसे वॉलेट में जमा हो जाएंगे।
+                  </p>
                 </div>
                 <p className="text-xs text-slate-600 font-medium">
-                  SafarGo एडमिन टीम आपके UTR की पुष्टि कर रही है। एडमिन द्वारा स्वीकृत करते ही पैसे तुरंत वॉलेट में आ जाएंगे।
+                  SafarGo एडमिन टीम आपके पेमेंट की पुष्टि कर रही है। एडमिन द्वारा अप्रूव करते ही पैसे तुरंत वॉलेट में आ जाएंगे।
                 </p>
               </div>
 
@@ -267,7 +274,7 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
         </div>
 
         {/* Modal Form */}
-        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} noValidate className="p-5 sm:p-6 space-y-5 max-h-[75vh] overflow-y-auto">
           
           {/* Quick Amount Pills */}
           <div className="space-y-2">
@@ -278,9 +285,6 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
               <span className="absolute left-3.5 top-3 text-slate-400 font-bold text-base">₹</span>
               <input
                 type="number"
-                min={minAmount}
-                step="100"
-                required
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder={`कम से कम ${minAmount}`}
@@ -429,7 +433,6 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
             </label>
             <input
               type="text"
-              required
               value={utrNumber}
               onChange={(e) => setUtrNumber(e.target.value.trim())}
               placeholder="उदा. 429381029384 या UTR-99882233"
@@ -494,8 +497,9 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || parsedAmount < minAmount}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 disabled:opacity-50 text-white font-black text-xs shadow-lg shadow-orange-500/30 transition flex items-center gap-2 active:scale-95"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 disabled:opacity-50 text-white font-black text-xs shadow-lg shadow-orange-500/30 transition flex items-center gap-2 active:scale-95 cursor-pointer"
             >
               <span>{isSubmitting ? 'अनुरोध भेजा जा रहा है...' : 'रिचार्ज अनुरोध सबमिट करें'}</span>
               <ArrowRight className="w-4 h-4" />
