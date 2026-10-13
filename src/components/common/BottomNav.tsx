@@ -26,7 +26,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onNavigateTab 
   const getDashboardTab = () => {
     if (!currentUser) return 'home';
     if (role === 'admin') return 'admin-dashboard';
-    if (role === 'agent') return 'dashboard';
+    if (role === 'agent') return 'go-agent';
     if (role === 'customer') return 'customer-portal';
     if (role === 'shopkeeper') return 'shopkeeper-portal';
     if (role === 'promoter') return 'promoter-dashboard';
@@ -35,7 +35,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onNavigateTab 
 
   const getProfileTab = () => {
     if (!currentUser) return 'go-wallet';
-    if (role === 'agent') return 'agent-profile';
+    if (role === 'agent') return 'go-agent';
     if (role === 'customer') return 'customer-portal';
     if (role === 'shopkeeper') return 'shopkeeper-portal';
     if (role === 'promoter') return 'promoter-dashboard';

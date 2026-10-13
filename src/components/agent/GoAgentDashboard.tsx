@@ -5,7 +5,10 @@ import { useToast } from '../../context/ToastContext';
 import { Go3DUltraLogo } from '../common/Go3DUltraLogo';
 import { WalletRechargeModal } from './WalletRechargeModal';
 import { PrintTicketModal } from '../common/PrintTicketModal';
-import { Booking, BookingStatus, RefundStatus } from '../../types';
+import { RedBusSeatMapModal, SelectedSeatItem } from '../bus/RedBusSeatMapModal';
+import { AutoBusBookingCheckoutModal } from '../bus/AutoBusBookingCheckoutModal';
+import { MP_NETWORK_CITIES } from '../../lib/mockData';
+import { Booking, BookingStatus, RefundStatus, BusTrip, SeatCategory } from '../../types';
 import { compressImage } from '../../lib/storageUtils';
 import {
   LayoutDashboard,
@@ -40,6 +43,11 @@ import {
   FileText,
   BadgeAlert,
   Send,
+  Calendar,
+  Repeat,
+  Coffee,
+  Wifi,
+  Crown,
 } from 'lucide-react';
 
 interface GoAgentDashboardProps {
@@ -66,6 +74,26 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
   // 1: 'dashboard', 2: 'bookings', 3: 'wallet', 4: 'account'
   const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'wallet' | 'account'>('dashboard');
 
+  // Sub-Tab in Bookings & Refund Desk: 'auto_book' (GO Edition Booking) vs 'history' (My Bookings & Refund)
+  const [bookingSubTab, setBookingSubTab] = useState<'auto_book' | 'history'>('auto_book');
+
+  // Auto Bus Booking Engine State (GO Bus Special Bus System)
+  const [searchSource, setSearchSource] = useState('Bhopal');
+  const [searchDestination, setSearchDestination] = useState('Indore');
+  const [searchDate, setSearchDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [filterBusType, setFilterBusType] = useState<'all' | 'ac' | 'sleeper' | 'seater'>('all');
+
+  // Seat selection and Checkout Modals
+  const [selectedTripForSeatMap, setSelectedTripForSeatMap] = useState<BusTrip | null>(null);
+  const [autoCheckoutData, setAutoCheckoutData] = useState<{
+    trip: BusTrip;
+    selectedSeats: SelectedSeatItem[];
+    totalFare: number;
+    seatCategory: SeatCategory;
+    boardingPoint: string;
+    dropPoint: string;
+  } | null>(null);
+
   // Modals
   const [isRechargeModalOpen, setIsRechargeModalOpen] = useState(false);
   const [selectedPrintBooking, setSelectedPrintBooking] = useState<Booking | null>(null);
@@ -89,18 +117,51 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
   const [panCardUrl, setPanCardUrl] = useState(currentUser?.pan_card_url || '');
   const [isSubmittingKyc, setIsSubmittingKyc] = useState(false);
 
-  // Stats Calculations
-  const totalBookingsCount = agentBookings.length;
-  const confirmedBookings = agentBookings.filter((b) => b.status === 'confirmed');
-  const confirmedCount = confirmedBookings.length;
-  
+  // Filter Bookings to Strictly Show ONLY this GO Agent's real bookings (No old dummy data from other users!)
+  const myGoBookings = useMemo(() => {
+    if (!currentUser) return [];
+    return agentBookings.filter(
+      (b) =>
+        b.agent_id === currentUser.id ||
+        (currentUser.mobile && b.agent_mobile === currentUser.mobile)
+    );
+  }, [agentBookings, currentUser]);
+
   // Flat ₹20 Commission per bus booking!
   const FLAT_GO_COMMISSION = 20;
+  const confirmedBookings = myGoBookings.filter((b) => b.status === 'confirmed');
+  const confirmedCount = confirmedBookings.length;
   const totalCommissionEarned = confirmedCount * FLAT_GO_COMMISSION;
 
-  // Filtered Bookings
+  // Swap Source and Destination
+  const handleSwapCities = () => {
+    const temp = searchSource;
+    setSearchSource(searchDestination);
+    setSearchDestination(temp);
+  };
+
+  // Matching Trips for GO Bus Special Bus System
+  const matchingTrips = useMemo(() => {
+    const filtered = busTrips.filter((trip) => {
+      const matchSrc = trip.source.toLowerCase().includes(searchSource.toLowerCase().trim());
+      const matchDest = trip.destination.toLowerCase().includes(searchDestination.toLowerCase().trim());
+
+      if (!matchSrc || !matchDest) return false;
+
+      if (filterBusType === 'ac') return trip.bus_type?.toLowerCase().includes('ac') || trip.is_ac;
+      if (filterBusType === 'sleeper') return trip.has_sleeper || trip.sleeper_fare;
+      if (filterBusType === 'seater') return trip.has_seater || trip.seater_fare;
+
+      return true;
+    });
+
+    // If exact route matched, return it; otherwise show popular MP network buses
+    return filtered.length > 0 ? filtered : busTrips;
+  }, [busTrips, searchSource, searchDestination, filterBusType]);
+
+  // Filtered Bookings for History
   const filteredBookings = useMemo(() => {
-    return agentBookings.filter((b) => {
+    return myGoBookings.filter((b) => {
       const q = searchQuery.toLowerCase().trim();
       const matchSearch =
         !q ||
@@ -125,7 +186,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
 
       return true;
     });
-  }, [agentBookings, searchQuery, statusFilter]);
+  }, [myGoBookings, searchQuery, statusFilter]);
 
   // Handle Refund Submit
   const handleRefundSubmit = async (e: React.FormEvent) => {
@@ -229,7 +290,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
             <div className="hidden sm:block border-l border-slate-700 pl-3">
               <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-amber-400" />
-                ULTRA 3D TERMINAL
+                GO EDITION TERMINAL
               </span>
               <span className="text-xs font-black text-slate-200 block">
                 {currentUser?.shop_name || 'GO Special Agent Desk'}
@@ -301,7 +362,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                   </h1>
 
                   <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
-                    SafarGo 3D स्पेशल एजेंट टर्मिनल में आपका स्वागत है। आपके खाते में प्रत्येक कन्फर्म बुकिंग पर <strong>फ्लैट ₹20 नकद कमीशन</strong> तुरंत Go Wallet में जमा होता है।
+                    SafarGo 3D स्पेशल एजेंट टर्मिनल में आपका स्वागत है। आपके खाते में प्रत्येक कन्फर्म बुकिंग पर <strong>फ्लैट ₹20 नकद कमीशन</strong> सीधे Go Wallet में जमा होता है।
                   </p>
                 </div>
 
@@ -310,13 +371,13 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      if (onOpenBookingModal) onOpenBookingModal();
-                      else setActiveTab('bookings');
+                      setActiveTab('bookings');
+                      setBookingSubTab('auto_book');
                     }}
                     className="py-3 px-5 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-xs shadow-xl transition active:scale-95 flex items-center gap-2 cursor-pointer"
                   >
                     <Bus className="w-4 h-4" />
-                    <span>⚡ नई बस टिकट बुक करें</span>
+                    <span>⚡ GO Edition Bus Booking (Auto)</span>
                   </button>
 
                   <button
@@ -374,16 +435,16 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
               {/* Card 3: Total Bookings */}
               <div className="p-5 rounded-3xl bg-slate-900/90 border border-cyan-500/40 shadow-xl space-y-2 relative overflow-hidden group hover:border-cyan-400 transition">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-slate-400">कुल बस टिकटें</span>
+                  <span className="text-[11px] font-bold text-slate-400">मेरी GO बस टिकटें</span>
                   <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
                     <Bus className="w-4 h-4" />
                   </div>
                 </div>
                 <div className="text-2xl sm:text-3xl font-black text-cyan-300 font-mono">
-                  {totalBookingsCount}
+                  {myGoBookings.length}
                 </div>
                 <p className="text-[10px] text-slate-400">
-                  {confirmedCount} कन्फर्म | {totalBookingsCount - confirmedCount} प्रोसेस में
+                  {confirmedCount} कन्फर्म | {myGoBookings.length - confirmedCount} प्रोसेस में
                 </p>
               </div>
 
@@ -464,32 +525,35 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                 </h3>
                 <button
                   type="button"
-                  onClick={() => setActiveTab('bookings')}
+                  onClick={() => {
+                    setActiveTab('bookings');
+                    setBookingSubTab('history');
+                  }}
                   className="text-xs font-bold text-amber-400 hover:underline flex items-center gap-1"
                 >
-                  <span>सभी देखें ({totalBookingsCount})</span>
+                  <span>सभी देखें ({myGoBookings.length})</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              {agentBookings.length === 0 ? (
+              {myGoBookings.length === 0 ? (
                 <div className="p-8 text-center text-slate-500 space-y-2">
                   <Bus className="w-10 h-10 mx-auto text-slate-600 opacity-60" />
-                  <p className="text-xs">अभी तक कोई बुकिंग नहीं की गई है।</p>
+                  <p className="text-xs">आपके GO खाते में अभी कोई पुरानी टिकट नहीं है।</p>
                   <button
                     type="button"
                     onClick={() => {
-                      if (onOpenBookingModal) onOpenBookingModal();
-                      else setActiveTab('bookings');
+                      setActiveTab('bookings');
+                      setBookingSubTab('auto_book');
                     }}
-                    className="py-2 px-4 bg-amber-400 text-slate-950 font-bold rounded-xl text-xs inline-block"
+                    className="py-2.5 px-4 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-slate-950 font-black rounded-xl text-xs inline-block cursor-pointer"
                   >
-                    पहली टिकट बुक करें (कमाएं ₹20) ➔
+                    ⚡ GO Edition बस टिकट बुक करें (कमाएं फ्लैट ₹20) ➔
                   </button>
                 </div>
               ) : (
                 <div className="space-y-2.5">
-                  {agentBookings.slice(0, 4).map((b) => (
+                  {myGoBookings.slice(0, 4).map((b) => (
                     <div
                       key={b.id}
                       className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-slate-700 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
@@ -545,179 +609,402 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
         )}
 
         {/* ============================================================ */}
-        {/* 2. TAB: 🎫 BOOKING & REFUND MANAGEMENT                      */}
+        {/* 2. TAB: 🎫 BOOKING & REFUND (GO EDITION BUS SYSTEM)          */}
         {/* ============================================================ */}
         {activeTab === 'bookings' && (
           <div className="space-y-6 animate-fadeIn">
             
-            {/* Header & Search */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-black text-white flex items-center gap-2">
-                  <Bus className="w-5 h-5 text-amber-400" />
-                  <span>बुकिंग एवं रिफंड प्रबंधन (History & Refund)</span>
+            {/* Header with Title & Flat ₹20 Commission Badge */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-2 border-amber-400/80 shadow-xl">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 flex items-center gap-1">
+                    <Crown className="w-3 h-3 text-slate-950" />
+                    GO Edition Booking
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-950 text-emerald-400 border border-emerald-500/40">
+                    🎁 फ्लैट ₹20 नकद कमीशन
+                  </span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-white">
+                  GO Bus Special Bus System
                 </h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  कुल {agentBookings.length} बुकिंग्स • प्रति टिकट ₹20 कमीशन एवं 1-क्लिक रिफंड सुविधा
+                <p className="text-xs text-slate-300">
+                  सीट चुनें, Go Wallet से 1-क्लिक भुगतान करें एवं प्रति टिकट तुरंत ₹20 कमीशन पाएं!
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              {/* Sub-Tab Navigation Switcher */}
+              <div className="flex bg-slate-950 p-1 rounded-2xl border border-amber-400/50 gap-1 shrink-0">
                 <button
                   type="button"
-                  onClick={() => {
-                    if (onOpenBookingModal) onOpenBookingModal();
-                    else info('बुकिंग डेस्क', 'कृपया रूट चुनें और टिकट सबमिट करें।');
-                  }}
-                  className="py-2.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs transition flex items-center gap-1.5 shadow-md cursor-pointer"
+                  onClick={() => setBookingSubTab('auto_book')}
+                  className={`py-2 px-3.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
+                    bookingSubTab === 'auto_book'
+                      ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-slate-950 shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
                 >
-                  <PlusCircle className="w-4 h-4" />
-                  <span>नई बस टिकट बनाएं</span>
+                  <Bus className="w-3.5 h-3.5" />
+                  <span>स्वचालित बस बुकिंग</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setBookingSubTab('history')}
+                  className={`py-2 px-3.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
+                    bookingSubTab === 'history'
+                      ? 'bg-slate-800 text-white shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>माई टिकट व रिफंड ({myGoBookings.length})</span>
                 </button>
               </div>
             </div>
 
-            {/* Filter Pills & Search Box */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="sm:col-span-2 relative">
-                <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="PNR, बुकिंग कोड, मोबाइल नंबर या ऑपरेटर खोजें..."
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 text-xs focus:ring-2 focus:ring-amber-400 outline-none"
-                />
-              </div>
-
-              <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 gap-1 text-xs">
-                {(['all', 'confirmed', 'pending', 'refunded'] as const).map((st) => (
-                  <button
-                    key={st}
-                    type="button"
-                    onClick={() => setStatusFilter(st)}
-                    className={`flex-1 py-1.5 rounded-lg font-bold transition capitalize ${
-                      statusFilter === st
-                        ? 'bg-amber-400 text-slate-950 shadow-sm'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    {st === 'all'
-                      ? 'सभी'
-                      : st === 'confirmed'
-                      ? 'कन्फर्म'
-                      : st === 'pending'
-                      ? 'पेंडिंग'
-                      : 'रिफंड'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Bookings List */}
-            {filteredBookings.length === 0 ? (
-              <div className="p-12 text-center text-slate-500 bg-slate-900/60 rounded-3xl border border-slate-800 space-y-3">
-                <Bus className="w-12 h-12 mx-auto text-slate-600 opacity-50" />
-                <h4 className="text-sm font-bold text-slate-300">कोई बुकिंग नहीं मिली</h4>
-                <p className="text-xs max-w-sm mx-auto">
-                  दिए गए फिल्टर या खोज शब्द के अनुसार कोई बुकिंग रिकॉर्ड उपलब्ध नहीं है।
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredBookings.map((b) => (
-                  <div
-                    key={b.id}
-                    className="p-5 rounded-3xl bg-slate-900/90 border border-slate-800 hover:border-amber-400/50 transition-all space-y-3 relative group"
-                  >
-                    {/* Header: Code & Status */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-black text-amber-400 text-xs">
-                          {b.booking_code}
-                        </span>
-                        {b.ticket_pnr && (
-                          <span className="text-[10px] font-mono font-bold bg-slate-800 text-slate-300 px-2 py-0.5 rounded-md">
-                            PNR: {b.ticket_pnr}
-                          </span>
-                        )}
-                      </div>
-
-                      {b.status === 'confirmed' ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-                          कन्फर्म ✅
-                        </span>
-                      ) : b.status === 'cancellation_requested' || b.refund_status === 'requested' ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-400 border border-rose-500/40">
-                          रिफंड प्रतीक्षारत ⏳
-                        </span>
-                      ) : b.status === 'cancelled' || b.refund_status === 'approved' ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-800 text-slate-400">
-                          रिफंडेड 💸
-                        </span>
-                      ) : (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/40">
-                          ऑपरेटर पेंडिंग ⏳
-                        </span>
-                      )}
+            {/* -------------------------------------------------------- */}
+            {/* 2A. SUB-TAB: GO EDITION AUTOMATIC BUS BOOKING ENGINE     */}
+            {/* -------------------------------------------------------- */}
+            {bookingSubTab === 'auto_book' && (
+              <div className="space-y-6 animate-fadeIn">
+                
+                {/* Search Bar Widget */}
+                <div className="p-5 sm:p-6 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-4 shadow-xl">
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                    
+                    {/* From City */}
+                    <div className="sm:col-span-4">
+                      <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                        कहाँ से (From City) *
+                      </label>
+                      <select
+                        value={searchSource}
+                        onChange={(e) => setSearchSource(e.target.value)}
+                        className="w-full p-3 rounded-2xl bg-slate-950 border border-slate-700 text-white font-bold text-xs focus:ring-2 focus:ring-amber-400 outline-none"
+                      >
+                        {MP_NETWORK_CITIES.map((c) => (
+                          <option key={`src-${c}`} value={c}>{c}</option>
+                        ))}
+                      </select>
                     </div>
 
-                    {/* Route & Passenger */}
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-sm font-black text-white">
-                        <span>{b.source}</span>
-                        <span className="text-amber-400">➔</span>
-                        <span>{b.destination}</span>
-                      </div>
-                      <p className="text-xs text-slate-400">
-                        {b.bus_operator} • यात्रा: <strong className="text-slate-300">{b.journey_date}</strong> ({b.departure_time || 'Regular'})
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        यात्री: <strong className="text-slate-200">{b.customer_name}</strong> (+91 {b.customer_mobile}) • सीट: {b.seat_numbers.join(', ')}
-                      </p>
-                    </div>
-
-                    {/* Financials & Commission */}
-                    <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
-                      <div>
-                        <span className="text-[10px] text-slate-400 block">कुल किराया</span>
-                        <strong className="text-sm font-black text-white font-mono">
-                          ₹{b.total_fare.toLocaleString('en-IN')}
-                        </strong>
-                      </div>
-
-                      <div className="text-right">
-                        <span className="text-[10px] text-slate-400 block">GO एजेंट कमीशन</span>
-                        <span className="text-xs font-black text-amber-400">
-                          +₹20.00 (Flat)
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons: Print & Refund */}
-                    <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                    {/* Swap Button */}
+                    <div className="sm:col-span-1 flex justify-center pb-2">
                       <button
                         type="button"
-                        onClick={() => setSelectedPrintBooking(b)}
-                        className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                        onClick={handleSwapCities}
+                        className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 transition"
+                        title="बदलें"
                       >
-                        <Printer className="w-3.5 h-3.5 text-amber-400" />
-                        <span>टिकट प्रिंट करें</span>
+                        <Repeat className="w-4 h-4" />
                       </button>
+                    </div>
 
-                      {b.status === 'confirmed' && b.refund_status !== 'approved' && b.refund_status !== 'requested' && (
-                        <button
-                          type="button"
-                          onClick={() => setRefundBooking(b)}
-                          className="py-2 px-3 rounded-xl bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-500/30 font-bold text-xs transition flex items-center gap-1 cursor-pointer"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                          <span>रिफंड अनुरोध</span>
-                        </button>
-                      )}
+                    {/* To City */}
+                    <div className="sm:col-span-4">
+                      <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                        कहाँ तक (To City) *
+                      </label>
+                      <select
+                        value={searchDestination}
+                        onChange={(e) => setSearchDestination(e.target.value)}
+                        className="w-full p-3 rounded-2xl bg-slate-950 border border-slate-700 text-white font-bold text-xs focus:ring-2 focus:ring-amber-400 outline-none"
+                      >
+                        {MP_NETWORK_CITIES.map((c) => (
+                          <option key={`dest-${c}`} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Date */}
+                    <div className="sm:col-span-3">
+                      <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                        यात्रा की तारीख (Date) *
+                      </label>
+                      <input
+                        type="date"
+                        value={searchDate}
+                        onChange={(e) => setSearchDate(e.target.value)}
+                        className="w-full p-3 rounded-2xl bg-slate-950 border border-slate-700 text-white font-bold text-xs focus:ring-2 focus:ring-amber-400 outline-none"
+                      />
                     </div>
                   </div>
-                ))}
+
+                  {/* Filter Pills */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800 text-xs">
+                    <div className="flex items-center gap-1.5 overflow-x-auto py-1">
+                      <span className="text-[11px] text-slate-400 font-bold mr-1">फिल्टर:</span>
+                      {(['all', 'ac', 'sleeper', 'seater'] as const).map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setFilterBusType(t)}
+                          className={`px-3 py-1.5 rounded-xl font-bold transition text-xs ${
+                            filterBusType === t
+                              ? 'bg-amber-400 text-slate-950'
+                              : 'bg-slate-800 text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          {t === 'all' ? 'सभी बसें' : t === 'ac' ? 'AC बस' : t === 'sleeper' ? 'स्लीपर' : 'सीटर'}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="text-[11px] font-bold text-slate-400">
+                      उपलब्ध बसें: <strong className="text-amber-400">{matchingTrips.length}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Live Bus Cards Listing */}
+                <div className="space-y-4">
+                  {matchingTrips.map((trip) => {
+                    const minFare = trip.seater_fare || trip.sleeper_fare || 550;
+                    return (
+                      <div
+                        key={trip.id}
+                        className="p-5 sm:p-6 rounded-3xl bg-slate-900/95 border border-slate-800 hover:border-amber-400/60 transition-all shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-5 relative group"
+                      >
+                        {/* Bus Operator & Features */}
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                              {trip.bus_type || 'AC Seater / Sleeper 2+1'}
+                            </span>
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-950 shadow-xs flex items-center gap-1">
+                              <Crown className="w-3 h-3 text-slate-950" />
+                              🎁 फ्लैट ₹20 नकद कमीशन
+                            </span>
+                          </div>
+
+                          <h3 className="text-base sm:text-lg font-black text-white">
+                            {trip.operator_name || 'SafarGo Premium Express'}
+                          </h3>
+
+                          {/* Timings */}
+                          <div className="flex items-center gap-4 text-xs text-slate-300 font-mono">
+                            <div>
+                              <strong className="text-sm font-black text-white block">
+                                {trip.departure_time || '07:30 AM'}
+                              </strong>
+                              <span className="text-[10px] text-slate-400 font-sans">{trip.source}</span>
+                            </div>
+
+                            <div className="flex flex-col items-center">
+                              <span className="text-[10px] text-slate-400 font-sans">4h 30m</span>
+                              <div className="w-16 h-0.5 bg-slate-700 relative my-0.5">
+                                <div className="w-2 h-2 rounded-full bg-amber-400 absolute -top-[3px] right-0" />
+                              </div>
+                            </div>
+
+                            <div>
+                              <strong className="text-sm font-black text-white block">
+                                {trip.arrival_time || '12:00 PM'}
+                              </strong>
+                              <span className="text-[10px] text-slate-400 font-sans">{trip.destination}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3 text-[11px] text-slate-400 pt-1">
+                            <span className="flex items-center gap-1">
+                              <Wifi className="w-3.5 h-3.5 text-cyan-400" /> Free WiFi
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Coffee className="w-3.5 h-3.5 text-amber-400" /> वाटर बोतल
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> सत्यापित ऑपरेटर
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Fares & Booking CTA */}
+                        <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-4 border-t md:border-t-0 md:border-l border-slate-800 pt-4 md:pt-0 md:pl-6 shrink-0">
+                          <div className="text-left md:text-right">
+                            <span className="text-[10px] text-slate-400 block">किराया प्रति सीट</span>
+                            <div className="text-2xl font-black font-mono text-emerald-400">
+                              ₹{minFare.toLocaleString('en-IN')}
+                            </div>
+                            <span className="text-[10px] font-bold text-amber-400">
+                              कमीशन: +₹20.00
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedTripForSeatMap(trip)}
+                            className="py-3 px-5 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-xs shadow-lg transition active:scale-95 flex items-center gap-2 cursor-pointer"
+                          >
+                            <Bus className="w-4 h-4" />
+                            <span>सीट चुनें व टिकट बुक करें ➔</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+              </div>
+            )}
+
+            {/* -------------------------------------------------------- */}
+            {/* 2B. SUB-TAB: MY BOOKINGS & 1-CLICK REFUND DESK           */}
+            {/* -------------------------------------------------------- */}
+            {bookingSubTab === 'history' && (
+              <div className="space-y-6 animate-fadeIn">
+                
+                {/* Search Box & Filters */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2 relative">
+                    <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="PNR, बुकिंग कोड, मोबाइल नंबर या ऑपरेटर खोजें..."
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 text-xs focus:ring-2 focus:ring-amber-400 outline-none"
+                    />
+                  </div>
+
+                  <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 gap-1 text-xs">
+                    {(['all', 'confirmed', 'pending', 'refunded'] as const).map((st) => (
+                      <button
+                        key={st}
+                        type="button"
+                        onClick={() => setStatusFilter(st)}
+                        className={`flex-1 py-1.5 rounded-lg font-bold transition capitalize ${
+                          statusFilter === st
+                            ? 'bg-amber-400 text-slate-950 shadow-sm'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {st === 'all'
+                          ? 'सभी'
+                          : st === 'confirmed'
+                          ? 'कन्फर्म'
+                          : st === 'pending'
+                          ? 'पेंडिंग'
+                          : 'रिफंड'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Bookings List */}
+                {filteredBookings.length === 0 ? (
+                  <div className="p-12 text-center text-slate-500 bg-slate-900/60 rounded-3xl border border-slate-800 space-y-3">
+                    <Bus className="w-12 h-12 mx-auto text-slate-600 opacity-50" />
+                    <h4 className="text-sm font-bold text-slate-300">कोई पुरानी बुकिंग नहीं है</h4>
+                    <p className="text-xs max-w-sm mx-auto text-slate-400">
+                      आपके GO स्पेशल एजेंट खाते में अभी तक कोई पुरानी बुकिंग नहीं है। GO Edition बस बुकिंग टर्मिनल से नई टिकट बुक करें और तुरंत फ्लैट ₹20 कमीशन पाएं!
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setBookingSubTab('auto_book')}
+                      className="py-2.5 px-4 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-xs transition inline-block cursor-pointer"
+                    >
+                      ⚡ नई बस टिकट बुक करें ➔
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {filteredBookings.map((b) => (
+                      <div
+                        key={b.id}
+                        className="p-5 rounded-3xl bg-slate-900/90 border border-slate-800 hover:border-amber-400/50 transition-all space-y-3 relative group"
+                      >
+                        {/* Header: Code & Status */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-black text-amber-400 text-xs">
+                              {b.booking_code}
+                            </span>
+                            {b.ticket_pnr && (
+                              <span className="text-[10px] font-mono font-bold bg-slate-800 text-slate-300 px-2 py-0.5 rounded-md">
+                                PNR: {b.ticket_pnr}
+                              </span>
+                            )}
+                          </div>
+
+                          {b.status === 'confirmed' ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                              कन्फर्म ✅
+                            </span>
+                          ) : b.status === 'cancellation_requested' || b.refund_status === 'requested' ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-400 border border-rose-500/40">
+                              रिफंड प्रतीक्षारत ⏳
+                            </span>
+                          ) : b.status === 'cancelled' || b.refund_status === 'approved' ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-800 text-slate-400">
+                              रिफंडेड 💸
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/40">
+                              ऑपरेटर पेंडिंग ⏳
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Route & Passenger */}
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-sm font-black text-white">
+                            <span>{b.source}</span>
+                            <span className="text-amber-400">➔</span>
+                            <span>{b.destination}</span>
+                          </div>
+                          <p className="text-xs text-slate-400">
+                            {b.bus_operator} • यात्रा: <strong className="text-slate-300">{b.journey_date}</strong> ({b.departure_time || 'Regular'})
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            यात्री: <strong className="text-slate-200">{b.customer_name}</strong> (+91 {b.customer_mobile}) • सीट: {b.seat_numbers.join(', ')}
+                          </p>
+                        </div>
+
+                        {/* Financials & Commission */}
+                        <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
+                          <div>
+                            <span className="text-[10px] text-slate-400 block">कुल किराया</span>
+                            <strong className="text-sm font-black text-white font-mono">
+                              ₹{b.total_fare.toLocaleString('en-IN')}
+                            </strong>
+                          </div>
+
+                          <div className="text-right">
+                            <span className="text-[10px] text-slate-400 block">GO एजेंट कमीशन</span>
+                            <span className="text-xs font-black text-amber-400">
+                              +₹20.00 (Flat)
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons: Print & Refund */}
+                        <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPrintBooking(b)}
+                            className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <Printer className="w-3.5 h-3.5 text-amber-400" />
+                            <span>टिकट प्रिंट करें</span>
+                          </button>
+
+                          {b.status === 'confirmed' && b.refund_status !== 'approved' && b.refund_status !== 'requested' && (
+                            <button
+                              type="button"
+                              onClick={() => setRefundBooking(b)}
+                              className="py-2 px-3 rounded-xl bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-500/30 font-bold text-xs transition flex items-center gap-1 cursor-pointer"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              <span>रिफंड अनुरोध</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -754,7 +1041,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                         required
                         value={refundReason}
                         onChange={(e) => setRefundReason(e.target.value)}
-                        placeholder="उदा. यात्री की यात्रा योजना रद्द हुई / ऑपरेटर बस लेट..."
+                        placeholder="उदा. यात्री की यात्रा योजना रद्द हुई / बस लेट हुई..."
                         className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-rose-400"
                       />
                     </div>
@@ -890,7 +1177,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                   </div>
 
                   <p className="text-[11px] text-slate-400 leading-snug">
-                    * कमीशन राशि आपके Go Wallet बैलेंस में शामिल रहती है जिसका उपयोग आप नई टिकटें बुक करने में कर सकते हैं।
+                    * कमीशन राशि आपके Go Wallet बैलेंस में स्वतः क्रेडिट होती है, जिसका उपयोग आप नई टिकटें बुक करने में कर सकते हैं।
                   </p>
                 </div>
               </div>
@@ -1268,6 +1555,48 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
 
         </div>
       </nav>
+
+      {/* RedBus Interactive Seat Selection Modal */}
+      {selectedTripForSeatMap && (
+        <RedBusSeatMapModal
+          trip={selectedTripForSeatMap}
+          onClose={() => setSelectedTripForSeatMap(null)}
+          onConfirmSelection={(selection) => {
+            const currentTrip = selectedTripForSeatMap;
+            setSelectedTripForSeatMap(null);
+            setAutoCheckoutData({
+              trip: currentTrip,
+              selectedSeats: selection.selectedSeats,
+              totalFare: selection.totalFare,
+              seatCategory: selection.seatCategory,
+              boardingPoint: selection.boardingPoint,
+              dropPoint: selection.dropPoint,
+            });
+          }}
+        />
+      )}
+
+      {/* Auto Bus Booking Checkout Modal (With Go Wallet 1-Click Pay & ₹20 Commission Credit) */}
+      {autoCheckoutData && (
+        <AutoBusBookingCheckoutModal
+          isOpen={true}
+          trip={autoCheckoutData.trip}
+          selectedSeats={autoCheckoutData.selectedSeats}
+          totalFare={autoCheckoutData.totalFare}
+          seatCategory={autoCheckoutData.seatCategory}
+          boardingPoint={autoCheckoutData.boardingPoint}
+          dropPoint={autoCheckoutData.dropPoint}
+          onClose={() => setAutoCheckoutData(null)}
+          onBookingSuccess={(booking) => {
+            setAutoCheckoutData(null);
+            setBookingSubTab('history');
+            success(
+              '🎉 GO बस टिकट कन्फर्म!',
+              `PNR ${booking.ticket_pnr || booking.booking_code} जारी हो चुका है। +₹20.00 कमीशन आपके Go Wallet में जुड़ चुका है!`
+            );
+          }}
+        />
+      )}
 
       {/* Wallet Recharge Modal (With 10-Minute Lock & Strict Warnings) */}
       {isRechargeModalOpen && (

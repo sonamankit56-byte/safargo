@@ -98,7 +98,7 @@ const AppContent: React.FC = () => {
       } else if (role === 'admin' || isAdmin) {
         navigate('/admin/dashboard');
       } else if (role === 'agent') {
-        navigate('/agent/dashboard');
+        navigate('/go-agent');
       } else if (role === 'customer') {
         navigate('/customer');
       } else if (role === 'shopkeeper') {
@@ -122,9 +122,13 @@ const AppContent: React.FC = () => {
       if (!currentUser || (role !== 'admin' && !isAdmin)) {
         if (role === 'customer') navigate('/customer', { replace: true });
         else if (role === 'shopkeeper') navigate('/shop', { replace: true });
-        else if (role === 'agent') navigate('/agent/dashboard', { replace: true });
+        else if (role === 'agent') navigate('/go-agent', { replace: true });
         else if (role === 'promoter') navigate('/promoter/dashboard', { replace: true });
         else navigate('/', { replace: true });
+      }
+    } else if (location.pathname === '/agent' || location.pathname === '/agent/dashboard') {
+      if (role === 'agent') {
+        navigate('/go-agent', { replace: true });
       }
     } else if (location.pathname.startsWith('/agent')) {
       const isSharedBookingRoute =

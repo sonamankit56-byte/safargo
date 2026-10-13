@@ -281,15 +281,15 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
               <>
 
                 <button
-                  onClick={() => handleTabChange('dashboard')}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition ${
-                    currentTab === 'dashboard'
-                      ? 'bg-orange-500 text-white shadow-sm'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  onClick={() => handleTabChange('go-agent')}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-black transition ${
+                    currentTab === 'go-agent'
+                      ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-300 text-slate-950 shadow-sm'
+                      : 'text-amber-300 hover:text-white hover:bg-slate-800'
                   }`}
                 >
                   <LayoutDashboard className="w-4 h-4" />
-                  Dashboard
+                  GO एजेंट 3D टर्मिनल
                 </button>
 
                 <button
