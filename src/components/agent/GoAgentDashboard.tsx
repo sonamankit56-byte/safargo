@@ -105,6 +105,29 @@ const TicketCountdownTimer: React.FC<{ createdAt: string; deadlineAt?: string }>
   );
 };
 
+// Safe Booking Data Extraction Helpers (prevents undefined.toLocaleString crashes)
+const getBookingFare = (b: Booking | null | undefined): number => {
+  if (!b) return 0;
+  return Number(b.actual_fare ?? b.total_estimated_amount ?? b.estimated_fare ?? (b as any).total_fare ?? 0);
+};
+
+const getBookingSeats = (b: Booking): string => {
+  if (b.confirmed_seats) return b.confirmed_seats;
+  if (Array.isArray((b as any).seat_numbers)) return (b as any).seat_numbers.join(', ');
+  if (Array.isArray(b.passenger_details)) {
+    const seats = b.passenger_details.map((p) => p.seat_number).filter(Boolean);
+    if (seats.length > 0) return seats.join(', ');
+  }
+  return `${b.seat_count || 1} Seat(s)`;
+};
+
+const getBookingRoute = (b: Booking) => {
+  const from = b.from_city || (b as any).source || 'Sironj';
+  const to = b.to_city || (b as any).destination || 'Bhopal';
+  const operator = b.actual_operator || b.operator_preference || (b as any).bus_operator || 'SafarGo Regular';
+  return { from, to, operator };
+};
+
 export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
   onNavigateHome,
   onOpenBookingModal,
@@ -720,7 +743,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                             )}
                           </div>
                           <p className="text-[11px] text-slate-400">
-                            {b.customer_name} • {b.source} ➔ {b.destination} • {b.journey_date}
+                            {b.customer_name} • {getBookingRoute(b).from} ➔ {getBookingRoute(b).to} • {b.journey_date}
                           </p>
                         </div>
                       </div>
@@ -728,7 +751,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                       <div className="flex items-center justify-between sm:justify-end gap-3">
                         <div className="text-right">
                           <span className="text-sm font-black text-white font-mono block">
-                            ₹{b.total_fare.toLocaleString('en-IN')}
+                            ₹{getBookingFare(b).toLocaleString('en-IN')}
                           </span>
                           <span className="text-[10px] font-bold text-amber-400">
                             +₹20.00 कमीशन
@@ -1095,15 +1118,15 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                         {/* Route & Passenger */}
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 text-sm font-black text-white">
-                            <span>{b.source}</span>
+                            <span>{getBookingRoute(b).from}</span>
                             <span className="text-amber-400">➔</span>
-                            <span>{b.destination}</span>
+                            <span>{getBookingRoute(b).to}</span>
                           </div>
                           <p className="text-xs text-slate-400">
-                            {b.bus_operator} • यात्रा: <strong className="text-slate-300">{b.journey_date}</strong> ({b.departure_time || 'Regular'})
+                            {getBookingRoute(b).operator} • यात्रा: <strong className="text-slate-300">{b.journey_date}</strong> ({b.departure_time_pref || 'Regular'})
                           </p>
                           <p className="text-xs text-slate-400">
-                            यात्री: <strong className="text-slate-200">{b.customer_name}</strong> (+91 {b.customer_mobile}) • सीट: {b.seat_numbers.join(', ')}
+                            यात्री: <strong className="text-slate-200">{b.customer_name}</strong> (+91 {b.customer_mobile}) • सीट: {getBookingSeats(b)}
                           </p>
                         </div>
 
@@ -1112,7 +1135,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                           <div>
                             <span className="text-[10px] text-slate-400 block">कुल किराया</span>
                             <strong className="text-sm font-black text-white font-mono">
-                              ₹{b.total_fare.toLocaleString('en-IN')}
+                              ₹{getBookingFare(b).toLocaleString('en-IN')}
                             </strong>
                           </div>
 
@@ -1172,8 +1195,8 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
 
                   <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800 text-xs space-y-1">
                     <p>बुकिंग: <strong>{refundBooking.booking_code}</strong></p>
-                    <p>रूट: <strong>{refundBooking.source} ➔ {refundBooking.destination}</strong></p>
-                    <p>किराया: <strong>₹{refundBooking.total_fare.toLocaleString('en-IN')}</strong></p>
+                    <p>रूट: <strong>{getBookingRoute(refundBooking).from} ➔ {getBookingRoute(refundBooking).to}</strong></p>
+                    <p>किराया: <strong>₹{getBookingFare(refundBooking).toLocaleString('en-IN')}</strong></p>
                   </div>
 
                   <form onSubmit={handleRefundSubmit} className="space-y-3 text-xs">

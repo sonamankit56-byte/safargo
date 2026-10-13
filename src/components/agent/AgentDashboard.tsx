@@ -460,7 +460,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
               className="px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm flex items-center gap-1.5 shadow-lg shadow-emerald-600/25 transition active:scale-95"
             >
               <Wallet className="w-4 h-4" />
-              <span>+ Go Wallet रिचार्ज (Min ₹{settings.min_wallet_recharge.toLocaleString('en-IN')})</span>
+              <span>+ Go Wallet रिचार्ज (Min ₹{(settings?.min_wallet_recharge || 2000).toLocaleString('en-IN')})</span>
             </button>
             <button
               onClick={() => onNavigate('new-booking')}
@@ -850,7 +850,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
                 </span>
               </div>
               <p className="text-xs text-slate-500">
-                150 पात्र कन्फर्म बुकिंग पूरा करने पर <strong>₹{settings.monthly_salary.toLocaleString('en-IN')} का निश्चित मानदेय</strong> अनलॉक होता है।
+                150 पात्र कन्फर्म बुकिंग पूरा करने पर <strong>₹{(settings?.monthly_salary || 10000).toLocaleString('en-IN')} का निश्चित मानदेय</strong> अनलॉक होता है।
               </p>
             </div>
           </div>
@@ -859,14 +859,14 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
             <div className="text-right">
               <span className="text-xs text-slate-400 block font-medium">Guaranteed Salary Base</span>
               <span className="text-xl font-black text-slate-900">
-                ₹{settings.monthly_salary.toLocaleString('en-IN')}
+                ₹{(settings?.monthly_salary || 10000).toLocaleString('en-IN')}
               </span>
             </div>
             <div className="h-8 w-px bg-slate-200" />
             <div className="text-right">
               <span className="text-xs text-slate-400 block font-medium">Commission Rate</span>
               <span className="text-xl font-black text-emerald-600">
-                ₹{settings.commission_rate.toFixed(2)} <span className="text-xs font-normal text-slate-500">/booking</span>
+                ₹{(settings?.commission_rate || 20).toFixed(2)} <span className="text-xs font-normal text-slate-500">/booking</span>
               </span>
             </div>
           </div>
@@ -880,7 +880,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
               💡 सैलरी बेस मॉडल नियम (Salary Base Benefit):
             </p>
             <p className="text-amber-800 leading-relaxed">
-              150 टिकट का सामान्य कमीशन ₹{((stats.monthlyTarget) * settings.commission_rate).toFixed(2)} बनता है, परन्तु SafarGo सैलरी बेस मॉडल के तहत 150 बुकिंग पूरी करने पर आपको <strong>पूरा ₹{settings.monthly_salary.toLocaleString('en-IN')}</strong> मिलता है! यदि आप बीच में विथड्रॉल नहीं करते हैं, तो 150 पूरा होने पर आगामी रविवार को पूरे ₹5,000 एकमुश्त आपके बैंक खाते में ट्रांसफर किए जाएंगे।
+              150 टिकट का सामान्य कमीशन ₹{((stats.monthlyTarget) * (settings?.commission_rate || 20)).toFixed(2)} बनता है, परन्तु SafarGo सैलरी बेस मॉडल के तहत 150 बुकिंग पूरी करने पर आपको <strong>पूरा ₹{(settings?.monthly_salary || 10000).toLocaleString('en-IN')}</strong> मिलता है! यदि आप बीच में विथड्रॉल नहीं करते हैं, तो 150 पूरा होने पर आगामी रविवार को पूरे ₹5,000 एकमुश्त आपके बैंक खाते में ट्रांसफर किए जाएंगे।
             </p>
           </div>
         </div>
@@ -923,11 +923,11 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
           </div>
           <div className="mt-4">
             <span className="text-2xl sm:text-3xl font-black text-white">
-              ₹{agentWalletBalance.toLocaleString('en-IN')}
+              ₹{(agentWalletBalance || 0).toLocaleString('en-IN')}
             </span>
             <div className="flex items-center justify-between mt-2 pt-2 border-t border-blue-800/80">
               <span className="text-[10px] text-blue-300">
-                Min ₹{settings.min_wallet_recharge.toLocaleString('en-IN')}
+                Min ₹{(settings?.min_wallet_recharge || 2000).toLocaleString('en-IN')}
               </span>
               <button
                 onClick={() => setShowRechargeModal(true)}
@@ -942,7 +942,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
                 <Clock className="w-3.5 h-3.5 text-amber-300 shrink-0 mt-0.5 animate-pulse" />
                 <div className="space-y-0.5">
                   <span className="font-bold text-amber-300 block">
-                    ₹{pendingRec.amount.toLocaleString('en-IN')} का अनुरोध एडमिन के पास लंबित है
+                    ₹{(pendingRec?.amount || 0).toLocaleString('en-IN')} का अनुरोध एडमिन के पास लंबित है
                   </span>
                   <p className="text-[10px] text-amber-200">
                     आपका पैसा कुछ ही देर में आपके वॉलेट में होगा (सत्यापन प्रक्रियाधीन)।

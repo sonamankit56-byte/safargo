@@ -65,8 +65,10 @@ export const ReferAndEarn: React.FC = () => {
   const qualifiedCount = referredStats.filter((r) => r.isQualified).length;
   const inProgressCount = referredStats.filter((r) => !r.isQualified).length;
 
-  const whatsappShareText = `भाई, अपनी दुकान या जन सेवा केंद्र से बस टिकट बुक करना शुरू करो SafarGo के साथ!
-प्रत्येक कन्फर्म टिकट पर ₹${settings.commission_rate.toFixed(2)} कमीशन + 150 बुकिंग पर ₹${settings.monthly_salary.toLocaleString('en-IN')} मासिक मानदेय।
+const monthlySalaryFormatted = (settings?.monthly_salary || 10000).toLocaleString('en-IN');
+const commissionRateFormatted = (settings?.commission_rate || 20).toFixed(2);
+const whatsappShareText = `भाई, अपनी दुकान या जन सेवा केंद्र से बस टिकट बुक करना शुरू करो SafarGo के साथ!
+प्रत्येक कन्फर्म टिकट पर ₹${commissionRateFormatted} कमीशन + 150 बुकिंग पर ₹${monthlySalaryFormatted} मासिक मानदेय।
 
 पंजीकरण करते समय मेरा रेफरल कोड दर्ज करें:
 👉 *${referralCode}*

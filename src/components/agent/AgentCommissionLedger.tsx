@@ -200,10 +200,10 @@ export const AgentCommissionLedger: React.FC = () => {
               मासिक लक्ष्य एवं फिक्स्ड वेतन (Monthly Salary Base) • {currentMonth}
             </div>
             <h2 className="text-2xl sm:text-3xl font-black">
-              280 बुकिंग्स = ₹{settings.monthly_salary.toLocaleString('en-IN')} का फिक्स्ड वेतन
+              280 बुकिंग्स = ₹{(settings?.monthly_salary || 10000).toLocaleString('en-IN')} का फिक्स्ड वेतन
             </h2>
             <p className="text-blue-100 text-xs sm:text-sm max-w-2xl leading-relaxed">
-              GO USER सैलरी मॉडल: 280 बुकिंग पूरी करने पर पूरा ₹{settings.monthly_salary.toLocaleString('en-IN')} का फिक्स्ड वेतन अलग से अर्जित होता है। साथ ही फ्लैट ₹{settings.commission_rate.toFixed(2)} प्रति टिकट कमीशन सुरक्षित रहता है!
+              GO USER सैलरी मॉडल: 280 बुकिंग पूरी करने पर पूरा ₹{(settings?.monthly_salary || 10000).toLocaleString('en-IN')} का फिक्स्ड वेतन अलग से अर्जित होता है। साथ ही फ्लैट ₹{(settings?.commission_rate || 20).toFixed(2)} प्रति टिकट कमीशन सुरक्षित रहता है!
             </p>
           </div>
 
