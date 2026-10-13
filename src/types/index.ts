@@ -29,7 +29,11 @@ export type RefundStatus =
   | 'completed'
   | 'rejected';
 
-export type SalaryStatus = 'unpaid' | 'approved' | 'paid';
+export type SalaryStatus = 'unpaid' | 'eligible' | 'approved' | 'paid';
+
+export const toPaise = (rupees: number): number => Math.round((Number(rupees) || 0) * 100);
+export const toRupees = (paise: number): number => (Number(paise) || 0) / 100;
+export const formatInr = (amount: number): string => `₹${(Number(amount) || 0).toLocaleString('en-IN')}`;
 
 export interface Passenger {
   id: string;
@@ -213,7 +217,7 @@ export interface SalaryRecord {
   updated_at: string;
 }
 
-export type PayoutStatus = 'pending' | 'approved' | 'rejected';
+export type PayoutStatus = 'pending' | 'processing' | 'paid' | 'failed' | 'approved' | 'rejected';
 
 export interface PayoutRequest {
   id: string;
@@ -221,6 +225,8 @@ export interface PayoutRequest {
   agent_name: string;
   agent_mobile: string;
   amount: number;
+  amount_paise?: number;
+  payout_type?: 'commission' | 'salary' | 'commission_and_salary' | 'wallet_withdrawal';
   payout_method: 'upi' | 'bank_transfer';
   upi_id?: string;
   account_number?: string;
@@ -229,7 +235,11 @@ export interface PayoutRequest {
   account_holder_name?: string;
   status: PayoutStatus;
   admin_reference?: string; // UTR or Bank Txn ID
+  reference?: string; // Standard settlement desk reference
+  date?: string; // Settlement date
   admin_notes?: string;
+  created_by?: string;
+  processed_by?: string;
   created_at: string;
   processed_at?: string;
 }

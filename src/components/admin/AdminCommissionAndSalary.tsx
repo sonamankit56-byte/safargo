@@ -22,8 +22,13 @@ import {
   AlertCircle,
   Image as ImageIcon,
   Eye,
-  Check
+  Check,
+  Download,
+  Plus,
+  RefreshCw,
+  FileSpreadsheet
 } from 'lucide-react';
+import { PayoutStatus } from '../../types';
 
 export const AdminCommissionAndSalary: React.FC = () => {
   const {
@@ -34,16 +39,35 @@ export const AdminCommissionAndSalary: React.FC = () => {
     payoutRequests,
     approvePayout,
     rejectPayout,
+    updatePayoutStatus,
+    createAdminPayout,
     settings,
     bookings,
     walletRecharges,
     approveWalletRecharge,
     rejectWalletRecharge
   } = useData();
-  const { allProfiles } = useAuth();
-  const { success, error } = useToast();
+  const { allProfiles, currentUser } = useAuth();
+  const { success, error, info } = useToast();
 
   const [activeTab, setActiveTab] = useState<'salaries' | 'payouts' | 'wallet' | 'ledger'>('salaries');
+  
+  // Settlement Desk Filter States
+  const [settlementStatusFilter, setSettlementStatusFilter] = useState<'all' | 'pending' | 'processing' | 'paid' | 'failed'>('all');
+  const [settlementAgentFilter, setSettlementAgentFilter] = useState<string>('all');
+  const [settlementMonthFilter, setSettlementMonthFilter] = useState<string>('all');
+
+  // Create Payout Modal State (Admin only)
+  const [isCreatePayoutOpen, setIsCreatePayoutOpen] = useState(false);
+  const [newPayoutAgentId, setNewPayoutAgentId] = useState('');
+  const [newPayoutAmount, setNewPayoutAmount] = useState('');
+  const [newPayoutMethod, setNewPayoutMethod] = useState<'upi' | 'bank_transfer'>('bank_transfer');
+  const [newPayoutUpi, setNewPayoutUpi] = useState('');
+  const [newPayoutAccount, setNewPayoutAccount] = useState('');
+  const [newPayoutIfsc, setNewPayoutIfsc] = useState('');
+  const [newPayoutBank, setNewPayoutBank] = useState('');
+  const [newPayoutNotes, setNewPayoutNotes] = useState('');
+  const [isSubmittingCreatePayout, setIsSubmittingCreatePayout] = useState(false);
   
   // Salary Payment Modal state
   const [paymentModalRecord, setPaymentModalRecord] = useState<SalaryRecord | null>(null);
@@ -149,6 +173,126 @@ export const AdminCommissionAndSalary: React.FC = () => {
     } finally {
       setIsSubmittingRechargeAction(false);
     }
+  };
+
+  // Helper to trigger browser download of CSV string
+  const downloadCsv = (filename: string, csvContent: string) => {
+    const encodedUri = encodeURI('data:text/csv;charset=utf-8,\uFEFF' + csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // CSV Export 1: Booking Reports
+  const handleExportBookingsCsv = () => {
+    const headers = [
+      'Booking Code',
+      'Agent Name',
+      'Agent Mobile',
+      'Customer Name',
+      'Customer Mobile',
+      'From City',
+      'To City',
+      'Journey Date',
+      'Seats',
+      'Seat Category',
+      'Total Fare (₹)',
+      'Commission (₹)',
+      'Booking Status',
+      'Ticket PNR',
+      'Created At'
+    ];
+
+    const rows = bookings.map((b) => [
+      b.booking_code,
+      `"${(b.agent_name || '').replace(/"/g, '""')}"`,
+      b.agent_mobile || '',
+      `"${(b.customer_name || '').replace(/"/g, '""')}"`,
+      b.customer_mobile || '',
+      b.from_city,
+      b.to_city,
+      b.journey_date,
+      b.seat_count,
+      b.seat_category,
+      b.total_estimated_amount.toFixed(2),
+      b.status === 'confirmed' ? '20.00' : '0.00',
+      b.status,
+      b.ticket_pnr || '',
+      new Date(b.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+    ]);
+
+    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    downloadCsv(`GO_USER_Bookings_Report_${new Date().toISOString().slice(0, 10)}.csv`, csv);
+    success('CSV Exported', 'बुकिंग रिपोर्ट सफलतापूर्वक डाउनलोड हो गई।');
+  };
+
+  // CSV Export 2: Commission Ledger
+  const handleExportCommissionCsv = () => {
+    const headers = [
+      'Transaction ID',
+      'Booking ID / Code',
+      'Agent Name',
+      'Amount (₹)',
+      'Status',
+      'Entry Type',
+      'Date & Time',
+      'Notes'
+    ];
+
+    const rows = commissions.map((c) => [
+      c.id,
+      c.booking_code || c.booking_id || '',
+      `"${(c.agent_name || '').replace(/"/g, '""')}"`,
+      c.amount.toFixed(2),
+      c.status,
+      c.entry_type || 'booking_commission',
+      new Date(c.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+      `"${(c.notes || '').replace(/"/g, '""')}"`
+    ]);
+
+    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    downloadCsv(`GO_USER_Commission_Ledger_${new Date().toISOString().slice(0, 10)}.csv`, csv);
+    success('CSV Exported', 'कमीशन लेज़र सफलतापूर्वक डाउनलोड हो गया।');
+  };
+
+  // CSV Export 3: Salary Eligibility
+  const handleExportSalaryCsv = () => {
+    const headers = [
+      'Record ID',
+      'Agent Name',
+      'Agent Mobile',
+      'Month/Year',
+      'Target Tickets',
+      'Confirmed Tickets',
+      'Target Met',
+      'Base Salary (₹)',
+      'Payable Salary (₹)',
+      'Status',
+      'Payment Reference',
+      'Approved Date'
+    ];
+
+    const rows = salaryRecords.map((s) => [
+      s.id,
+      `"${(s.agent_name || '').replace(/"/g, '""')}"`,
+      s.agent_mobile || '',
+      s.month_year,
+      s.target_bookings,
+      s.confirmed_bookings,
+      s.target_met ? 'YES' : 'NO',
+      s.base_salary.toFixed(2),
+      s.payable_salary.toFixed(2),
+      s.status,
+      s.payment_reference || '',
+      s.approved_at ? new Date(s.approved_at).toLocaleDateString('en-IN') : ''
+    ]);
+
+    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    downloadCsv(`GO_USER_Salary_Eligibility_${new Date().toISOString().slice(0, 10)}.csv`, csv);
+    success('CSV Exported', 'मासिक वेतन पात्रता रिपोर्ट डाउनलोड हो गई।');
   };
 
   const totalCommissionCredited = commissions
@@ -382,153 +526,243 @@ export const AdminCommissionAndSalary: React.FC = () => {
           </div>
         </div>
       ) : activeTab === 'payouts' ? (
-        /* Agent Payout Requests Table */
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+        /* GO USER Settlement Desk (Payout Processing & Status Management) */
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-4">
+          <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div>
-              <h2 className="text-sm font-bold text-slate-900">एजेंट कमीशन निकासी अनुरोध (Agent Payout Requests)</h2>
-              <p className="text-[11px] text-slate-500">
-                एजेंट्स द्वारा UPI या बैंक ट्रांसफर हेतु दर्ज किए गए विथड्रॉल अनुरोध
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded bg-blue-900 text-amber-300 text-[10px] font-black uppercase">
+                  GO USER
+                </span>
+                <h2 className="text-sm font-extrabold text-slate-900">
+                  सेटलमेंट डेस्क (Settlement Desk / Payout Processing)
+                </h2>
+              </div>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                पेआउट स्टेटस (Pending, Processing, Paid, Failed) प्रबंधन, बैंक UTR संदर्भ, एवं ऑडिट ट्रेल
               </p>
             </div>
-            <span className="text-xs font-bold text-slate-400">
-              {payoutRequests.length} कुल अनुरोध
-            </span>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={handleExportBookingsCsv}
+                className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-1 border border-slate-300 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5 text-blue-600" />
+                <span>बुकिंग CSV</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleExportCommissionCsv}
+                className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-1 border border-slate-300 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-600" />
+                <span>कमीशन CSV</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleExportSalaryCsv}
+                className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-1 border border-slate-300 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5 text-amber-600" />
+                <span>वेतन CSV</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsCreatePayoutOpen(true)}
+                className="px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>नया पेआउट (+)</span>
+              </button>
+            </div>
           </div>
 
-          {payoutRequests.length === 0 ? (
-            <div className="p-12 text-center text-slate-400 text-xs">
-              वर्तमान में कोई निकासी अनुरोध दर्ज नहीं है। जब कोई एजेंट विथड्रॉल का अनुरोध करेगा, तो यहाँ दिखाई देगा।
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
-                  <tr>
-                    <th className="p-4">Agent Name</th>
-                    <th className="p-4">Amount</th>
-                    <th className="p-4">Payout Method</th>
-                    <th className="p-4">Payment Destination Details</th>
-                    <th className="p-4">Status</th>
-                    <th className="p-4">UTR Reference</th>
-                    <th className="p-4">Request Date</th>
-                    <th className="p-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {payoutRequests.map((p) => (
-                    <tr key={p.id} className="hover:bg-slate-50 transition">
-                      <td className="p-4">
-                        <span className="font-bold text-slate-900 block">{p.agent_name}</span>
-                        <span className="text-[10px] text-slate-400 font-mono">+91 {p.agent_mobile}</span>
-                      </td>
+          {/* Filter Bar */}
+          <div className="px-4 flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-slate-400 font-semibold">फिल्टर स्थिति:</span>
+            {(['all', 'pending', 'processing', 'paid', 'failed'] as const).map((st) => (
+              <button
+                key={st}
+                type="button"
+                onClick={() => setSettlementStatusFilter(st)}
+                className={`px-2.5 py-1 rounded-lg font-bold capitalize transition ${
+                  settlementStatusFilter === st
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {st === 'all' ? 'सभी' : st}
+              </button>
+            ))}
+          </div>
 
-                      <td className="p-4 font-black text-sm text-slate-900">
-                        ₹{p.amount.toFixed(2)}
-                      </td>
+          {(() => {
+            const displayedPayouts = payoutRequests.filter((p) => {
+              if (settlementStatusFilter === 'all') return true;
+              if (settlementStatusFilter === 'paid') return p.status === 'paid' || p.status === 'approved';
+              return p.status === settlementStatusFilter;
+            });
 
-                      <td className="p-4">
-                        <span className="inline-flex items-center gap-1.5 font-bold text-slate-700 capitalize">
-                          {p.payout_method === 'upi' ? (
-                            <>
-                              <Smartphone className="w-3.5 h-3.5 text-orange-600" />
-                              UPI
-                            </>
-                          ) : (
-                            <>
-                              <Building2 className="w-3.5 h-3.5 text-blue-600" />
-                              Bank
-                            </>
-                          )}
-                        </span>
-                      </td>
+            if (displayedPayouts.length === 0) {
+              return (
+                <div className="p-12 text-center text-slate-400 text-xs">
+                  चयनित स्थिति में कोई सेटलमेंट पेआउट दर्ज नहीं है।
+                </div>
+              );
+            }
 
-                      <td className="p-4 font-mono text-slate-800">
-                        {p.payout_method === 'upi' ? (
-                          <div className="font-bold text-orange-950">{p.upi_id}</div>
-                        ) : (
-                          <div>
-                            <div className="font-bold">A/C: {p.account_number}</div>
-                            <div className="text-[10px] text-slate-500 font-sans">
-                              IFSC: {p.ifsc_code} • {p.account_holder_name}
-                            </div>
-                            {p.bank_name && (
-                              <div className="text-[10px] text-slate-400 font-sans">{p.bank_name}</div>
-                            )}
-                          </div>
-                        )}
-                      </td>
-
-                      <td className="p-4">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                            p.status === 'approved'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : p.status === 'rejected'
-                              ? 'bg-rose-100 text-rose-800'
-                              : 'bg-amber-100 text-amber-800'
-                          }`}
-                        >
-                          {p.status === 'approved' && <CheckCircle className="w-3 h-3" />}
-                          {p.status === 'rejected' && <XCircle className="w-3 h-3" />}
-                          {p.status === 'pending' && <Clock className="w-3 h-3" />}
-                          {p.status}
-                        </span>
-                      </td>
-
-                      <td className="p-4 font-mono font-bold text-emerald-700">
-                        {p.admin_reference || (
-                          <span className="text-slate-400 font-sans font-normal text-[11px]">
-                            {p.admin_notes || '-'}
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="p-4 text-slate-500">
-                        {new Date(p.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
-                      </td>
-
-                      <td className="p-4 text-right space-x-2 shrink-0">
-                        {p.status === 'pending' && (
-                          <>
-                            <button
-                              onClick={() => {
-                                setPayoutModalRecord(p);
-                                setPayoutUtrRef('');
-                                setPayoutNotes('');
-                              }}
-                              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[11px] shadow-xs"
-                            >
-                              Approve (UTR)
-                            </button>
-                            <button
-                              onClick={() => {
-                                setRejectingPayoutId(p.id);
-                                setRejectionReason('');
-                              }}
-                              className="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg font-bold text-[11px]"
-                            >
-                              Reject
-                            </button>
-                          </>
-                        )}
-                        {p.status === 'approved' && (
-                          <span className="text-emerald-700 font-bold text-[11px] flex items-center justify-end gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Transferred
-                          </span>
-                        )}
-                        {p.status === 'rejected' && (
-                          <span className="text-rose-600 font-bold text-[11px] flex items-center justify-end gap-1">
-                            <XCircle className="w-3.5 h-3.5" /> Rejected
-                          </span>
-                        )}
-                      </td>
+            return (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
+                    <tr>
+                      <th className="p-4">Agent Name</th>
+                      <th className="p-4">Amount</th>
+                      <th className="p-4">Payout Method</th>
+                      <th className="p-4">Destination Details</th>
+                      <th className="p-4">Settlement Status</th>
+                      <th className="p-4">Reference / UTR</th>
+                      <th className="p-4">Date</th>
+                      <th className="p-4 text-right">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {displayedPayouts.map((p) => {
+                      const isPaid = p.status === 'paid' || p.status === 'approved';
+                      const isProcessing = p.status === 'processing';
+                      const isFailed = p.status === 'failed' || p.status === 'rejected';
+                      const isPending = p.status === 'pending';
+
+                      return (
+                        <tr key={p.id} className="hover:bg-slate-50 transition">
+                          <td className="p-4">
+                            <span className="font-bold text-slate-900 block">{p.agent_name}</span>
+                            <span className="text-[10px] text-slate-400 font-mono">+91 {p.agent_mobile}</span>
+                          </td>
+
+                          <td className="p-4 font-black text-sm text-slate-900 font-mono">
+                            ₹{p.amount.toFixed(2)}
+                          </td>
+
+                          <td className="p-4">
+                            <span className="inline-flex items-center gap-1.5 font-bold text-slate-700 capitalize">
+                              {p.payout_method === 'upi' ? (
+                                <>
+                                  <Smartphone className="w-3.5 h-3.5 text-orange-600" />
+                                  UPI
+                                </>
+                              ) : (
+                                <>
+                                  <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                                  Bank
+                                </>
+                              )}
+                            </span>
+                          </td>
+
+                          <td className="p-4 font-mono text-slate-800">
+                            {p.payout_method === 'upi' ? (
+                              <div className="font-bold text-orange-950">{p.upi_id}</div>
+                            ) : (
+                              <div>
+                                <div className="font-bold">A/C: {p.account_number}</div>
+                                <div className="text-[10px] text-slate-500 font-sans">
+                                  IFSC: {p.ifsc_code} • {p.account_holder_name}
+                                </div>
+                                {p.bank_name && (
+                                  <div className="text-[10px] text-slate-400 font-sans">{p.bank_name}</div>
+                                )}
+                              </div>
+                            )}
+                          </td>
+
+                          <td className="p-4">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                                isPaid
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : isProcessing
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : isFailed
+                                  ? 'bg-rose-100 text-rose-800'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              {isPaid && <CheckCircle className="w-3 h-3" />}
+                              {isProcessing && <RefreshCw className="w-3 h-3 animate-spin" />}
+                              {isFailed && <XCircle className="w-3 h-3" />}
+                              {isPending && <Clock className="w-3 h-3" />}
+                              {p.status}
+                            </span>
+                          </td>
+
+                          <td className="p-4 font-mono font-bold text-emerald-700">
+                            {p.reference || p.admin_reference || (
+                              <span className="text-slate-400 font-sans font-normal text-[11px]">
+                                {p.admin_notes || '-'}
+                              </span>
+                            )}
+                          </td>
+
+                          <td className="p-4 text-slate-500">
+                            {new Date(p.date || p.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+                          </td>
+
+                          <td className="p-4 text-right space-x-1.5 shrink-0">
+                            {isPending && (
+                              <button
+                                type="button"
+                                onClick={() => updatePayoutStatus(p.id, 'processing')}
+                                className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-[11px] shadow-xs cursor-pointer"
+                              >
+                                Process
+                              </button>
+                            )}
+
+                            {(isPending || isProcessing) && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setPayoutModalRecord(p);
+                                    setPayoutUtrRef('');
+                                    setPayoutNotes('');
+                                  }}
+                                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[11px] shadow-xs cursor-pointer"
+                                >
+                                  Mark Paid (UTR)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => updatePayoutStatus(p.id, 'failed', undefined, undefined, 'Settlement processing failed')}
+                                  className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg font-bold text-[11px] cursor-pointer"
+                                >
+                                  Mark Failed
+                                </button>
+                              </>
+                            )}
+
+                            {isPaid && (
+                              <span className="text-emerald-700 font-bold text-[11px] inline-flex items-center gap-1">
+                                <CheckCircle2 className="w-3.5 h-3.5" /> Paid ✓
+                              </span>
+                            )}
+                            {isFailed && (
+                              <span className="text-rose-600 font-bold text-[11px] inline-flex items-center gap-1">
+                                <XCircle className="w-3.5 h-3.5" /> Failed
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
         </div>
       ) : activeTab === 'wallet' ? (
         /* Agent Wallet Recharge Requests Table */

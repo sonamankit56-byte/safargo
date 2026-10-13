@@ -97,6 +97,8 @@ interface DataContextType {
   requestPayout: (payoutData: Omit<PayoutRequest, 'id' | 'agent_id' | 'agent_name' | 'agent_mobile' | 'status' | 'created_at'>) => Promise<boolean>;
   approvePayout: (payoutId: string, adminReference: string, notes?: string) => Promise<boolean>;
   rejectPayout: (payoutId: string, reason: string) => Promise<boolean>;
+  updatePayoutStatus: (payoutId: string, status: PayoutStatus, reference?: string, date?: string, adminNotes?: string) => Promise<boolean>;
+  createAdminPayout: (payoutData: Omit<PayoutRequest, 'id' | 'created_at'>) => Promise<boolean>;
 
   // Settings & Announcements & Custom Features
   settings: AdminSettings;
@@ -1070,26 +1072,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         (s) => s.agent_id === currentUser.id && s.month_year === currentMonthYear
       );
 
-      const targetMet = confirmedThisMonth >= settings.monthly_target;
-      const agentWithdrawnThisMonth = payoutRequests
-        .filter(
-          (p) =>
-            p.agent_id === currentUser.id &&
-            p.created_at.startsWith(currentMonthYear) &&
-            p.status !== 'rejected'
-        )
-        .reduce((sum, p) => sum + p.amount, 0);
-
-      // 150 Target Salary Model: If agent did not withdraw, they get the full ₹5,000 on Sunday.
-      // If agent withdrew commission during the month, the remaining balance up to ₹5,000 is payable.
-      const payableSalary = targetMet
-        ? Math.max(0, settings.monthly_salary - agentWithdrawnThisMonth)
-        : 0;
+      const monthlyTarget = settings.monthly_target || 280;
+      const targetMet = confirmedThisMonth >= monthlyTarget;
+      // GO USER Business Rule:
+      // Fixed monthly salary: ₹10,000 only on reaching configured target (280 tickets).
+      // Show salary eligibility separately from commission.
+      // Below target, show salary as not earned under this rule; do not silently prorate!
+      // Commission and salary are separate ledger entries.
+      const payableSalary = targetMet ? (settings.monthly_salary || 10000) : 0;
 
       if (existing) {
         if (
           existing.confirmed_bookings !== confirmedThisMonth ||
-          existing.payable_salary !== payableSalary
+          existing.payable_salary !== payableSalary ||
+          existing.target_met !== targetMet
         ) {
           return prev.map((s) =>
             s.id === existing.id
@@ -1097,9 +1093,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   ...s,
                   confirmed_bookings: confirmedThisMonth,
                   target_met: targetMet,
-                  target_bookings: settings.monthly_target,
-                  base_salary: settings.monthly_salary,
+                  target_bookings: monthlyTarget,
+                  base_salary: settings.monthly_salary || 10000,
                   payable_salary: payableSalary,
+                  status: targetMet ? (s.status === 'paid' ? 'paid' : 'eligible') : 'unpaid',
                   updated_at: new Date().toISOString(),
                 }
               : s
@@ -1114,13 +1111,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           agent_name: currentUser.full_name,
           agent_mobile: currentUser.mobile,
           month_year: currentMonthYear,
-          target_bookings: settings.monthly_target,
+          target_bookings: monthlyTarget,
           confirmed_bookings: confirmedThisMonth,
           target_met: targetMet,
-          base_salary: settings.monthly_salary,
+          base_salary: settings.monthly_salary || 10000,
           payable_salary: payableSalary,
-          status: 'unpaid',
-          notes: 'Automatic monthly target tracking (₹5,000 full salary on 150 target without early withdrawal; weekly Sunday payout)',
+          status: targetMet ? 'eligible' : 'unpaid',
+          notes: 'GO USER Rules: 280 tickets target for ₹10,000 salary. Below target: Not earned (no silent proration). Commission tracked separately at ₹20/ticket.',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -1858,12 +1855,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return bMonthYear === currentMonthYear;
     }).length;
 
-    const isTargetMet = currentMonthConfirmed >= settings.monthly_target;
-    // Salary Base Model: 150 bookings guarantees ₹5,000 base salary!
-    // If agent didn't withdraw early, they get the full ₹5,000.
-    const effectiveTotalEarnings = isTargetMet
-      ? Math.max(netCommission, settings.monthly_salary)
-      : netCommission;
+    const monthlyTarget = settings.monthly_target || 280;
+    const isTargetMet = currentMonthConfirmed >= monthlyTarget;
+    // GO USER Rule: Commission and salary are separate ledger entries.
+    // Example at 280 tickets: ₹5,600 commission + ₹10,000 salary = ₹15,600 total earnings
+    const effectiveTotalEarnings = netCommission + (isTargetMet ? (settings.monthly_salary || 10000) : 0);
 
     const availableBalance = Math.max(0, effectiveTotalEarnings - totalWithdrawnOrPending);
 
@@ -1969,6 +1965,99 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     addAuditLog('reject_payout', 'payout_requests', payoutId, { reason });
     warning('Payout Rejected', 'निकासी अनुरोध अस्वीकृत कर दिया गया है।');
+    return true;
+  };
+
+  // SETTLEMENT DESK PAYOUT STATUS MANAGEMENT (Admin only)
+  // Supports Pending, Processing, Paid, Failed with full audit trail
+  const updatePayoutStatus = async (
+    payoutId: string,
+    status: PayoutStatus,
+    reference?: string,
+    date?: string,
+    adminNotes?: string
+  ): Promise<boolean> => {
+    if (!isAdmin) {
+      error('Unauthorized', 'केवल अधिकृत एडमिन ही सेटलमेंट डेस्क पेआउट स्टेटस बदल सकते हैं।');
+      return false;
+    }
+
+    const processedAt = date || new Date().toISOString();
+    setPayoutRequests((prev) =>
+      prev.map((p) =>
+        p.id === payoutId
+          ? {
+              ...p,
+              status,
+              reference: reference || p.reference || p.admin_reference,
+              admin_reference: reference || p.admin_reference || p.reference,
+              date: processedAt,
+              processed_at: processedAt,
+              admin_notes: adminNotes !== undefined ? adminNotes : p.admin_notes,
+              processed_by: currentUser?.id,
+            }
+          : p
+      )
+    );
+
+    if (isSupabaseConfigured) {
+      db.updatePayoutRequest(payoutId, {
+        status,
+        admin_reference: reference,
+        admin_notes: adminNotes,
+        processed_at: processedAt,
+      }).catch((e) => console.error('Supabase updatePayoutStatus error:', e));
+    }
+
+    addAuditLog('update_settlement_payout_status', 'payouts', payoutId, {
+      status,
+      reference,
+      date: processedAt,
+      admin_notes: adminNotes,
+      updated_by: currentUser?.id,
+      updated_by_email: currentUser?.email,
+    });
+
+    const statusLabel =
+      status === 'paid' ? 'सफलतापूर्वक चुकता (Paid)' :
+      status === 'processing' ? 'प्रक्रिया में (Processing)' :
+      status === 'failed' ? 'विफल (Failed)' :
+      status === 'pending' ? 'लंबित (Pending)' : status;
+
+    success('Settlement Status Updated', `पेआउट स्थिति को बदलकर '${statusLabel}' किया गया।`);
+    return true;
+  };
+
+  const createAdminPayout = async (
+    payoutData: Omit<PayoutRequest, 'id' | 'created_at'>
+  ): Promise<boolean> => {
+    if (!isAdmin) {
+      error('Unauthorized', 'केवल अधिकृत एडमिन ही सेटलमेंट डेस्क से नया पेआउट बना सकते हैं।');
+      return false;
+    }
+
+    const nowIso = new Date().toISOString();
+    const newPayout: PayoutRequest = {
+      ...payoutData,
+      id: `payout-${Date.now()}`,
+      created_at: nowIso,
+      created_by: currentUser?.id,
+    };
+
+    setPayoutRequests((prev) => [newPayout, ...prev]);
+
+    if (isSupabaseConfigured) {
+      db.createPayoutRequest(newPayout).catch((e) => console.error('Supabase createAdminPayout sync error:', e));
+    }
+
+    addAuditLog('create_admin_payout', 'payouts', newPayout.id, {
+      agent_name: newPayout.agent_name,
+      amount: newPayout.amount,
+      status: newPayout.status,
+      created_by: currentUser?.id,
+    });
+
+    success('Payout Record Created', `₹${newPayout.amount.toFixed(2)} का नया सेटलमेंट पेआउट दर्ज किया गया।`);
     return true;
   };
 
@@ -3153,6 +3242,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         requestPayout,
         approvePayout,
         rejectPayout,
+        updatePayoutStatus,
+        createAdminPayout,
         walletRecharges,
         agentWalletRecharges,
         walletTransactions,

@@ -19,9 +19,9 @@ import {
 } from '../types';
 
 export const INITIAL_SETTINGS: AdminSettings = {
-  commission_rate: 19.34,
-  monthly_target: 150,
-  monthly_salary: 5000,
+  commission_rate: 20,
+  monthly_target: 280,
+  monthly_salary: 10000,
   referral_bonus: 50,
   referral_required_bookings: 5,
   support_whatsapp: '919876543210',

@@ -127,11 +127,20 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
     );
   }, [agentBookings, currentUser]);
 
-  // Flat ₹20 Commission per bus booking!
+  // GO USER Business Rules: Flat ₹20 Commission & ₹10,000 Fixed Salary at 280 tickets
   const FLAT_GO_COMMISSION = 20;
+  const TARGET_SALARY_TICKETS = 280;
+  const FIXED_MONTHLY_SALARY = 10000;
+
   const confirmedBookings = myGoBookings.filter((b) => b.status === 'confirmed');
   const confirmedCount = confirmedBookings.length;
   const totalCommissionEarned = confirmedCount * FLAT_GO_COMMISSION;
+
+  const remainingSalaryTickets = Math.max(0, TARGET_SALARY_TICKETS - confirmedCount);
+  const isSalaryEligible = confirmedCount >= TARGET_SALARY_TICKETS;
+  const earnedSalary = isSalaryEligible ? FIXED_MONTHLY_SALARY : 0;
+  const totalProjectedEarnings = totalCommissionEarned + earnedSalary;
+  const salaryProgressPercent = Math.min(100, Math.round((confirmedCount / TARGET_SALARY_TICKETS) * 100));
 
   // Swap Source and Destination
   const handleSwapCities = () => {
@@ -481,6 +490,89 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                 </button>
               </div>
 
+            </div>
+
+            {/* GO USER Salary Eligibility & Commission Breakdown Card */}
+            <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 border-2 border-blue-500/40 shadow-2xl space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-500 text-slate-950 font-black text-sm flex items-center justify-center shrink-0 shadow-lg">
+                    ₹10k
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-600 text-white">
+                        GO USER वेतन नियम (Salary Rule)
+                      </span>
+                      {isSalaryEligible ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          🎉 लक्ष्य पूर्ण! ₹10,000 फिक्स्ड वेतन अर्जित
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {remainingSalaryTickets} टिकट बाकी ₹10,000 फिक्स्ड वेतन के लिए
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className="text-base sm:text-lg font-black text-white">
+                      280 कन्फर्म टिकट = ₹10,000 फिक्स्ड वेतन + ₹20/टिकट कमीशन
+                    </h3>
+
+                    <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
+                      <strong>सख्त नियम:</strong> 280 टिकट पूरे होने पर ₹10,000 का फिक्स्ड वेतन मिलता है। 280 से कम होने पर वेतन 'अर्जित नहीं' रहेगा (कोई आंशिक कटौती नहीं)।
+                      280 टिकट पर: <strong>₹5,600 कमीशन (280 × ₹20) + ₹10,000 वेतन = ₹15,600 कुल कमाई</strong>!
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-slate-950/80 border border-blue-500/30 rounded-2xl p-4 text-right shrink-0">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">कुल अनुमानित कमाई</span>
+                  <span className="text-2xl font-black text-amber-400 font-mono">
+                    ₹{totalProjectedEarnings.toLocaleString('en-IN')}
+                  </span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">
+                    ₹{totalCommissionEarned.toLocaleString('en-IN')} कमीशन + ₹{earnedSalary.toLocaleString('en-IN')} वेतन
+                  </span>
+                </div>
+              </div>
+
+              {/* Progress bar towards 280 tickets */}
+              <div className="pt-2 border-t border-slate-800 space-y-1.5">
+                <div className="flex justify-between text-xs font-bold text-slate-300">
+                  <span>प्रगति: {confirmedCount} / {TARGET_SALARY_TICKETS} टिकट ({salaryProgressPercent}%)</span>
+                  <span>
+                    {isSalaryEligible ? 'सैलरी पात्रता: पूर्ण (Eligible)' : `लक्ष्य शेष: ${remainingSalaryTickets} टिकट`}
+                  </span>
+                </div>
+                <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-700">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 shadow-md ${
+                      isSalaryEligible
+                        ? 'bg-gradient-to-r from-emerald-400 to-teal-400'
+                        : 'bg-gradient-to-r from-amber-400 via-orange-500 to-blue-500'
+                    }`}
+                    style={{ width: `${salaryProgressPercent}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Subtle Animation Toast Banner: You earned ₹20 commission */}
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-transparent border border-amber-500/30 flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-amber-400/20 text-amber-300 flex items-center justify-center font-black animate-pulse">
+                  ⚡
+                </div>
+                <span className="text-amber-200 font-bold">
+                  "You earned ₹20 commission" — हर कन्फर्म बुकिंग पर फ्लैट ₹20 नकद कमीशन स्वतः क्रेडिट होता है!
+                </span>
+              </div>
+              <span className="px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 text-[10px] font-mono font-bold shrink-0">
+                100% Guaranteed
+              </span>
             </div>
 
             {/* System Live Updates Section ("system update hoga") */}

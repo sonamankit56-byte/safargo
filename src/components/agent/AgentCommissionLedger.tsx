@@ -72,13 +72,14 @@ export const AgentCommissionLedger: React.FC = () => {
     .filter((p) => p.agent_id === currentUser?.id && p.status === 'pending')
     .reduce((sum, p) => sum + p.amount, 0);
 
-  // Check if 150 target is met
+  // Check if 280 target is met
   const isTargetMet = currentMonthConfirmed >= targetCount;
-  // Salary Base Model: 150 bookings guarantees ₹5,000 base salary!
-  // If agent did not withdraw along the way, they receive the full ₹5,000 on Sunday.
-  const effectiveTotalEarnings = isTargetMet
-    ? Math.max(netCommission, settings.monthly_salary)
-    : netCommission;
+  // GO USER Business Rule:
+  // Commission and salary are separate ledger entries.
+  // Example: At 280 tickets: ₹5,600 commission + ₹10,000 salary = ₹15,600 total earnings before adjustments.
+  // Below target: salary is not earned (0); do not silently prorate!
+  const earnedSalary = isTargetMet ? settings.monthly_salary : 0;
+  const effectiveTotalEarnings = netCommission + earnedSalary;
 
   const availableBalance = Math.max(0, effectiveTotalEarnings - approvedPayouts - pendingPayouts);
 
@@ -156,34 +157,34 @@ export const AgentCommissionLedger: React.FC = () => {
       </div>
 
       {/* Sunday Payout Cycle & Salary Base Model Guidance */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-5 border border-indigo-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg">
+      <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white rounded-2xl p-5 border border-blue-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg">
         <div className="flex items-start gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-indigo-500 text-white flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
             <Calendar className="w-5 h-5" />
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded bg-indigo-500 text-white">
-                साप्ताहिक पेआउट दिवस: हर रविवार (Every Sunday)
+              <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded bg-blue-600 text-white">
+                GO USER वित्तीय नियम (Financial Rule)
               </span>
               {isTargetMet ? (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  🎯 150 लक्ष्य पूर्ण! ₹5,000 सैलरी बेस अनलॉक
+                  🎯 280 लक्ष्य पूर्ण! ₹10,000 फिक्स्ड सैलरी अनलॉक
                 </span>
               ) : (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  {remaining} बुकिंग शेष ₹5,000 सैलरी बेस हेतु
+                  {remaining} टिकट बाकी ₹10,000 सैलरी के लिए
                 </span>
               )}
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
-              <strong>सैलरी बेस नियम:</strong> 150 बुकिंग पूरी करने पर यदि आप बीच में विथड्रॉल नहीं करते हैं, तो आगामी रविवार को पूरा ₹5,000 एकमुश्त मिलेगा। यदि आप महीने के दौरान आंशिक निकासी कर चुके हैं (अब तक ₹{(approvedPayouts + pendingPayouts).toFixed(2)}), तो 150 टारगेट होने पर शेष राशि आगामी रविवार को ट्रांसफर होगी।
+              <strong>वेतन पात्रता नियम:</strong> 280 बुकिंग्स पूरी होने पर ₹10,000 का फिक्स्ड मासिक वेतन मिलेगा। लक्ष्य से कम रहने पर वेतन 'अर्जित नहीं' रहेगा (कोई आंशिक कटौती नहीं)। कमीशन फ्लैट ₹20 प्रति टिकट अलग से लेज़र में जुड़ता है। उदाहरण: 280 टिकट पर <strong>₹5,600 कमीशन + ₹10,000 वेतन = ₹15,600 कुल कमाई</strong>।
             </p>
           </div>
         </div>
 
         <div className="text-right shrink-0">
-          <span className="text-[11px] text-indigo-200 block">आगामी रविवार देय राशि</span>
+          <span className="text-[11px] text-blue-200 block">वर्तमान निकासी योग्य शेष</span>
           <span className="text-xl font-black text-amber-300">
             ₹{availableBalance.toFixed(2)}
           </span>
@@ -191,41 +192,41 @@ export const AgentCommissionLedger: React.FC = () => {
       </div>
 
       {/* Target Progress Card */}
-      <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden border border-blue-500/40">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-semibold backdrop-blur-sm">
               <Award className="w-4 h-4" />
-              मासिक लक्ष्य एवं सैलरी बेस (Monthly Salary Base) • {currentMonth}
+              मासिक लक्ष्य एवं फिक्स्ड वेतन (Monthly Salary Base) • {currentMonth}
             </div>
             <h2 className="text-2xl sm:text-3xl font-black">
-              150 बुकिंग्स = ₹{settings.monthly_salary.toLocaleString('en-IN')} की गारंटीड सैलरी
+              280 बुकिंग्स = ₹{settings.monthly_salary.toLocaleString('en-IN')} का फिक्स्ड वेतन
             </h2>
-            <p className="text-orange-100 text-xs sm:text-sm max-w-2xl leading-relaxed">
-              सफ़ारगो सैलरी बेस मॉडल: बिना विथड्रॉल के 150 बुकिंग पूरी करने पर पूरा ₹{settings.monthly_salary.toLocaleString('en-IN')} का फिक्स्ड वेतन हर रविवार चक्र में सीधे आपके बैंक/UPI में! सामान्य कमीशन ₹{settings.commission_rate.toFixed(2)} प्रति टिकट।
+            <p className="text-blue-100 text-xs sm:text-sm max-w-2xl leading-relaxed">
+              GO USER सैलरी मॉडल: 280 बुकिंग पूरी करने पर पूरा ₹{settings.monthly_salary.toLocaleString('en-IN')} का फिक्स्ड वेतन अलग से अर्जित होता है। साथ ही फ्लैट ₹{settings.commission_rate.toFixed(2)} प्रति टिकट कमीशन सुरक्षित रहता है!
             </p>
           </div>
 
           <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-5 text-center min-w-48">
-            <span className="text-xs text-orange-200 uppercase font-bold tracking-wider block">Target Status</span>
+            <span className="text-xs text-blue-200 uppercase font-bold tracking-wider block">Target Status</span>
             <span className="text-3xl font-black mt-1 block">
               {currentMonthConfirmed} / {targetCount}
             </span>
-            <span className="text-xs text-orange-100 mt-1 block font-medium">
-              {remaining > 0 ? `${remaining} बुकिंग्स शेष` : 'बधाई! ₹5,000 सैलरी बेस अनलॉक 🎉'}
+            <span className="text-xs text-blue-100 mt-1 block font-medium">
+              {remaining > 0 ? `${remaining} बुकिंग्स शेष` : 'बधाई! ₹10,000 फिक्स्ड वेतन अनलॉक 🎉'}
             </span>
           </div>
         </div>
 
         {/* Progress bar */}
         <div className="mt-6 space-y-1.5">
-          <div className="flex justify-between text-xs font-bold text-orange-100">
+          <div className="flex justify-between text-xs font-bold text-blue-100">
             <span>प्रगति: {progressPercent}%</span>
-            <span>लक्ष्य: {targetCount} Bookings (₹5,000 Guaranteed Base)</span>
+            <span>लक्ष्य: {targetCount} Bookings (₹10,000 फिक्स्ड वेतन)</span>
           </div>
           <div className="w-full h-3 bg-black/20 rounded-full overflow-hidden p-0.5">
             <div
-              className="h-full bg-white rounded-full transition-all duration-500 shadow-sm"
+              className="h-full bg-gradient-to-r from-amber-400 to-emerald-400 rounded-full transition-all duration-500 shadow-sm"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
