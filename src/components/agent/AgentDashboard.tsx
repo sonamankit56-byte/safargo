@@ -43,8 +43,9 @@ interface AgentDashboardProps {
 
 export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) => {
   const { currentUser, isApprovedAgent } = useAuth();
-  const { agentBookings, agentCommissions, agentSalaryRecord, settings, agentWalletBalance, agentWalletRecharges } = useData();
+  const { agentBookings, agentCommissions, agentSalaryRecord, settings, agentWalletBalance, agentWalletRecharges, agentWalletTransactions } = useData();
   const [showRechargeModal, setShowRechargeModal] = useState(false);
+  const [walletHistoryFilter, setWalletHistoryFilter] = useState<'all' | 'credit' | 'debit' | 'pending'>('all');
   const [isKycModalOpen, setIsKycModalOpen] = useState(false);
   const [isPosterModalOpen, setIsPosterModalOpen] = useState(false);
   const [isOffersModalOpen, setIsOffersModalOpen] = useState(false);
@@ -596,6 +597,238 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
                 </button>
               </div>
             ))}
+
+        {/* 📜 WALLET TRANSACTION HISTORY & PASSBOOK */}
+        <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300">
+                <CreditCard className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm sm:text-base font-black text-white flex items-center gap-2">
+                  <span>📜 वॉलेट ट्रांजेक्शन हिस्ट्री (Wallet Passbook)</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 font-bold">
+                    Live Statement
+                  </span>
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  सभी वॉलेट रिचार्ज (+ जमा), बस टिकट बुकिंग (- कटौती) और वेरिफिकेशन स्टेटस का पूरा हिसाब
+                </p>
+              </div>
+            </div>
+
+            {/* Filter Pills */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                { id: 'all', label: 'सभी (All)' },
+                { id: 'credit', label: '+ जमा (Added)' },
+                { id: 'debit', label: '- टिकट (Used)' },
+                { id: 'pending', label: '⏳ Pending' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setWalletHistoryFilter(tab.id as 'all' | 'credit' | 'debit' | 'pending')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                    walletHistoryFilter === tab.id
+                      ? 'bg-emerald-500 text-slate-950 shadow'
+                      : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Mini Summary Counters */}
+          <div className="grid grid-cols-3 gap-2.5 text-center">
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5">
+              <span className="text-[10px] text-slate-400 block font-semibold">कुल वेरीफाइड रिचार्ज (+ जमा)</span>
+              <span className="text-sm sm:text-base font-black text-emerald-400">
+                +₹
+                {(agentWalletRecharges || [])
+                  .filter((r) => r.status === 'approved')
+                  .reduce((sum, r) => sum + (Number(r.amount) || 0), 0)
+                  .toLocaleString('en-IN')}
+              </span>
+            </div>
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5">
+              <span className="text-[10px] text-slate-400 block font-semibold">बस टिकट में उपयोग (- खर्च)</span>
+              <span className="text-sm sm:text-base font-black text-orange-400">
+                -₹
+                {(agentWalletTransactions || [])
+                  .filter((t) => t.type === 'ticket_booking' || t.amount < 0)
+                  .reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0)
+                  .toLocaleString('en-IN')}
+              </span>
+            </div>
+            <div className="bg-slate-900/90 border border-emerald-500/30 rounded-xl p-2.5">
+              <span className="text-[10px] text-emerald-300 block font-semibold">उपलब्ध वॉलेट बैलेंस</span>
+              <span className="text-sm sm:text-base font-black text-white">
+                ₹{(agentWalletBalance || 0).toLocaleString('en-IN')}
+              </span>
+            </div>
+          </div>
+
+          {/* Unified Chronological Passbook Entries */}
+          {(() => {
+            type PassbookEntry = {
+              id: string;
+              title: string;
+              subtitle: string;
+              amount: number;
+              isCredit: boolean;
+              status: 'pending' | 'verified' | 'rejected' | 'debit';
+              statusLabel: string;
+              reference: string;
+              balanceAfter?: number;
+              createdAt: string;
+            };
+
+            const entries: PassbookEntry[] = [];
+
+            // 1. Add Pending & Rejected recharge requests from agentWalletRecharges
+            (agentWalletRecharges || []).forEach((r) => {
+              if (r.status === 'pending' || r.status === 'rejected') {
+                entries.push({
+                  id: `rec-${r.id}`,
+                  title:
+                    r.status === 'pending'
+                      ? 'वॉलेट रिचार्ज अनुरोध (वेरिफिकेशन जारी)'
+                      : 'वॉलेट रिचार्ज अस्वीकृत (Rejected)',
+                  subtitle: r.admin_notes
+                    ? `नोट: ${r.admin_notes}`
+                    : `${r.payment_method === 'qr_upi' ? 'UPI / QR पेमेंट' : 'बैंक ट्रांसफर'} • 10-मिनट वेरिफिकेशन डेस्क`,
+                  amount: Number(r.amount) || 0,
+                  isCredit: true,
+                  status: r.status === 'pending' ? 'pending' : 'rejected',
+                  statusLabel: r.status === 'pending' ? '⏳ PENDING' : '❌ REJECTED',
+                  reference: `UTR: ${r.utr_number}`,
+                  createdAt: r.created_at,
+                });
+              }
+            });
+
+            // 2. Add all completed transactions (Verified Recharges, Ticket Bookings, Refunds, Adjustments)
+            (agentWalletTransactions || []).forEach((t) => {
+              const isCred = t.amount >= 0 && t.type !== 'ticket_booking';
+              entries.push({
+                id: `txn-${t.id}`,
+                title:
+                  t.type === 'recharge'
+                    ? 'वॉलेट में पैसे जमा (Verified & Credited)'
+                    : t.type === 'ticket_booking'
+                    ? 'बस टिकट बुकिंग में वॉलेट उपयोग'
+                    : t.type === 'refund'
+                    ? 'टिकट रिफंड वॉलेट में वापस जमा'
+                    : 'एडमिन वॉलेट समायोजन (Adjustment)',
+                subtitle: t.description || '',
+                amount: Math.abs(Number(t.amount) || 0),
+                isCredit: isCred,
+                status: isCred ? 'verified' : 'debit',
+                statusLabel:
+                  t.type === 'recharge'
+                    ? '✅ VERIFIED & ADDED'
+                    : t.type === 'ticket_booking'
+                    ? '🚌 TICKET BOOKED'
+                    : isCred
+                    ? '✅ CREDITED'
+                    : '➖ DEBITED',
+                reference: t.booking_code
+                  ? `Booking: ${t.booking_code}`
+                  : t.recharge_id
+                  ? `ID: ${t.recharge_id}`
+                  : `TXN: ${t.id}`,
+                balanceAfter: t.balance_after,
+                createdAt: t.created_at,
+              });
+            });
+
+            const sortedEntries = entries
+              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+              .filter((item) => {
+                if (walletHistoryFilter === 'credit') return item.status === 'verified';
+                if (walletHistoryFilter === 'debit') return item.status === 'debit';
+                if (walletHistoryFilter === 'pending') return item.status === 'pending' || item.status === 'rejected';
+                return true;
+              });
+
+            if (sortedEntries.length === 0) {
+              return (
+                <div className="text-center py-6 bg-slate-900/50 rounded-xl border border-slate-800/80 text-slate-400 text-xs">
+                  अभी इस श्रेणी में कोई वॉलेट ट्रांजेक्शन नहीं है। "+ पैसे जोड़ें" पर क्लिक करके वॉलेट रिचार्ज करें।
+                </div>
+              );
+            }
+
+            return (
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                {sortedEntries.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`rounded-xl p-3 border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 transition ${
+                      item.status === 'pending'
+                        ? 'bg-amber-500/10 border-amber-500/30'
+                        : item.status === 'verified'
+                        ? 'bg-emerald-500/10 border-emerald-500/30'
+                        : item.status === 'debit'
+                        ? 'bg-slate-900/90 border-slate-700/80'
+                        : 'bg-rose-500/10 border-rose-500/30'
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                            item.status === 'pending'
+                              ? 'bg-amber-400 text-slate-950'
+                              : item.status === 'verified'
+                              ? 'bg-emerald-400 text-slate-950'
+                              : item.status === 'debit'
+                              ? 'bg-orange-500 text-white'
+                              : 'bg-rose-500 text-white'
+                          }`}
+                        >
+                          {item.statusLabel}
+                        </span>
+                        <span className="text-xs font-bold text-white">{item.title}</span>
+                        <span className="text-[11px] font-mono text-slate-300 bg-slate-800/90 px-2 py-0.5 rounded">
+                          {item.reference}
+                        </span>
+                      </div>
+                      {item.subtitle && <p className="text-[11px] text-slate-300">{item.subtitle}</p>}
+                      <p className="text-[10px] text-slate-400">
+                        🕒 {new Date(item.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+                      </p>
+                    </div>
+
+                    <div className="text-left sm:text-right shrink-0">
+                      <div
+                        className={`text-base font-black ${
+                          item.status === 'pending'
+                            ? 'text-amber-300'
+                            : item.status === 'rejected'
+                            ? 'text-rose-400 line-through'
+                            : item.isCredit
+                            ? 'text-emerald-400'
+                            : 'text-orange-400'
+                        }`}
+                      >
+                        {item.isCredit ? '+' : '-'}₹{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </div>
+                      {typeof item.balanceAfter === 'number' && item.status !== 'pending' && (
+                        <span className="text-[10px] text-slate-400 block">
+                          शेष बैलेंस: ₹{item.balanceAfter.toLocaleString('en-IN')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
       </div>
 
       {/* Target & Fixed Salary Progress Card */}

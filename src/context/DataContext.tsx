@@ -700,12 +700,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
   }, [walletRecharges, currentUser]);
 
-  // Agent's Wallet Transactions Filter
+  // Agent's Wallet Transactions Filter (self-healing: includes approved recharges from Firestore/multi-tab)
   const agentWalletTransactions = useMemo(() => {
     if (!currentUser) return [];
     if (currentUser.role === 'admin') return walletTransactions;
-    return walletTransactions.filter((t) => t.agent_id === currentUser.id);
-  }, [walletTransactions, currentUser]);
+    const myRechargeIds = new Set(agentWalletRecharges.map((r) => r.id));
+    const directTxns = walletTransactions.filter(
+      (t) => t.agent_id === currentUser.id || (t.recharge_id && myRechargeIds.has(t.recharge_id))
+    );
+    const existingRechargeIds = new Set(directTxns.map((t) => t.recharge_id).filter(Boolean));
+    const synthesizedFromApproved: WalletTransaction[] = agentWalletRecharges
+      .filter((r) => r.status === 'approved' && !existingRechargeIds.has(r.id))
+      .map((r) => ({
+        id: `wtx-sync-${r.id}`,
+        agent_id: r.agent_id || currentUser.id,
+        amount: Number(r.amount) || 0,
+        type: 'recharge' as const,
+        recharge_id: r.id,
+        description: `वॉलेट रिचार्ज सत्यापित (UTR: ${r.utr_number})`,
+        balance_after: Number(r.amount) || 0,
+        created_at: r.approved_at || r.created_at,
+      }));
+    return [...directTxns, ...synthesizedFromApproved].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }, [walletTransactions, agentWalletRecharges, currentUser]);
 
   // Agent's Viral Promotion Claims Filter
   const agentPromotionClaims = useMemo(() => {

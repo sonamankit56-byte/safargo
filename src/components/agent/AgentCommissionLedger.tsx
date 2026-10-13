@@ -31,7 +31,10 @@ export const AgentCommissionLedger: React.FC = () => {
     salaryRecords,
     settings,
     agentBookings,
-    agentPayoutRequests
+    agentPayoutRequests,
+    agentWalletBalance,
+    agentWalletRecharges,
+    agentWalletTransactions
   } = useData();
 
   const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
@@ -446,6 +449,140 @@ export const AgentCommissionLedger: React.FC = () => {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* 📜 Prepaid Wallet Transaction History & Passbook Table */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+              <Wallet className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">
+                वॉलेट ट्रांजेक्शन हिस्ट्री एवं पासबुक (Wallet Transaction History)
+              </h2>
+              <p className="text-xs text-slate-500">
+                आपके वॉलेट रिचार्ज (+ जमा), बस टिकट बुकिंग (- कटौती) और वेरिफिकेशन स्टेटस का पूरा रिकॉर्ड
+              </p>
+            </div>
+          </div>
+          <div className="bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-xl text-right">
+            <span className="text-[10px] font-bold text-emerald-700 uppercase block">उपलब्ध वॉलेट बैलेंस</span>
+            <span className="text-lg font-black text-emerald-700">
+              ₹{(agentWalletBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </span>
+          </div>
+        </div>
+
+        {(agentWalletRecharges || []).length === 0 && (agentWalletTransactions || []).length === 0 ? (
+          <div className="p-10 text-center text-slate-500 text-xs">
+            अभी तक कोई वॉलेट ट्रांजेक्शन या रिचार्ज दर्ज नहीं है। डैशबोर्ड से वॉलेट रिचार्ज करने पर यहाँ पूरा रिकॉर्ड दिखेगा।
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
+                <tr>
+                  <th className="p-4">प्रकार / विवरण (Type)</th>
+                  <th className="p-4">UTR / बुकिंग आईडी</th>
+                  <th className="p-4">राशि (Amount)</th>
+                  <th className="p-4">स्टेटस (Status)</th>
+                  <th className="p-4">दिनांक एवं समय</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {/* Pending & Rejected Recharges */}
+                {(agentWalletRecharges || [])
+                  .filter((r) => r.status === 'pending' || r.status === 'rejected')
+                  .map((r) => (
+                    <tr key={`rec-${r.id}`} className="hover:bg-slate-50 transition">
+                      <td className="p-4 font-bold text-slate-900">
+                        वॉलेट रिचार्ज अनुरोध ({r.payment_method === 'qr_upi' ? 'UPI / QR' : 'Bank'})
+                      </td>
+                      <td className="p-4 font-mono text-slate-700">UTR: {r.utr_number}</td>
+                      <td className="p-4 font-black text-sm text-amber-600">
+                        +₹{(Number(r.amount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="p-4">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            r.status === 'pending'
+                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                              : 'bg-rose-50 text-rose-700 border border-rose-200'
+                          }`}
+                        >
+                          {r.status === 'pending' ? '⏳ Pending Verification' : '❌ Rejected'}
+                        </span>
+                      </td>
+                      <td className="p-4 text-slate-500">
+                        {new Date(r.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+                      </td>
+                    </tr>
+                  ))}
+
+                {/* Completed Wallet Transactions (Verified Recharges + Bus Ticket Bookings) */}
+                {(agentWalletTransactions || []).map((t) => {
+                  const isCred = t.amount >= 0 && t.type !== 'ticket_booking';
+                  return (
+                    <tr key={`txn-${t.id}`} className="hover:bg-slate-50 transition">
+                      <td className="p-4">
+                        <div className="font-bold text-slate-900">
+                          {t.type === 'recharge'
+                            ? 'वॉलेट रिचार्ज जमा (Verified & Credited)'
+                            : t.type === 'ticket_booking'
+                            ? 'बस टिकट बुकिंग में वॉलेट उपयोग'
+                            : t.type === 'refund'
+                            ? 'टिकट रिफंड वॉलेट में जमा'
+                            : 'वॉलेट समायोजन (Adjustment)'}
+                        </div>
+                        {t.description && <div className="text-[11px] text-slate-500">{t.description}</div>}
+                      </td>
+                      <td className="p-4 font-mono font-bold text-slate-700">
+                        {t.booking_code || t.recharge_id || t.id}
+                      </td>
+                      <td className="p-4">
+                        <span
+                          className={`font-black text-sm ${
+                            isCred ? 'text-emerald-600' : 'text-orange-600'
+                          }`}
+                        >
+                          {isCred ? '+' : '-'}₹
+                          {Math.abs(Number(t.amount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                        {typeof t.balance_after === 'number' && (
+                          <span className="block text-[10px] text-slate-400">
+                            शेष: ₹{t.balance_after.toLocaleString('en-IN')}
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            isCred
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-orange-50 text-orange-700 border border-orange-200'
+                          }`}
+                        >
+                          {t.type === 'recharge'
+                            ? '✅ Verified & Credited'
+                            : t.type === 'ticket_booking'
+                            ? '🚌 Ticket Booked'
+                            : isCred
+                            ? '✅ Credited'
+                            : '➖ Debited'}
+                        </span>
+                      </td>
+                      <td className="p-4 text-slate-500">
+                        {new Date(t.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
