@@ -16,6 +16,9 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onNavigateTab 
   const { currentUser, role } = useAuth();
   const { agentWalletBalance } = useData();
 
+  // Strictly only show BottomNav when user is logged in
+  if (!currentUser) return null;
+
   // Determine appropriate dashboard tab for the user's role
   const getDashboardTab = () => {
     if (!currentUser) return 'home';

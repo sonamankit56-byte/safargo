@@ -159,7 +159,7 @@ const AppContent: React.FC = () => {
       {/* Main Content View Container */}
       <main className="flex-1 pb-16">
         {currentTab === 'go-wallet' || currentTab === 'go_wallet' ? (
-          <GoWalletHub onNavigate={setCurrentTab} />
+          <GoWalletHub onNavigate={setCurrentTab} onOpenAuth={handleOpenAuth} />
         ) : currentTab === 'track-order' ? (
           <FlipkartOrderTrackingView
             orderId={activeTrackOrderId}

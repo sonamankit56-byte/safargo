@@ -119,10 +119,54 @@ export const Go3DLogoBadge: React.FC<{
 
 interface GoWalletHubProps {
   onNavigate?: (tab: string) => void;
+  onOpenAuth?: (initialTab?: 'login' | 'register' | 'promoter_login') => void;
 }
 
-export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate }) => {
+export const GoWalletHub: React.FC<GoWalletHubProps> = ({ onNavigate, onOpenAuth }) => {
   const { currentUser, role, isAdmin } = useAuth();
+
+  // If user is not logged in, show Login Required screen immediately (no wallet options for guests)
+  if (!currentUser) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-16 text-center space-y-6">
+        <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-amber-400 via-orange-500 to-rose-600 flex items-center justify-center mx-auto shadow-xl border-2 border-amber-200">
+          <Wallet className="w-10 h-10 text-white" />
+        </div>
+        <div className="space-y-2">
+          <div className="flex justify-center">
+            <Go3DLogoBadge size="lg" showWalletText={true} exclusive={true} />
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 mt-3">
+            Go Wallet एक्सेस करने के लिए कृपया लॉगिन करें
+          </h2>
+          <p className="text-xs text-slate-600 max-w-sm mx-auto leading-relaxed">
+            Go Wallet बैलेंस देखने, पैसे जोड़ने, बस टिकट बुक करने या बैंक निकासी के लिए अपने अधिकृत मोबाइल नंबर से लॉगिन करें।
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+          <button
+            onClick={() => {
+              if (onOpenAuth) onOpenAuth('login');
+              else if (onNavigate) onNavigate('home');
+            }}
+            className="px-6 py-3 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-black text-xs shadow-lg transition cursor-pointer active:scale-95"
+          >
+            🔑 अभी लॉगिन करें (Login) ➔
+          </button>
+          <button
+            onClick={() => {
+              if (onOpenAuth) onOpenAuth('register');
+              else if (onNavigate) onNavigate('home');
+            }}
+            className="px-6 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition cursor-pointer"
+          >
+            नया अकाउंट बनाएं (Register)
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const {
     agentWalletBalance,
     agentWalletRecharges,
