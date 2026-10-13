@@ -61,9 +61,15 @@ export const AutoBusBookingCheckoutModal: React.FC<AutoBusBookingCheckoutModalPr
   const [customerAge, setCustomerAge] = useState('28');
   const [customerGender, setCustomerGender] = useState<'M' | 'F' | 'O'>('M');
   const [paymentOption, setPaymentOption] = useState<'wallet' | 'upi'>(
-    role === 'agent' && agentWalletBalance >= totalFare ? 'wallet' : 'upi'
+    agentWalletBalance >= totalFare ? 'wallet' : 'upi'
   );
   const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    if (agentWalletBalance >= totalFare) {
+      setPaymentOption('wallet');
+    }
+  }, [agentWalletBalance, totalFare]);
 
   // 5-Minute Countdown Timer
   useEffect(() => {

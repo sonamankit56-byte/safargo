@@ -65,7 +65,9 @@ export const ManualBookingForm: React.FC = () => {
   const [createdBooking, setCreatedBooking] = useState<Booking | null>(null);
 
   // Advance Payment Mode States (SafarGo QR vs Agent Wallet Min ₹2,000)
-  const [paymentMode, setPaymentMode] = useState<'safargo_qr' | 'agent_wallet'>('safargo_qr');
+  const [paymentMode, setPaymentMode] = useState<'safargo_qr' | 'agent_wallet'>(
+    agentWalletBalance > 0 ? 'agent_wallet' : 'safargo_qr'
+  );
   const [paymentUtr, setPaymentUtr] = useState('');
   const [paymentScreenshot, setPaymentScreenshot] = useState('');
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
@@ -206,14 +208,6 @@ export const ManualBookingForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!isApprovedAgent && !isAdmin) {
-      warning(
-        'Account Pending Approval',
-        'Your agent account must be approved by SafarGo admin before you can submit manual bookings.'
-      );
-      return;
-    }
 
     // Validation: 10 digit Indian phone number
     const cleanMobile = customerMobile.replace(/\D/g, '');

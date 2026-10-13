@@ -48,7 +48,14 @@ import { useToast } from './ToastContext';
 import { db } from '../lib/supabaseService';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { safeSetItem, sanitizeWalletRecharges, sanitizeBookings } from '../lib/storageUtils';
-import { saveWalletRechargeToFirestore, saveBookingToFirestore, uploadScreenshotToFirebase } from '../lib/firebaseService';
+import { isFirebaseConfigured } from '../lib/firebase';
+import {
+  saveWalletRechargeToFirestore,
+  saveBookingToFirestore,
+  uploadScreenshotToFirebase,
+  fetchFirestoreWalletRecharges,
+  fetchFirestoreBookings,
+} from '../lib/firebaseService';
 
 interface DataContextType {
   // Bookings
@@ -235,7 +242,7 @@ const STORAGE_KEY_PROMO_CODES = 'safargo_promo_codes_v1';
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, isAdmin, isApprovedAgent, allProfiles, updateProfile } = useAuth();
+  const { currentUser, isAdmin, isApprovedAgent, allProfiles, updateProfile, updateUserProfile } = useAuth();
   const { success, error, info, warning } = useToast();
 
 
@@ -512,6 +519,84 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadLiveSupabaseData();
   }, []);
 
+  // Multi-Tab Storage Sync: Instantly reflect Admin approvals & Agent requests across tabs
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY_WALLET_RECHARGES && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setWalletRecharges(parsed);
+        } catch (err) {
+          console.error('Wallet recharges storage sync error:', err);
+        }
+      }
+      if (e.key === STORAGE_KEY_WALLET_TX && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setWalletTransactions(parsed);
+        } catch (err) {
+          console.error('Wallet tx storage sync error:', err);
+        }
+      }
+      if (e.key === STORAGE_KEY_BOOKINGS && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setBookings(parsed);
+        } catch (err) {
+          console.error('Bookings storage sync error:', err);
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // Firebase Firestore Live Sync for Wallet Recharges & Bookings (runs on mount and every 6s)
+  useEffect(() => {
+    if (!isFirebaseConfigured) return;
+
+    const syncFirestoreData = async () => {
+      try {
+        const remoteRecharges = await fetchFirestoreWalletRecharges();
+        if (remoteRecharges && remoteRecharges.length > 0) {
+          setWalletRecharges((prev) => {
+            const mergedMap = new Map<string, WalletRechargeRequest>();
+            prev.forEach((item) => mergedMap.set(item.id, item));
+            remoteRecharges.forEach((remote) => {
+              const existing = mergedMap.get(remote.id);
+              if (!existing) {
+                mergedMap.set(remote.id, remote);
+              } else {
+                // Approved or rejected status always takes precedence over pending
+                const resolvedStatus =
+                  existing.status === 'approved' || remote.status === 'approved'
+                    ? 'approved'
+                    : existing.status === 'rejected' || remote.status === 'rejected'
+                    ? 'rejected'
+                    : existing.status;
+                mergedMap.set(remote.id, {
+                  ...existing,
+                  ...remote,
+                  status: resolvedStatus,
+                  screenshot_url: existing.screenshot_url || remote.screenshot_url,
+                });
+              }
+            });
+            return Array.from(mergedMap.values()).sort(
+              (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+          });
+        }
+      } catch (err) {
+        console.warn('[Firestore Sync] Wallet recharges sync warning:', err);
+      }
+    };
+
+    syncFirestoreData();
+    const interval = setInterval(syncFirestoreData, 6000);
+    return () => clearInterval(interval);
+  }, []);
+
 
   // Log helper
   const addAuditLog = useCallback(
@@ -589,7 +674,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const agentBookings = useMemo(() => {
     if (!currentUser) return [];
     if (currentUser.role === 'admin') return bookings;
-    return bookings.filter((b) => b.agent_id === currentUser.id);
+    return bookings.filter((b) => b.agent_id === currentUser.id || (currentUser.mobile && b.agent_mobile === currentUser.mobile));
   }, [bookings, currentUser]);
 
   // Agent's Commissions Filter
@@ -610,7 +695,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const agentWalletRecharges = useMemo(() => {
     if (!currentUser) return [];
     if (currentUser.role === 'admin') return walletRecharges;
-    return walletRecharges.filter((r) => r.agent_id === currentUser.id);
+    return walletRecharges.filter(
+      (r) => r.agent_id === currentUser.id || (currentUser.mobile && r.agent_mobile === currentUser.mobile)
+    );
   }, [walletRecharges, currentUser]);
 
   // Agent's Wallet Transactions Filter
@@ -627,10 +714,71 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return promotionClaims.filter((p) => p.user_id === currentUser.id);
   }, [promotionClaims, currentUser]);
 
-  // Agent's live wallet balance
+  // Helper to compute any agent's true live wallet balance from approved recharges & transactions
+  const computeWalletBalanceForAgent = useCallback(
+    (agentId?: string, agentMobile?: string, profileBalance?: number): number => {
+      if (!agentId && !agentMobile) return 0;
+
+      const approvedRechargesTotal = walletRecharges
+        .filter(
+          (r) =>
+            r.status === 'approved' &&
+            (r.agent_id === agentId || (agentMobile && r.agent_mobile === agentMobile))
+        )
+        .reduce((sum, r) => sum + Number(r.amount || 0), 0);
+
+      const ticketDebitsTotal = walletTransactions
+        .filter((t) => t.agent_id === agentId && t.type === 'ticket_booking')
+        .reduce((sum, t) => sum + Math.abs(Number(t.amount || 0)), 0);
+
+      const refundsTotal = walletTransactions
+        .filter((t) => t.agent_id === agentId && t.type === 'refund')
+        .reduce((sum, t) => sum + Math.abs(Number(t.amount || 0)), 0);
+
+      const adjustmentsTotal = walletTransactions
+        .filter((t) => t.agent_id === agentId && t.type === 'adjustment')
+        .reduce(
+          (sum, t) =>
+            sum +
+            (t.description?.includes('डेबिट (-)')
+              ? -Math.abs(Number(t.amount || 0))
+              : Math.abs(Number(t.amount || 0))),
+          0
+        );
+
+      if (approvedRechargesTotal > 0) {
+        const ledgerBalance = Math.max(
+          0,
+          approvedRechargesTotal + refundsTotal + adjustmentsTotal - ticketDebitsTotal
+        );
+        return ledgerBalance;
+      }
+
+      return Math.max(0, (profileBalance || 0) + refundsTotal + adjustmentsTotal - ticketDebitsTotal);
+    },
+    [walletRecharges, walletTransactions]
+  );
+
+  // Agent's live wallet balance (automatically includes all approved recharges)
   const agentWalletBalance = useMemo(() => {
-    return currentUser?.wallet_balance ?? 0;
-  }, [currentUser?.wallet_balance]);
+    if (!currentUser) return 0;
+    return computeWalletBalanceForAgent(
+      currentUser.id,
+      currentUser.mobile,
+      currentUser.wallet_balance
+    );
+  }, [currentUser, computeWalletBalanceForAgent]);
+
+  // Automatically keep currentUser.wallet_balance in AuthContext synced with agentWalletBalance
+  useEffect(() => {
+    if (
+      currentUser &&
+      typeof agentWalletBalance === 'number' &&
+      (currentUser.wallet_balance || 0) !== agentWalletBalance
+    ) {
+      updateUserProfile(currentUser.id, { wallet_balance: agentWalletBalance });
+    }
+  }, [currentUser, agentWalletBalance, updateUserProfile]);
 
 
   // Current month's salary record for current agent
@@ -734,14 +882,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         error('Not Authenticated', 'Please log in to submit a booking.');
         return null;
       }
-
-      if (!isApprovedAgent && !isAdmin) {
-        error(
-          'Account Pending Approval',
-          'Your agent account is pending verification. Only approved agents can create booking requests.'
-        );
-        return null;
-      }
     }
 
     const activeActor =
@@ -777,7 +917,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let paymentStatus: 'paid' | 'pending_verification' = 'pending_verification';
 
     if (paymentMode === 'agent_wallet') {
-      const currentWalletBal = activeActor.wallet_balance || 0;
+      const currentWalletBal = Math.max(
+        agentWalletBalance,
+        computeWalletBalanceForAgent(activeActor.id, activeActor.mobile, activeActor.wallet_balance)
+      );
       if (currentWalletBal < bookingData.total_estimated_amount) {
         error(
           'अपर्याप्त वॉलेट बैलेंस (Insufficient Wallet Balance)',
@@ -787,10 +930,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Deduct from wallet
-      const newWalletBal = currentWalletBal - bookingData.total_estimated_amount;
-      if (currentUser) {
-        await updateProfile({ wallet_balance: newWalletBal });
-      }
+      const newWalletBal = Math.max(0, currentWalletBal - bookingData.total_estimated_amount);
+      await updateUserProfile(activeActor.id, { wallet_balance: newWalletBal });
       paymentStatus = 'paid';
 
       // Record wallet debit transaction
@@ -804,7 +945,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         balance_after: newWalletBal,
         created_at: now.toISOString(),
       };
-      setWalletTransactions((prev) => [debitTx, ...prev]);
+      setWalletTransactions((prev) => {
+        const next = [debitTx, ...prev];
+        safeSetItem(STORAGE_KEY_WALLET_TX, JSON.stringify(next));
+        return next;
+      });
       if (isSupabaseConfigured) {
         db.createWalletTransaction(debitTx).catch(console.error);
       }
@@ -837,8 +982,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updated_at: now.toISOString(),
     };
 
+    setBookings((prev) => {
+      const next = [newBooking, ...prev];
+      safeSetItem(STORAGE_KEY_BOOKINGS, JSON.stringify(sanitizeBookings(next)));
+      return next;
+    });
 
-    setBookings((prev) => [newBooking, ...prev]);
+    saveBookingToFirestore(newBooking).catch(console.error);
 
     if (isSupabaseConfigured) {
       db.createBooking(newBooking).catch((err) => console.error('Supabase live booking insert:', err));
@@ -852,7 +1002,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     success(
       'Booking Request Saved!',
-      `Booking ID: ${bookingCode}. 15-minute confirmation timer started.`
+      `Booking ID: ${bookingCode}. ${timerMins}-minute confirmation timer started.`
     );
 
     return newBooking;
@@ -1743,41 +1893,54 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!recharge || recharge.status !== 'pending') return false;
 
     const nowIso = new Date().toISOString();
-    setWalletRecharges((prev) =>
-      prev.map((r) =>
-        r.id === rechargeId
-          ? {
-              ...r,
-              status: 'approved',
-              admin_notes: adminNotes,
-              approved_by: currentUser?.id,
-              approved_at: nowIso,
-            }
-          : r
-      )
+    const approvedRecharge: WalletRechargeRequest = {
+      ...recharge,
+      status: 'approved',
+      admin_notes: adminNotes,
+      approved_by: currentUser?.id,
+      approved_at: nowIso,
+    };
+
+    setWalletRecharges((prev) => {
+      const next = prev.map((r) => (r.id === rechargeId ? approvedRecharge : r));
+      safeSetItem(STORAGE_KEY_WALLET_RECHARGES, JSON.stringify(sanitizeWalletRecharges(next)));
+      return next;
+    });
+
+    saveWalletRechargeToFirestore(approvedRecharge).catch(console.error);
+
+    const targetProfile = allProfiles.find(
+      (p) => p.id === recharge.agent_id || (recharge.agent_mobile && p.mobile === recharge.agent_mobile)
     );
+    const targetAgentId = targetProfile ? targetProfile.id : recharge.agent_id;
+    const currentBal = computeWalletBalanceForAgent(
+      targetAgentId,
+      recharge.agent_mobile,
+      targetProfile?.wallet_balance
+    );
+    const newBal = currentBal + Number(recharge.amount || 0);
 
-    const targetProfile = allProfiles.find((p) => p.id === recharge.agent_id);
-    const currentBal = targetProfile?.wallet_balance || 0;
-    const newBal = currentBal + recharge.amount;
-
-    if (currentUser?.id === recharge.agent_id) {
-      await updateProfile({ wallet_balance: newBal });
-    } else if (isSupabaseConfigured) {
-      db.updateProfile(recharge.agent_id, { wallet_balance: newBal }).catch(console.error);
-    }
+    await updateUserProfile(targetAgentId, {
+      wallet_balance: newBal,
+      agent_status: 'approved',
+    });
 
     const creditTx: WalletTransaction = {
       id: `wtx-${Date.now()}`,
-      agent_id: recharge.agent_id,
-      amount: recharge.amount,
+      agent_id: targetAgentId,
+      amount: Number(recharge.amount || 0),
       type: 'recharge',
       recharge_id: recharge.id,
       description: `वॉलेट रिचार्ज स्वीकृत (UTR: ${recharge.utr_number})`,
       balance_after: newBal,
       created_at: nowIso,
     };
-    setWalletTransactions((prev) => [creditTx, ...prev]);
+    setWalletTransactions((prev) => {
+      const next = [creditTx, ...prev];
+      safeSetItem(STORAGE_KEY_WALLET_TX, JSON.stringify(next));
+      return next;
+    });
+
     if (isSupabaseConfigured) {
       db.updateWalletRecharge(rechargeId, {
         status: 'approved',
@@ -1789,14 +1952,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     addAuditLog('approve_wallet_recharge', 'wallet_recharges', recharge.id, {
-      agent_id: recharge.agent_id,
+      agent_id: targetAgentId,
       amount: recharge.amount,
       new_balance: newBal,
     });
 
     success(
-      'वॉलेट रिचार्ज स्वीकृत!',
-      `${recharge.agent_name} के वॉलेट में ₹${recharge.amount.toLocaleString('en-IN')} जमा कर दिए गए हैं।`
+      '✅ वॉलेट रिचार्ज वेरीफाइड व स्वीकृत!',
+      `${recharge.agent_name} के वॉलेट में ₹${recharge.amount.toLocaleString('en-IN')} तुरंत जमा हो गए हैं! (नया बैलेंस: ₹${newBal.toLocaleString('en-IN')})`
     );
     return true;
   };
@@ -1806,26 +1969,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const recharge = walletRecharges.find((r) => r.id === rechargeId);
     if (!recharge || recharge.status !== 'pending') return false;
 
-    setWalletRecharges((prev) =>
-      prev.map((r) =>
-        r.id === rechargeId
-          ? {
-              ...r,
-              status: 'rejected',
-              admin_notes: reason,
-              approved_by: currentUser?.id,
-              approved_at: new Date().toISOString(),
-            }
-          : r
-      )
-    );
+    const nowIso = new Date().toISOString();
+    const rejectedRecharge: WalletRechargeRequest = {
+      ...recharge,
+      status: 'rejected',
+      admin_notes: reason,
+      approved_by: currentUser?.id,
+      approved_at: nowIso,
+    };
+
+    setWalletRecharges((prev) => {
+      const next = prev.map((r) => (r.id === rechargeId ? rejectedRecharge : r));
+      safeSetItem(STORAGE_KEY_WALLET_RECHARGES, JSON.stringify(sanitizeWalletRecharges(next)));
+      return next;
+    });
+
+    saveWalletRechargeToFirestore(rejectedRecharge).catch(console.error);
 
     if (isSupabaseConfigured) {
       db.updateWalletRecharge(rechargeId, {
         status: 'rejected',
         admin_notes: reason,
         approved_by: currentUser?.id,
-        approved_at: new Date().toISOString(),
+        approved_at: nowIso,
       }).catch(console.error);
     }
 
@@ -1855,7 +2021,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     }
 
-    const currentBal = targetProfile.wallet_balance || 0;
+    const currentBal = computeWalletBalanceForAgent(
+      agentId,
+      targetProfile.mobile,
+      targetProfile.wallet_balance
+    );
     let newBal = currentBal;
 
     if (type === 'credit') {
@@ -1873,11 +2043,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const nowIso = new Date().toISOString();
 
-    if (currentUser?.id === agentId) {
-      await updateProfile({ wallet_balance: newBal });
-    } else if (isSupabaseConfigured) {
-      db.updateProfile(agentId, { wallet_balance: newBal }).catch(console.error);
-    }
+    await updateUserProfile(agentId, { wallet_balance: newBal });
 
     const adjTx: WalletTransaction = {
       id: `wtx-${Date.now()}`,
@@ -1889,7 +2055,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       created_at: nowIso,
     };
 
-    setWalletTransactions((prev) => [adjTx, ...prev]);
+    setWalletTransactions((prev) => {
+      const next = [adjTx, ...prev];
+      safeSetItem(STORAGE_KEY_WALLET_TX, JSON.stringify(next));
+      return next;
+    });
     if (isSupabaseConfigured) {
       db.createWalletTransaction(adjTx).catch(console.error);
     }

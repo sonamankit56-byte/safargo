@@ -60,6 +60,7 @@ interface AuthContextType {
   }) => Promise<boolean>;
   logout: () => void;
   updateProfile: (updated: Partial<Profile>) => Promise<boolean>;
+  updateUserProfile: (userId: string, updated: Partial<Profile>) => Promise<boolean>;
   approveAgent: (agentId: string) => Promise<boolean>;
   rejectAgent: (agentId: string) => Promise<boolean>;
   suspendAgent: (agentId: string) => Promise<boolean>;
@@ -699,6 +700,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     info('लॉगआउट सफल', 'आप सुरक्षित रूप से लॉगआउट हो चुके हैं।');
   };
 
+  const updateUserProfile = async (userId: string, updated: Partial<Profile>): Promise<boolean> => {
+    if (!userId) return false;
+
+    const nowIso = new Date().toISOString();
+    setProfiles((prev) => {
+      const next = prev.map((p) =>
+        p.id === userId
+          ? { ...p, ...updated, updated_at: nowIso }
+          : p
+      );
+      safeSetItem(STORAGE_KEY_PROFILES, JSON.stringify(next));
+      return next;
+    });
+
+    if (isSupabaseConfigured) {
+      db.updateProfile(userId, { ...updated, updated_at: nowIso }).catch((e) =>
+        console.error('Supabase updateUserProfile error:', e)
+      );
+    }
+
+    return true;
+  };
+
   const updateProfile = async (updated: Partial<Profile>): Promise<boolean> => {
     if (!currentUser) return false;
 
@@ -710,22 +734,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       delete updated.approved_at;
     }
 
-    const nowIso = new Date().toISOString();
-    setProfiles((prev) =>
-      prev.map((p) =>
-        p.id === currentUser.id
-          ? { ...p, ...updated, updated_at: nowIso }
-          : p
-      )
-    );
-
-    if (isSupabaseConfigured) {
-      db.updateProfile(currentUser.id, { ...updated, updated_at: nowIso }).catch((e) =>
-        console.error('Supabase updateProfile error:', e)
-      );
-    }
-
-    success('Profile Updated', 'आपकी प्रोफाइल जानकारी सुरक्षित हो गई है।');
+    await updateUserProfile(currentUser.id, updated);
     return true;
   };
 
@@ -1053,6 +1062,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         registerShopkeeper,
         logout,
         updateProfile,
+        updateUserProfile,
         approveAgent,
         rejectAgent,
         suspendAgent,

@@ -485,11 +485,19 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
               <Wallet className="w-6 h-6 text-slate-950" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[10px] bg-emerald-400 text-slate-950 px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
                   SafarGo Prepaid Wallet
                 </span>
-                <span className="text-xs text-slate-300">इंस्टेंट टिकट बुकिंग</span>
+                {agentWalletRecharges && agentWalletRecharges.some((r) => r.status === 'pending') ? (
+                  <span className="text-[10px] bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider animate-pulse">
+                    ⏳ Pending Verification
+                  </span>
+                ) : agentWalletBalance > 0 ? (
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider">
+                    ✓ Verified & Active
+                  </span>
+                ) : null}
               </div>
               <h2 className="text-xl sm:text-2xl font-black text-white mt-0.5">
                 एजेंट वॉलेट बैलेंस: <span className="text-emerald-400">₹{(agentWalletBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
@@ -497,7 +505,16 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            {agentWalletBalance > 0 && (
+              <button
+                onClick={() => onNavigate('new-booking')}
+                className="px-4 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-xs shadow-lg transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>वॉलेट से बस टिकट बुक करें</span>
+              </button>
+            )}
             <button
               onClick={() => setShowRechargeModal(true)}
               className="px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs shadow-lg transition flex items-center gap-2 cursor-pointer active:scale-95"
@@ -509,27 +526,76 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
         </div>
 
         {/* Live Pending Recharges Banner with 10-minute countdown */}
-        {agentWalletRecharges && agentWalletRecharges.some(r => r.status === 'pending') && (
-          <div className="bg-amber-500/15 border-2 border-amber-500/40 rounded-2xl p-4 text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <div className="flex items-start gap-3">
-              <Clock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5 animate-pulse" />
-              <div>
-                <strong className="text-amber-300 font-bold block text-sm">
-                  आपकी वॉलेट रिचार्ज रिक्वेस्ट सबमिट हो गई है! 10 मिनट में पैसे आपके वॉलेट में जोड़ दिए जाएंगे।
-                </strong>
-                <span className="text-amber-200/90 text-xs">
-                  एडमिन द्वारा अप्रूव करने पर तुरंत राशि आपके वॉलेट में जुड़ जाएगी।
-                </span>
+        {agentWalletRecharges &&
+          agentWalletRecharges
+            .filter((r) => r.status === 'pending')
+            .map((pendingRec) => (
+              <div
+                key={pendingRec.id}
+                className="bg-amber-500/15 border-2 border-amber-500/40 rounded-2xl p-4 text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+              >
+                <div className="flex items-start gap-3">
+                  <Clock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5 animate-pulse" />
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded bg-amber-400 text-slate-950 font-black text-[10px] uppercase">
+                        ⏳ PENDING (वेरिफिकेशन चल रहा है)
+                      </span>
+                      <span className="font-mono text-amber-300 font-bold">UTR: {pendingRec.utr_number}</span>
+                    </div>
+                    <strong className="text-amber-300 font-bold block text-sm mt-1">
+                      💥 Boom! ₹{pendingRec.amount.toLocaleString('en-IN')} का रिचार्ज अनुरोध Pending है — हम वेरीफाई कर रहे हैं!
+                    </strong>
+                    <span className="text-amber-200/90 text-xs block">
+                      एडमिन द्वारा वेरीफाई व अप्रूव करते ही यह राशि तुरंत आपके वॉलेट में जुड़ जाएगी और यहाँ Verified दिखेगा।
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowRechargeModal(true)}
+                  className="px-3.5 py-2 bg-amber-400 text-slate-950 font-black rounded-xl text-xs self-start sm:self-auto hover:bg-amber-300 transition shrink-0 cursor-pointer"
+                >
+                  10-मिनट टाइमर देखें ➔
+                </button>
               </div>
-            </div>
-            <button
-              onClick={() => setShowRechargeModal(true)}
-              className="px-3.5 py-1.5 bg-amber-400 text-slate-950 font-black rounded-lg text-xs self-start sm:self-auto hover:bg-amber-300 transition"
-            >
-              काउंटडाउन देखें ➔
-            </button>
-          </div>
-        )}
+            ))}
+
+        {/* Verified & Credited Recharges Banner */}
+        {agentWalletRecharges &&
+          !agentWalletRecharges.some((r) => r.status === 'pending') &&
+          agentWalletRecharges
+            .filter((r) => r.status === 'approved')
+            .slice(0, 1)
+            .map((approvedRec) => (
+              <div
+                key={approvedRec.id}
+                className="bg-emerald-500/15 border-2 border-emerald-500/50 rounded-2xl p-4 text-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+              >
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded bg-emerald-400 text-slate-950 font-black text-[10px] uppercase">
+                        ✅ VERIFIED & CREDITED (सत्यापित व वॉलेट में जमा)
+                      </span>
+                      <span className="font-mono text-emerald-300 font-bold">UTR: {approvedRec.utr_number}</span>
+                    </div>
+                    <strong className="text-white font-black block text-sm mt-1">
+                      🎉 ₹{approvedRec.amount.toLocaleString('en-IN')} वेरीफाई होकर आपके वॉलेट में जमा हो गए हैं! (कुल बैलेंस: ₹{agentWalletBalance.toLocaleString('en-IN')})
+                    </strong>
+                    <span className="text-emerald-200 text-xs block">
+                      अब आप इस वॉलेट बैलेंस का उपयोग सीधे बस टिकट बुक करने में कर सकते हैं!
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => onNavigate('new-booking')}
+                  className="px-4 py-2 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black rounded-xl text-xs self-start sm:self-auto transition shrink-0 cursor-pointer"
+                >
+                  बस टिकट में उपयोग करें ➔
+                </button>
+              </div>
+            ))}
       </div>
 
       {/* Target & Fixed Salary Progress Card */}
