@@ -35,7 +35,7 @@ export const ReferAndEarn: React.FC = () => {
 
   // Calculate progress for each referred agent toward 5 compulsory bookings
   const reqBookings = settings.referral_required_bookings || 5;
-  const bonusAmount = settings.referral_bonus || 50;
+  const bonusAmount = settings.referral_bonus || 100;
 
   const referredStats = myReferredAgents.map((ag) => {
     const confirmedCount = bookings.filter(

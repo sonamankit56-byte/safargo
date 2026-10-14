@@ -164,6 +164,20 @@ export function setSubdomainOverride(sub: AppSubdomain | null): void {
 }
 
 /**
+ * Extract root apex domain even with multi-part TLDs (e.g. safargo.in, safargo.co.in)
+ */
+export function extractBaseDomain(hostname: string): string {
+  const parts = hostname.toLowerCase().split('.');
+  if (parts.length <= 2) return hostname;
+  const knownTwoPartTlds = ['co.in', 'net.in', 'org.in', 'gov.in', 'edu.in', 'co.uk', 'org.uk', 'com.au', 'com.br'];
+  const lastTwo = parts.slice(-2).join('.');
+  if (knownTwoPartTlds.includes(lastTwo) && parts.length > 2) {
+    return parts.slice(-3).join('.');
+  }
+  return parts.slice(-2).join('.');
+}
+
+/**
  * Build target URL for a given subdomain
  */
 export function buildSubdomainUrl(targetSub: AppSubdomain): string {
@@ -190,18 +204,11 @@ export function buildSubdomainUrl(targetSub: AppSubdomain): string {
     return `${protocol}//${hostname}${port}/?subdomain=${targetSub}`;
   }
 
-  // Production custom domain handling (e.g. safargo.in)
-  // Strip existing subdomain if any
-  const parts = hostname.split('.');
-  let baseDomain = hostname;
-
-  if (parts.length > 2) {
-    // If e.g. admin.safargo.in -> safargo.in
-    baseDomain = parts.slice(-2).join('.');
-  }
+  // Production custom domain handling (e.g. safargo.in, safargo.co.in)
+  const baseDomain = extractBaseDomain(hostname);
 
   if (targetSub === 'main') {
-    return `${protocol}//www.${baseDomain}${port}/`;
+    return `${protocol}//${baseDomain}${port}/`;
   }
 
   const prefix = SUBDOMAIN_CONFIGS[targetSub].subdomainPrefix;

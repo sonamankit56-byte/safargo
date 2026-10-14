@@ -279,27 +279,36 @@ export const AgentBookingsList: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {b.ticket_pnr && (
-                      <span className="bg-white font-mono font-bold text-emerald-800 px-2.5 py-1 rounded border border-emerald-300">
-                        PNR: {b.ticket_pnr}
+                    {b.status === 'confirmed' ? (
+                      <>
+                        {b.ticket_pnr && (
+                          <span className="bg-white font-mono font-bold text-emerald-800 px-2.5 py-1 rounded border border-emerald-300">
+                            PNR: {b.ticket_pnr}
+                          </span>
+                        )}
+                        <button
+                          onClick={() => setPrintModalBooking(b)}
+                          className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-xs transition cursor-pointer"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                          प्रिंट टिकट पर्ची
+                        </button>
+                        {b.ticket_doc_url && (
+                          <a
+                            href={b.ticket_doc_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-semibold text-xs transition"
+                          >
+                            PDF
+                          </a>
+                        )}
+                      </>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded bg-amber-500/10 text-amber-700 border border-amber-200 text-[10px] font-bold flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-amber-600 animate-spin" />
+                        सत्यापन जारी (एडमिन अप्रूवल उपरांत टिकट उपलब्ध)
                       </span>
-                    )}
-                    <button
-                      onClick={() => setPrintModalBooking(b)}
-                      className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-xs transition"
-                    >
-                      <Printer className="w-3.5 h-3.5" />
-                      प्रिंट टिकट पर्ची
-                    </button>
-                    {b.ticket_doc_url && (
-                      <a
-                        href={b.ticket_doc_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-semibold text-xs transition"
-                      >
-                        PDF
-                      </a>
                     )}
                   </div>
                 </div>

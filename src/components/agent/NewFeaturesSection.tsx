@@ -131,14 +131,14 @@ export const NewFeaturesSection: React.FC<NewFeaturesSectionProps> = ({ onNaviga
                   <Gift className="w-4 h-4" />
                 </div>
                 <span className="text-[10px] font-black bg-amber-500 text-white px-2 py-0.5 rounded-full shadow-xs">
-                  ₹{settings.referral_bonus || 50} कैश बोनस
+                  ₹{settings.referral_bonus || 100} कैश बोनस
                 </span>
               </div>
               <h3 className="font-bold text-slate-900 text-sm">
                 रेफर करें और कमाएं (Refer & Earn)
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                दूसरे CSC एजेंटों को जोड़ें। उनके 5 बुकिंग पूरे होते ही आपको ₹50 सीधे कमीशन लेज़र में प्राप्त होंगे।
+                दूसरे CSC एजेंटों को जोड़ें। उनके 5 बुकिंग पूरे होते ही आपको ₹100 सीधे कमीशन व Go Wallet में प्राप्त होंगे।
               </p>
             </div>
             <button

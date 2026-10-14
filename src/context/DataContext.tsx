@@ -618,12 +618,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (err) {
         // Silent recovery on intermittent network drop
       }
-    }, 4000);
+    }, 2000);
 
     return () => clearInterval(livePollInterval);
   }, []);
 
-  // Multi-Tab Storage Sync: Instantly reflect Admin approvals & Agent requests across tabs
+  // Multi-Tab & Real-Time Sync: Instantly reflect Admin approvals & Agent requests across tabs and windows
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY_WALLET_RECHARGES && e.newValue) {
@@ -652,7 +652,39 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+
+    // Instant Zero-Latency BroadcastChannel listener
+    let bc: BroadcastChannel | null = null;
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        bc = new BroadcastChannel('safargo_live_sync');
+        bc.onmessage = (event) => {
+          if (event.data?.type === 'BOOKING_CONFIRMED') {
+            try {
+              const saved = localStorage.getItem(STORAGE_KEY_BOOKINGS);
+              if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed)) setBookings(parsed);
+              }
+              const savedTx = localStorage.getItem(STORAGE_KEY_WALLET_TX);
+              if (savedTx) {
+                const parsedTx = JSON.parse(savedTx);
+                if (Array.isArray(parsedTx)) setWalletTransactions(parsedTx);
+              }
+            } catch {}
+          }
+        };
+      } catch {}
+    }
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      if (bc) {
+        try {
+          bc.close();
+        } catch {}
+      }
+    };
   }, []);
 
   // Firebase Firestore Live Sync for Wallet Recharges & Bookings (runs on mount and every 6s)
@@ -1481,7 +1513,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ).length + 1;
 
         const reqBookings = settings.referral_required_bookings || 5;
-        const refBonus = settings.referral_bonus || 50;
+        const refBonus = settings.referral_bonus || 100;
 
         // Check if referral bonus was already awarded for this referred agent
         const bonusAlreadyAwarded = commissions.some(
@@ -1501,6 +1533,25 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             notes: `Referral Bonus: ${bookedAgent.full_name} completed ${reqBookings} compulsory confirmed bookings!`,
             created_at: nowIso,
           };
+
+          // Instant Credit ₹100 directly into Referrer's Go Wallet
+          const refWalletTx: WalletTransaction = {
+            id: `wtx-ref-${Date.now()}`,
+            agent_id: referrer.id,
+            amount: refBonus,
+            type: 'recharge',
+            description: `🎁 GO Agent Refer & Earn बोनस (₹${refBonus} इंस्टेंट क्रेडिट) - ${bookedAgent.full_name} ने पूरी की 5 कन्फर्म बुकिंग्स!`,
+            balance_after: 0,
+            created_at: nowIso,
+          };
+          setWalletTransactions((prev) => {
+            const next = [refWalletTx, ...prev];
+            safeSetItem(STORAGE_KEY_WALLET_TX, JSON.stringify(next));
+            return next;
+          });
+          const updatedRefBal = (referrer.wallet_balance || 0) + refBonus;
+          updateUserProfile(referrer.id, { wallet_balance: updatedRefBal });
+
           addAuditLog('award_referral_bonus', 'commission_ledger', newReferralBonusEntry.id, {
             referrer: referrer.full_name,
             referred: bookedAgent.full_name,
@@ -1508,8 +1559,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             bookings_completed: agentConfirmedBookings,
           });
           info(
-            'Referral Bonus Awarded!',
-            `₹${refBonus} credited to ${referrer.full_name} (Referred agent ${bookedAgent.full_name} completed 5 bookings threshold)`
+            '🎉 Refer & Earn ₹100 Bonus Awarded!',
+            `₹${refBonus} सीधा Go Wallet में क्रेडिट हुआ (${referrer.full_name}) — आपके रेफ़र किए गए एजेंट ${bookedAgent.full_name} ने 5 कन्फर्म बुकिंग्स पूर्ण कर ली हैं!`
           );
         }
       }
@@ -1611,6 +1662,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       'Booking Confirmed!',
       `PNR: ${verificationData.ticket_pnr}. ₹${commRate.toFixed(2)} commission credited to agent ${target.agent_name}.`
     );
+
+    // Instant Zero-Latency Cross-Tab Sync via BroadcastChannel
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        const bc = new BroadcastChannel('safargo_live_sync');
+        bc.postMessage({
+          type: 'BOOKING_CONFIRMED',
+          bookingId,
+          pnr: verificationData.ticket_pnr,
+          agentId: target.agent_id,
+          timestamp: Date.now(),
+        });
+        bc.close();
+      } catch {}
+    }
 
     return true;
   };

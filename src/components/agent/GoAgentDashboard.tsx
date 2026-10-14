@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
@@ -8,6 +8,7 @@ import { GoInstantAddMoneyModal } from './GoInstantAddMoneyModal';
 import { GoAgentWithdrawalModal } from './GoAgentWithdrawalModal';
 import { GoAgentSupportDesk } from './GoAgentSupportDesk';
 import { GoAccountHistoryDesk } from './GoAccountHistoryDesk';
+import { ReferAndEarn } from './ReferAndEarn';
 import { LiveTicketGreenCard } from '../common/LiveTicketGreenCard';
 import { PrintTicketModal } from '../common/PrintTicketModal';
 import { RedBusSeatMapModal, SelectedSeatItem } from '../bus/RedBusSeatMapModal';
@@ -54,6 +55,10 @@ import {
   Coffee,
   Wifi,
   Crown,
+  Lock,
+  Gift,
+  Camera,
+  Save,
 } from 'lucide-react';
 
 interface GoAgentDashboardProps {
@@ -138,7 +143,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
   onNavigateHome,
   onOpenBookingModal,
 }) => {
-  const { currentUser, role, logout, submitAgentKyc } = useAuth();
+  const { currentUser, role, logout, submitAgentKyc, updateProfile } = useAuth();
 
   // Strict Security Guard: Prevent unauthenticated users or non-agents from viewing or leaking state
   if (!currentUser || role !== 'agent') {
@@ -180,8 +185,73 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
   // Sub-Tab in Bookings & Refund Desk: 'auto_book' (GO Edition Booking) vs 'history' (My Bookings & Refund)
   const [bookingSubTab, setBookingSubTab] = useState<'auto_book' | 'history'>('auto_book');
 
-  // Sub-Tab in Go Account Desk: 'tickets' (Support Tickets & 24h SLA) vs 'history' (Add Money 3m Timers & All Ledgers) vs 'kyc' (KYC Form & Profile)
-  const [accountSubTab, setAccountSubTab] = useState<'tickets' | 'history' | 'kyc'>('tickets');
+  // Sub-Tab in Go Account Desk: 'profile' (Profile & Photo) vs 'tickets' (24h SLA) vs 'history' (Add Money 3m) vs 'refer' (Refer & Earn ₹100) vs 'kyc' (KYC Desk)
+  const [accountSubTab, setAccountSubTab] = useState<'profile' | 'tickets' | 'history' | 'refer' | 'kyc'>('profile');
+
+  // Go Agent Profile State (Editable: Name, Address, Shop Name, City, District, Avatar; Locked: Mobile, Email)
+  const [profileName, setProfileName] = useState(currentUser?.full_name || '');
+  const [profileShopName, setProfileShopName] = useState(currentUser?.shop_name || '');
+  const [profileAddress, setProfileAddress] = useState(currentUser?.address || '');
+  const [profileCity, setProfileCity] = useState(currentUser?.city || '');
+  const [profileDistrict, setProfileDistrict] = useState(currentUser?.district || '');
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState(currentUser?.avatar_url || '');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  useEffect(() => {
+    if (currentUser) {
+      setProfileName(currentUser.full_name || '');
+      setProfileShopName(currentUser.shop_name || '');
+      setProfileAddress(currentUser.address || '');
+      setProfileCity(currentUser.city || '');
+      setProfileDistrict(currentUser.district || '');
+      setProfileAvatarUrl(currentUser.avatar_url || '');
+    }
+  }, [currentUser]);
+
+  const handleProfilePicUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const compressed = await compressImage(file, 400, 400, 0.8);
+      setProfileAvatarUrl(compressed);
+      success('फोटो तैयार', 'प्रोफाइल फोटो चुन ली गई है। कृपया "प्रोफाइल सेव करें" बटन दबाएं।');
+    } catch {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setProfileAvatarUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    if (!profileName.trim()) {
+      error('नाम अनिवार्य', 'कृपया अपना पूरा नाम दर्ज करें।');
+      return;
+    }
+    setIsSavingProfile(true);
+    try {
+      const ok = await updateProfile({
+        full_name: profileName.trim(),
+        shop_name: profileShopName.trim(),
+        address: profileAddress.trim(),
+        city: profileCity.trim(),
+        district: profileDistrict.trim(),
+        avatar_url: profileAvatarUrl || undefined,
+      });
+      if (ok) {
+        success('प्रोफाइल सेव हो गई!', 'आपकी GO Agent प्रोफाइल विवरण सफलतापूर्वक अपडेट कर दी गई है।');
+      } else {
+        error('त्रुटि', 'प्रोफाइल सेव करने में समस्या आई।');
+      }
+    } catch (err: any) {
+      error('अपडेट विफल', err?.message || 'प्रोफाइल सेव नहीं हो सकी।');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   // Auto Bus Booking Engine State (GO Bus Special Bus System)
   const [searchSource, setSearchSource] = useState('Bhopal');
@@ -236,6 +306,8 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
     );
   }, [agentBookings, currentUser]);
 
+  const isKycVerified = currentUser?.kyc_status === 'verified' || currentUser?.agent_status === 'approved';
+
   // GO USER Business Rules: Flat ₹20 Commission & ₹10,000 Fixed Salary at 280 tickets
   const FLAT_GO_COMMISSION = 20;
   const TARGET_SALARY_TICKETS = 280;
@@ -250,6 +322,50 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
   const earnedSalary = isSalaryEligible ? FIXED_MONTHLY_SALARY : 0;
   const totalProjectedEarnings = totalCommissionEarned + earnedSalary;
   const salaryProgressPercent = Math.min(100, Math.round((confirmedCount / TARGET_SALARY_TICKETS) * 100));
+
+  // Audio chime synthesizer for real-time ticket confirmation notification
+  const playApprovalChime = useCallback(() => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, now); // C5
+      osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.18); // G5
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.5);
+    } catch {}
+  }, []);
+
+  // Real-Time Approval Detection: Watch for newly confirmed tickets by admin and generate Live Green Card instantly!
+  const knownConfirmedRef = useRef<Set<string>>(
+    new Set(myGoBookings.filter((b) => b.status === 'confirmed').map((b) => b.id))
+  );
+
+  useEffect(() => {
+    const known = knownConfirmedRef.current;
+    const newlyConfirmed = myGoBookings.find(
+      (b) => b.status === 'confirmed' && !known.has(b.id)
+    );
+
+    if (newlyConfirmed) {
+      known.add(newlyConfirmed.id);
+      playApprovalChime();
+      success(
+        '🎉 टिकट एडमिन द्वारा स्वीकृत व कन्फर्म!',
+        `PNR: ${newlyConfirmed.ticket_pnr || 'SFG-CONFIRMED'} • लाइव ग्रीन कार्ड स्वतः स्क्रीन पर सक्रिय हो गया है (+₹20 कमीशन Go Wallet में क्रेडिट)!`
+      );
+      // Instantly generate and display the Live Ticket Green Card in real time!
+      setSelectedGreenCardBooking(newlyConfirmed);
+    }
+  }, [myGoBookings, playApprovalChime, success]);
 
   // Swap Source and Destination
   const handleSwapCities = () => {
@@ -527,6 +643,55 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* SPECIAL HUGE GREEN TICK BADGE FOR KYC VERIFIED GO AGENT */}
+            {isKycVerified ? (
+              <div className="relative rounded-3xl bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 border-2 border-emerald-400 p-4 sm:p-6 shadow-[0_0_35px_rgba(16,185,129,0.35)] flex flex-col sm:flex-row items-center justify-between gap-4 animate-fadeIn">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-emerald-400 via-teal-300 to-emerald-500 text-slate-950 flex items-center justify-center font-black shadow-[0_0_25px_#10b981] shrink-0 animate-pulse">
+                    <CheckCircle2 className="w-10 h-10 sm:w-12 sm:h-12 stroke-[3] text-slate-950" />
+                  </div>
+                  <div className="space-y-1 text-left">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-base sm:text-lg font-black text-white tracking-wide">
+                        100% KYC सत्यापित अधिकृत GO एजेंट
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-400 text-slate-950 font-black text-[10px] uppercase shadow-xs">
+                        OFFICIAL VERIFIED BADGE
+                      </span>
+                    </div>
+                    <p className="text-xs text-emerald-300 font-medium">
+                      सत्यापन नंबर: <strong className="font-mono text-white">{currentUser?.aadhaar_number ? `Aadhaar XXXX-XXXX-${currentUser.aadhaar_number.slice(-4)}` : `GO-VERIFIED-${currentUser?.id?.slice(-6).toUpperCase()}`}</strong> • पैन: {currentUser?.pan_number ? `${currentUser.pan_number.slice(0, 5)}XXXX${currentUser.pan_number.slice(-1)}` : 'सत्यापित'} • मध्य प्रदेश शासन व अधिकृत बस नेटवर्क
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="px-3.5 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-black text-xs flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
+                    🟢 लाइव सक्रिय स्टेटस
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-amber-500/10 border border-amber-500/40 p-3.5 flex items-center justify-between gap-3 text-xs text-amber-300">
+                <div className="flex items-center gap-2.5">
+                  <Clock className="w-5 h-5 text-amber-400 animate-spin shrink-0" />
+                  <span>
+                    <strong>KYC सत्यापन आवश्यक:</strong> स्पेशल बड़ा ग्रीन टिक बैज व पूर्ण पेआउट्स अनलॉक करने हेतु KYC फॉर्म भरें।
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('account');
+                    setAccountSubTab('kyc');
+                  }}
+                  className="px-3.5 py-1.5 rounded-xl bg-amber-400 text-slate-950 font-black text-xs hover:bg-amber-300 transition shrink-0 cursor-pointer"
+                >
+                  KYC जमा करें
+                </button>
+              </div>
+            )}
 
             {/* 4 Metric Stats Cards in 3D Fintech Style */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -822,14 +987,10 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                             <span>ग्रीन कार्ड</span>
                           </button>
                         ) : (
-                          <button
-                            type="button"
-                            onClick={() => setSelectedPrintBooking(b)}
-                            className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl transition cursor-pointer"
-                            title="प्रिंट / डाउनलोड"
-                          >
-                            <Printer className="w-4 h-4" />
-                          </button>
+                          <div className="py-1 px-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] font-bold flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-amber-400 animate-spin" />
+                            <span>सत्यापन जारी (टिकट लॉक)</span>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1215,25 +1376,37 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
 
                         {/* Action Buttons: Green Card, Print & Refund */}
                         <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
-                          {b.status === 'confirmed' && (
-                            <button
-                              type="button"
-                              onClick={() => setSelectedGreenCardBooking(b)}
-                              className="flex-1 min-w-[130px] py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs transition flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping inline-block" />
-                              <span>🟢 लाइव ग्रीन कार्ड</span>
-                            </button>
-                          )}
+                          {b.status === 'confirmed' ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedGreenCardBooking(b)}
+                                className="flex-1 min-w-[130px] py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs transition flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping inline-block" />
+                                <span>🟢 लाइव ग्रीन कार्ड</span>
+                              </button>
 
-                          <button
-                            type="button"
-                            onClick={() => setSelectedPrintBooking(b)}
-                            className="flex-1 min-w-[110px] py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
-                          >
-                            <Printer className="w-3.5 h-3.5 text-amber-400" />
-                            <span>ई-टिकट प्रिंट</span>
-                          </button>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedPrintBooking(b)}
+                                className="flex-1 min-w-[110px] py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                              >
+                                <Printer className="w-3.5 h-3.5 text-amber-400" />
+                                <span>ई-टिकट प्रिंट / डाउनलोड</span>
+                              </button>
+                            </>
+                          ) : (
+                            <div className="flex-1 py-2 px-3 rounded-xl bg-slate-900 border border-amber-500/30 text-amber-300 text-xs font-semibold flex items-center justify-between">
+                              <span className="flex items-center gap-1.5">
+                                <Clock className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+                                <span>ई-टिकट डाउनलोड लॉक: एडमिन अप्रूवल के बाद ही जारी होगा</span>
+                              </span>
+                              <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-200">
+                                {b.status === 'booking_request' ? 'सत्यापन जारी' : b.status === 'awaiting_operator_confirmation' ? 'ऑपरेटर जांच' : b.status}
+                              </span>
+                            </div>
+                          )}
 
                           {b.status === 'confirmed' && b.refund_status !== 'approved' && b.refund_status !== 'requested' && (
                             <button
@@ -1543,6 +1716,18 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
             <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-2xl">
               <button
                 type="button"
+                onClick={() => setAccountSubTab('profile')}
+                className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer ${
+                  accountSubTab === 'profile'
+                    ? 'bg-amber-400 text-slate-950 font-black shadow-md'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <span>👤 माई प्रोफाइल (Profile)</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setAccountSubTab('tickets')}
                 className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer ${
                   accountSubTab === 'tickets'
@@ -1567,6 +1752,18 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
 
               <button
                 type="button"
+                onClick={() => setAccountSubTab('refer')}
+                className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer ${
+                  accountSubTab === 'refer'
+                    ? 'bg-amber-400 text-slate-950 font-black shadow-md'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <span>🎁 Refer & Earn (₹100)</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setAccountSubTab('kyc')}
                 className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer ${
                   accountSubTab === 'kyc'
@@ -1574,9 +1771,263 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
               >
-                <span>🛡️ Go KYC व प्रोफाइल विवरण</span>
+                <span>🛡️ Go KYC सत्यापन</span>
               </button>
             </div>
+
+            {/* TAB: GO AGENT PROFILE (PHOTO UPLOAD, EDITABLE DETAILS & LOCKED CONTACTS) */}
+            {accountSubTab === 'profile' && (
+              <div className="space-y-6 animate-fadeIn">
+                {/* Profile Digital ID Card with SPECIAL HUGE GREEN TICK */}
+                <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-2 border-amber-400/60 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      {profileAvatarUrl ? (
+                        <img
+                          src={profileAvatarUrl}
+                          alt="Agent Profile"
+                          className="w-20 h-20 rounded-2xl object-cover border-2 border-amber-400 shadow-lg"
+                        />
+                      ) : (
+                        <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-amber-400 via-orange-500 to-cyan-400 text-slate-950 font-black text-3xl flex items-center justify-center shadow-lg shrink-0">
+                          {currentUser?.full_name?.charAt(0) || 'G'}
+                        </div>
+                      )}
+                      <label className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 flex items-center justify-center cursor-pointer shadow-md transition">
+                        <Camera className="w-4 h-4" />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleProfilePicUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="space-y-1 text-left">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-xl font-black text-white">
+                          {currentUser?.full_name || 'GO Special Agent'}
+                        </h3>
+                        <span className="text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full">
+                          GO AGENT
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-300">
+                        दुकान / केंद्र: <strong className="text-white">{currentUser?.shop_name || 'डिजिटल सेवा केंद्र'}</strong>
+                      </p>
+                      <p className="text-xs text-slate-400 font-mono">
+                        {currentUser?.city}, {currentUser?.district}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Special Huge Green Tick Badge in Profile */}
+                  {isKycVerified ? (
+                    <div className="p-4 rounded-2xl bg-emerald-950/80 border-2 border-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.4)] flex items-center gap-3 shrink-0">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-400 to-teal-300 text-slate-950 flex items-center justify-center shadow-md shrink-0">
+                        <CheckCircle2 className="w-8 h-8 stroke-[3] text-slate-950" />
+                      </div>
+                      <div className="text-left">
+                        <span className="text-xs font-black text-white uppercase block">100% KYC सत्यापित</span>
+                        <span className="text-[10px] font-mono text-emerald-300 block">स्पेशल ग्रीन टिक अधिकृत</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-slate-950/80 rounded-2xl border border-slate-800 text-xs text-amber-300 shrink-0 flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-amber-400 animate-spin" />
+                      <span>KYC सत्यापन प्रक्रियाधीन</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Profile Edit Form */}
+                <form onSubmit={handleSaveProfile} className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-5">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                    <div>
+                      <h3 className="text-base font-black text-white flex items-center gap-2">
+                        <User className="w-5 h-5 text-amber-400" />
+                        <span>GO Agent प्रोफाइल विवरण (View & Edit)</span>
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        आप अपना नाम, दुकान का नाम व पता एडिट कर सकते हैं। मोबाइल नंबर व जीमेल सुरक्षा कारणों से लॉक हैं।
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    {/* Full Name (Editable) */}
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">
+                        एजेंट का पूरा नाम (Full Name) *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={profileName}
+                        onChange={(e) => setProfileName(e.target.value)}
+                        placeholder="आपका पूरा नाम"
+                        className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    {/* Shop Name (Editable) */}
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">
+                        दुकान / केंद्र का नाम (Shop / CSC Center Name)
+                      </label>
+                      <input
+                        type="text"
+                        value={profileShopName}
+                        onChange={(e) => setProfileShopName(e.target.value)}
+                        placeholder="जैसे: माँ वैष्णो डिजिटल सेवा केंद्र"
+                        className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    {/* LOCKED: Mobile Number */}
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1 flex items-center justify-between">
+                        <span>मोबाइल नंबर (Mobile Number - Locked)</span>
+                        <span className="text-[10px] text-rose-400 font-bold flex items-center gap-1">
+                          <Lock className="w-3 h-3" /> परिवर्तन अनुमत नहीं
+                        </span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          disabled
+                          value={`+91 ${currentUser?.mobile || ''}`}
+                          className="w-full p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-slate-400 font-mono font-bold cursor-not-allowed"
+                        />
+                        <div className="absolute right-3 top-3 text-slate-500">
+                          <Lock className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-1">
+                        सुरक्षा कारणों एवं OTP सत्यापन के कारण मोबाइल नंबर बदला नहीं जा सकता।
+                      </p>
+                    </div>
+
+                    {/* LOCKED: Email / Gmail */}
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1 flex items-center justify-between">
+                        <span>जीमेल / ईमेल (Gmail - Locked)</span>
+                        <span className="text-[10px] text-rose-400 font-bold flex items-center gap-1">
+                          <Lock className="w-3 h-3" /> परिवर्तन अनुमत नहीं
+                        </span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          disabled
+                          value={currentUser?.email || ''}
+                          className="w-full p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-slate-400 font-mono font-bold cursor-not-allowed"
+                        />
+                        <div className="absolute right-3 top-3 text-slate-500">
+                          <Lock className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-1">
+                        सुरक्षा कारणों एवं प्राथमिक क्रेडेंशियल होने से जीमेल बदला नहीं जा सकता।
+                      </p>
+                    </div>
+
+                    {/* Address (Editable) */}
+                    <div className="sm:col-span-2">
+                      <label className="block font-bold text-slate-300 mb-1">
+                        दुकान / केंद्र का पूरा पता (Complete Address)
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={profileAddress}
+                        onChange={(e) => setProfileAddress(e.target.value)}
+                        placeholder="वार्ड नंबर, मुख्य बाजार, लैंडमार्क, तहसील आदि"
+                        className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-medium outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    {/* City (Editable) */}
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">
+                        शहर / कस्बा (City / Town)
+                      </label>
+                      <input
+                        type="text"
+                        value={profileCity}
+                        onChange={(e) => setProfileCity(e.target.value)}
+                        placeholder="जैसे: सिरोंज, विदिशा, भोपाल"
+                        className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-medium outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    {/* District (Editable) */}
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">
+                        जिला (District)
+                      </label>
+                      <input
+                        type="text"
+                        value={profileDistrict}
+                        onChange={(e) => setProfileDistrict(e.target.value)}
+                        placeholder="जैसे: विदिशा, भोपाल, इंदौर"
+                        className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-medium outline-none focus:border-amber-400"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Profile Photo Uploader */}
+                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      {profileAvatarUrl ? (
+                        <img
+                          src={profileAvatarUrl}
+                          alt="Avatar"
+                          className="w-12 h-12 rounded-xl object-cover border border-amber-400"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400">
+                          <User className="w-6 h-6" />
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-xs font-bold text-white block">प्रोफाइल फोटो अपलोड करें</span>
+                        <span className="text-[10px] text-slate-400">JPG, PNG (अधिकतम 5MB)</span>
+                      </div>
+                    </div>
+
+                    <label className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-xl transition border border-amber-400/30 cursor-pointer flex items-center gap-1.5">
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>फोटो चुनें (Change Photo)</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProfilePicUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="pt-2 flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={isSavingProfile}
+                      className="w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs shadow-lg transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>{isSavingProfile ? 'सेव हो रहा है...' : 'प्रोफाइल सेव करें (Save Changes)'}</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* TAB: REFER & EARN ₹100 DESK */}
+            {accountSubTab === 'refer' && (
+              <div className="animate-fadeIn">
+                <ReferAndEarn />
+              </div>
+            )}
 
             {/* TAB: SUPPORT TICKETS & HELPDESK (24-Hour SLA) */}
             {accountSubTab === 'tickets' && (

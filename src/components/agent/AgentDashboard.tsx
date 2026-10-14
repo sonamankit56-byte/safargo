@@ -206,7 +206,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
         </div>
       </div>
 
-      {/* Refer & Earn ₹50 Incentive Banner */}
+      {/* Refer & Earn ₹100 Incentive Banner */}
       <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-2xl p-4 sm:p-5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-md">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-white text-orange-600 flex items-center justify-center shrink-0 font-bold shadow">
@@ -214,13 +214,13 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ onNavigate }) =>
           </div>
           <div>
             <h3 className="font-black text-sm sm:text-base flex items-center gap-2">
-              <span>रेफर करें और पाएं ₹50 नकद बोनस!</span>
+              <span>रेफर करें और पाएं ₹100 नकद बोनस!</span>
               <span className="text-[10px] bg-slate-900 text-yellow-300 px-2 py-0.5 rounded-full font-bold">
                 5 बुकिंग अनिवार्य
               </span>
             </h3>
             <p className="text-xs text-orange-100">
-              अपने मित्र सीएससी ऑपरेटर को जोड़ें। उनके 5 कन्फर्म बुकिंग्स पूरे होते ही आपके खाते में ₹50 क्रेडिट होंगे!
+              अपने मित्र सीएससी ऑपरेटर को जोड़ें। उनके 5 कन्फर्म बुकिंग्स पूरे होते ही आपके खाते में ₹100 क्रेडिट होंगे!
             </p>
           </div>
         </div>

@@ -12,7 +12,9 @@ import {
   Clock,
   User,
   ShieldCheck,
-  PhoneCall
+  PhoneCall,
+  Lock,
+  AlertTriangle
 } from 'lucide-react';
 
 interface PrintTicketModalProps {
@@ -22,6 +24,59 @@ interface PrintTicketModalProps {
 
 export const PrintTicketModal: React.FC<PrintTicketModalProps> = ({ booking, onClose }) => {
   const { currentUser } = useAuth();
+
+  // Strict Security Guard: Prevent any unapproved booking from printing or downloading
+  if (booking.status !== 'confirmed') {
+    return (
+      <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="bg-slate-950 border-2 border-red-500/40 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-4 text-white shadow-2xl animate-in fade-in zoom-in-95">
+          <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 flex items-center justify-center mx-auto shadow-inner">
+            <Lock className="w-8 h-8" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-lg font-black text-white">ई-टिकट डाउनलोड सुरक्षित रूप से लॉक है</h3>
+            <p className="text-xs text-red-300 font-bold uppercase tracking-wider">
+              {booking.status === 'booking_request'
+                ? 'एडमिन ऑपरेटर सत्यापन प्रक्रियाधीन'
+                : booking.status === 'awaiting_operator_confirmation'
+                ? 'ऑपरेटर PNR पुष्टि प्रतीक्षारत'
+                : 'अनुमोदन प्रतीक्षारत'}
+            </p>
+          </div>
+          <p className="text-xs text-slate-300 leading-relaxed">
+            यह बुकिंग अभी तक सुपर एडमिन / बस ऑपरेटर द्वारा स्वीकृत नहीं हुई है। <strong>एडमिन द्वारा टिकट कन्फर्म होने और आधिकारिक PNR जारी होने के बाद ही</strong> ई-टिकट डाउनलोड व प्रिंटिंग की अनुमति है।
+          </p>
+          <div className="bg-slate-900/90 rounded-2xl p-3.5 text-xs text-left text-slate-300 space-y-1.5 border border-slate-800 font-mono">
+            <div className="flex justify-between">
+              <span>बुकिंग कोड:</span>
+              <strong className="text-white">{booking.booking_code}</strong>
+            </div>
+            <div className="flex justify-between">
+              <span>रूट:</span>
+              <span className="text-amber-400">{booking.from_city} ➔ {booking.to_city}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>यात्री का नाम:</span>
+              <span className="text-slate-200">{booking.customer_name}</span>
+            </div>
+            <div className="flex justify-between pt-1 border-t border-slate-800">
+              <span>वर्तमान स्थिति:</span>
+              <span className="px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 font-black uppercase text-[10px]">
+                {booking.status}
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-extrabold text-xs transition cursor-pointer shadow-md"
+          >
+            वापस डैशबोर्ड पर जाएं (Close)
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handlePrint = () => {
     window.print();

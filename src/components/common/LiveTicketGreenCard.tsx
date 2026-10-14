@@ -15,7 +15,8 @@ import {
   Copy,
   Check,
   Sparkles,
-  Award
+  Award,
+  Lock
 } from 'lucide-react';
 
 interface LiveTicketGreenCardProps {
@@ -30,6 +31,54 @@ export const LiveTicketGreenCard: React.FC<LiveTicketGreenCardProps> = ({
   isModal = true,
 }) => {
   const [copiedPnr, setCopiedPnr] = useState(false);
+
+  // Strict Approval Guard: Green Card is only active for confirmed bookings with admin approval
+  if (booking.status !== 'confirmed') {
+    const lockContent = (
+      <div className="bg-slate-950 border-2 border-amber-500/40 rounded-3xl p-6 sm:p-8 text-center space-y-4 text-white shadow-2xl max-w-md w-full animate-in fade-in zoom-in-95">
+        <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-inner">
+          <Lock className="w-8 h-8" />
+        </div>
+        <div className="space-y-1">
+          <h3 className="text-lg font-black text-amber-400">🟢 लाइव ग्रीन कार्ड अभी सक्रिय नहीं है</h3>
+          <p className="text-xs text-slate-300 font-bold">
+            सत्यापन प्रक्रियाधीन (PNR जारी होने के बाद ही सक्रिय होगा)
+          </p>
+        </div>
+        <p className="text-xs text-slate-400 leading-relaxed">
+          लाइव ग्रीन कार्ड एक आधिकारिक डिजिटल बोर्डिंग पास है। सुपर एडमिन और ऑपरेटर सत्यापन के बाद ही यह स्वतः स्क्रीन पर लोड होगा।
+        </p>
+        <div className="bg-slate-900 rounded-xl p-3 text-xs text-left font-mono border border-slate-800 space-y-1">
+          <div className="flex justify-between">
+            <span className="text-slate-400">रेफरेंस:</span>
+            <strong className="text-white">{booking.booking_code}</strong>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-400">स्थिति:</span>
+            <span className="text-amber-400 uppercase font-black">{booking.status}</span>
+          </div>
+        </div>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition cursor-pointer"
+          >
+            बंद करें (Close)
+          </button>
+        )}
+      </div>
+    );
+
+    if (isModal) {
+      return (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
+          {lockContent}
+        </div>
+      );
+    }
+    return lockContent;
+  }
 
   const cleanFare = Number(booking.actual_fare ?? booking.total_estimated_amount ?? (booking as any).total_fare ?? 0);
   const pnr = booking.ticket_pnr || `PNR-${booking.booking_code.slice(-6)}`;

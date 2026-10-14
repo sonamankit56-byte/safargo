@@ -202,19 +202,19 @@ describe('F. Super Admin Access (jia647155@gmail.com)', () => {
   });
 });
 
-describe('G. Refer and Earn ₹50 (5 Bookings Compulsory)', () => {
-  it('verifies referral bonus is ₹50 and threshold is 5 bookings', () => {
-    expect(INITIAL_SETTINGS.referral_bonus).toBe(50);
+describe('G. Refer and Earn ₹100 (5 Bookings Compulsory)', () => {
+  it('verifies referral bonus is ₹100 and threshold is 5 bookings', () => {
+    expect(INITIAL_SETTINGS.referral_bonus).toBe(100);
     expect(INITIAL_SETTINGS.referral_required_bookings).toBe(5);
   });
 
-  it('does NOT award ₹50 referral bonus if referred agent has fewer than 5 bookings', () => {
+  it('does NOT award ₹100 referral bonus if referred agent has fewer than 5 bookings', () => {
     const referredAgentBookings = 4;
     const isEligibleForBonus = referredAgentBookings >= INITIAL_SETTINGS.referral_required_bookings;
     expect(isEligibleForBonus).toBe(false);
   });
 
-  it('awards ₹50 referral bonus when referred agent reaches 5 confirmed bookings', () => {
+  it('awards ₹100 referral bonus when referred agent reaches 5 confirmed bookings', () => {
     const referredAgentBookings = 5;
     const isEligibleForBonus = referredAgentBookings >= INITIAL_SETTINGS.referral_required_bookings;
     expect(isEligibleForBonus).toBe(true);
@@ -230,7 +230,7 @@ describe('G. Refer and Earn ₹50 (5 Bookings Compulsory)', () => {
       created_at: new Date().toISOString(),
     };
 
-    expect(bonusEntry.amount).toBe(50);
+    expect(bonusEntry.amount).toBe(100);
     expect(bonusEntry.entry_type).toBe('referral_bonus');
   });
 });

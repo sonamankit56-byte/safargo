@@ -23,7 +23,7 @@ export const INITIAL_SETTINGS: AdminSettings = {
   commission_rate: 20,
   monthly_target: 280,
   monthly_salary: 10000,
-  referral_bonus: 50,
+  referral_bonus: 100,
   referral_required_bookings: 5,
   support_whatsapp: '919876543210',
   cancellation_reversal_policy: 'reverse_commission',

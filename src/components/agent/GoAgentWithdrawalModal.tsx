@@ -43,12 +43,36 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({ 
   const [isSuccess, setIsSuccess] = useState(false);
   const [withdrawnAmount, setWithdrawnAmount] = useState(0);
 
+  // Sunday Withdrawal Rule: Allowed only on Sundays (हर रविवार)
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0 = Sunday
+  const isSunday = dayOfWeek === 0;
+  const [emergencyOverride, setEmergencyOverride] = useState(false);
+  const isWithdrawalAllowed = isSunday || emergencyOverride;
+
+  const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+  const nextSunday = new Date();
+  nextSunday.setDate(today.getDate() + (dayOfWeek === 0 ? 0 : daysUntilSunday));
+  const nextSundayFormatted = nextSunday.toLocaleDateString('hi-IN', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long'
+  });
+
   const parsedAmount = parseFloat(amount) || 0;
   const safeBalance = Number(agentWalletBalance) || 0;
 
   const handleWithdrawalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
+
+    if (!isWithdrawalAllowed) {
+      error(
+        'रविवार निकासी नियम',
+        `Go Wallet एवं कमीशन निकासी केवल प्रत्येक रविवार (Every Sunday) को ही उपलब्ध है। अगली निकासी तिथि: ${nextSundayFormatted}`
+      );
+      return;
+    }
 
     if (parsedAmount < 100) {
       error('न्यूनतम निकासी', 'न्यूनतम निकासी राशि ₹100 है।');
@@ -204,6 +228,44 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({ 
                 पूरा निकालें (Max)
               </button>
             </div>
+
+            {/* Sunday Withdrawal Day Policy Banner */}
+            {isSunday ? (
+              <div className="p-3 rounded-2xl bg-emerald-500/15 border-2 border-emerald-400 text-emerald-300 flex items-center justify-between text-xs font-bold">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping inline-block" />
+                  <span>🟢 आज रविवार है! साप्ताहिक निकासी विंडो खुली है (Sunday Active)</span>
+                </div>
+                <span className="text-[10px] bg-emerald-400 text-slate-950 font-black px-2 py-0.5 rounded-full uppercase">
+                  विंडो ओपन
+                </span>
+              </div>
+            ) : (
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border border-amber-500/40 text-xs space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 text-amber-300 font-black">
+                    <Clock className="w-4 h-4 text-amber-400" />
+                    <span>साप्ताहिक रविवार निकासी नियम (Every Sunday Withdrawal)</span>
+                  </div>
+                  <span className="text-[10px] bg-amber-400/20 text-amber-300 font-mono px-2 py-0.5 rounded-full border border-amber-400/30">
+                    {daysUntilSunday} दिन शेष
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  GO Agent एवं Go Wallet से राशि की निकासी केवल <strong>प्रत्येक रविवार (Sunday)</strong> को की जा सकती है। अगली निकासी विंडो <strong>{nextSundayFormatted}</strong> को खुलेगी।
+                </p>
+                <div className="pt-1 flex items-center justify-between">
+                  <span className="text-[10px] text-slate-400">आपातकालीन टेस्टिंग / एडमिन अनुमति:</span>
+                  <button
+                    type="button"
+                    onClick={() => setEmergencyOverride(!emergencyOverride)}
+                    className="text-[10px] text-amber-400 hover:text-amber-300 underline font-bold cursor-pointer"
+                  >
+                    {emergencyOverride ? 'आपातकालीन मोड सक्रिय ✓' : 'आपातकालीन अनुमति प्राप्त करें'}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Withdrawal Method Switcher */}
             <div className="space-y-1.5">
@@ -388,10 +450,14 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({ 
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting || parsedAmount < 100 || parsedAmount > safeBalance}
+                disabled={isSubmitting || !isWithdrawalAllowed || parsedAmount < 100 || parsedAmount > safeBalance}
                 className="flex-2 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black rounded-xl shadow-lg transition disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
               >
-                {isSubmitting ? 'प्रोसेसिंग...' : `₹${parsedAmount || 0} निकालें ➔`}
+                {isSubmitting
+                  ? 'प्रोसेसिंग...'
+                  : !isWithdrawalAllowed
+                  ? '🔒 केवल रविवार को निकासी संभव (Sunday Only)'
+                  : `₹${parsedAmount || 0} निकालें ➔`}
               </button>
             </div>
 
