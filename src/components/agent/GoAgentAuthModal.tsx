@@ -8,6 +8,7 @@ import {
   checkIsEmailVerified,
   resendVerificationEmail,
 } from '../../lib/firebaseService';
+import { sendRegistrationOtpEmail } from '../../lib/emailService';
 import {
   X,
   Mail,
@@ -254,7 +255,15 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
       // Generate 6-digit confirmation code
       const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-      // Trigger Firebase email verification if available
+      // Send professional real registration confirmation email via Resend (safargo.in)
+      await sendRegistrationOtpEmail({
+        toEmail: email.trim(),
+        fullName: fullName.trim(),
+        confirmCode: code,
+        role: 'agent',
+      });
+
+      // Trigger Firebase email verification if available in parallel
       try {
         await registerWithEmailVerification(email.trim(), password.trim());
       } catch (err: any) {
@@ -277,8 +286,8 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
       setEnteredConfirmCode('');
       setMode('confirm_gmail');
       info(
-        'Gmail पुष्टि कोड तैयार',
-        `सुरक्षा कोड ${code} आपके Gmail (${email.trim()}) पर भेजा गया है।`
+        'Gmail पुष्टिकरण भेजा गया! ✉️',
+        `6-अंकीय सत्यापन कोड आपके Gmail (${email.trim()}) पर भेज दिया गया है। कृपया इनबॉक्स या स्पैम चेक करें।`
       );
     } finally {
       setIsSubmitting(false);
@@ -332,12 +341,9 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
       const isVerified = await checkIsEmailVerified();
       if (isVerified && pendingConfirmation) {
         setEnteredConfirmCode(pendingConfirmation.code);
-        success('Gmail सत्यापित!', 'आपका ईमेल लिंक से कन्फर्म हो चुका है। अब सबमिट करें।');
+        success('Gmail सत्यापित! 🎉', 'आपका ईमेल लिंक से सफलतापूर्वक कन्फर्म हो चुका है। अब सक्रियण बटन दबाएं।');
       } else {
-        info('लिंक चेक', 'यदि ईमेल में लिंक पर क्लिक कर दिया है, तो नीचे दिया कोड दर्ज करें।');
-        if (pendingConfirmation) {
-          setEnteredConfirmCode(pendingConfirmation.code);
-        }
+        info('Gmail इनबॉक्स चेक करें', 'ईमेल की पुष्टि प्रतीक्षारत है। कृपया अपने Gmail में SafarGo से आया 6-अंकीय कोड देखें और यहाँ दर्ज करें।');
       }
     } finally {
       setIsCheckingGmailLink(false);
@@ -779,23 +785,15 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                 </p>
               </div>
 
-              {/* Security Test Code Display (Instant Fallback) */}
-              <div className="bg-slate-800/90 border border-slate-700 rounded-2xl p-3.5 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block">
-                    GO सुरक्षा सक्रियण कोड
-                  </span>
-                  <span className="text-xl font-mono font-black text-amber-400 tracking-widest">
-                    {pendingConfirmation.code}
-                  </span>
+              {/* Professional Real Gmail Security Notice (No OTP on screen) */}
+              <div className="bg-slate-800/90 border border-cyan-500/30 rounded-2xl p-4 text-left space-y-2 shadow-inner">
+                <div className="flex items-center gap-2 text-cyan-400 font-bold text-xs">
+                  <ShieldCheck className="w-4 h-4 shrink-0 text-cyan-400" />
+                  <span>सख्त सुरक्षा नियम: Gmail से 6-अंकीय कोड प्राप्त करें</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setEnteredConfirmCode(pendingConfirmation.code)}
-                  className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-lg text-xs transition cursor-pointer"
-                >
-                  ऑटो-भरें ⚡
-                </button>
+                <p className="text-xs text-slate-300 leading-relaxed font-normal">
+                  सुरक्षा कारणों से कोड स्क्रीन पर प्रदर्शित नहीं किया जाता। कृपया अपने Gmail ऐप अथवा ब्राउज़र में <strong className="text-white font-mono">{pendingConfirmation.email}</strong> खोलें और SafarGo द्वारा भेजा गया 6-अंकीय सत्यापन कोड यहाँ दर्ज करें।
+                </p>
               </div>
 
               {/* Code input form */}
@@ -846,13 +844,27 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                 </button>
                 <button
                   type="button"
+                  disabled={isSubmitting}
                   onClick={async () => {
                     if (pendingConfirmation) {
-                      await resendVerificationEmail();
-                      info('पुनः भेजा गया', 'Gmail पर नया कन्फर्मेशन लिंक भेज दिया गया है।');
+                      setIsSubmitting(true);
+                      try {
+                        await sendRegistrationOtpEmail({
+                          toEmail: pendingConfirmation.email,
+                          fullName: pendingConfirmation.name,
+                          confirmCode: pendingConfirmation.code,
+                          role: 'agent',
+                        });
+                        await resendVerificationEmail().catch(() => {});
+                        info('पुनः भेजा गया ✉️', `सत्यापन कोड आपके Gmail (${pendingConfirmation.email}) पर पुनः भेज दिया गया है।`);
+                      } catch {
+                        error('त्रुटि', 'ईमेल भेजने में समस्या आई।');
+                      } finally {
+                        setIsSubmitting(false);
+                      }
                     }
                   }}
-                  className="text-amber-400 hover:underline font-bold"
+                  className="text-amber-400 hover:underline font-bold disabled:opacity-50"
                 >
                   पुनः ईमेल भेजें ➔
                 </button>

@@ -245,6 +245,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const jia = profiles.find((p) => p.email.toLowerCase() === 'jia647155@gmail.com');
       if (jia) {
         setCurrentUserId(jia.id);
+        sendLoginSuccessAlertEmail({
+          toEmail: 'jia647155@gmail.com',
+          userName: 'Jia (Super Admin)',
+          role: 'admin',
+          clientDevice: deviceStr,
+        }).catch((err) => console.warn('[EmailService] Admin login alert:', err));
         success('Welcome, Jia!', 'Logged in with Super Admin access.');
         return true;
       }
@@ -321,6 +327,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const jia = profiles.find((p) => p.email.toLowerCase() === 'jia647155@gmail.com');
         if (jia) {
           setCurrentUserId(jia.id);
+          sendLoginSuccessAlertEmail({
+            toEmail: 'jia647155@gmail.com',
+            userName: 'Jia (Super Admin)',
+            role: 'admin',
+            clientDevice: 'Google Sign-In',
+          }).catch(console.warn);
           success('Welcome, Jia!', 'Google Sign-In सफल: Super Admin access.');
           return true;
         }
@@ -340,6 +352,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         );
         setProfiles(updated);
         setCurrentUserId(existing.id);
+
+        if (existing.email) {
+          sendLoginSuccessAlertEmail({
+            toEmail: existing.email,
+            userName: existing.full_name,
+            role: existing.role,
+            clientDevice: 'Google Sign-In',
+          }).catch(console.warn);
+        }
+
         success(`Welcome back, ${existing.full_name}!`, '👑 Google 1-क्लिक प्रीमियम लॉगिन सफल!');
         return true;
       }
@@ -365,6 +387,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setProfiles((prev) => [newProfile, ...prev]);
       setCurrentUserId(newProfile.id);
+
+      if (newProfile.email) {
+        sendLoginSuccessAlertEmail({
+          toEmail: newProfile.email,
+          userName: newProfile.full_name,
+          role: newProfile.role,
+          clientDevice: 'Google Sign-In',
+        }).catch(console.warn);
+      }
+
       success(`Welcome, ${gName}!`, '👑 Google द्वारा SafarGo प्रीमियम खाता तैयार और लॉगिन सफल!');
       return true;
     } catch (err: any) {
@@ -389,6 +421,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const jia = profiles.find((p) => p.email.toLowerCase() === 'jia647155@gmail.com');
       if (jia) {
         setCurrentUserId(jia.id);
+        sendLoginSuccessAlertEmail({
+          toEmail: 'jia647155@gmail.com',
+          userName: 'Jia (Super Admin)',
+          role: 'admin',
+          clientDevice: getClientDeviceString(),
+        }).catch((err) => console.warn('[EmailService] Admin login alert:', err));
         success('Welcome, Jia!', 'Logged in with Super Admin access.');
         return { success: true, isSuperAdmin: true };
       }
