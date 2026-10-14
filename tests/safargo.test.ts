@@ -116,8 +116,8 @@ describe('C. 15-Minute Booking Timer & Expiration Safety', () => {
 });
 
 describe('D. Commission Engine & Atomic Non-Duplication', () => {
-  it('verifies default commission rate is ₹19.34', () => {
-    expect(INITIAL_SETTINGS.commission_rate).toBe(19.34);
+  it('verifies default commission rate is ₹20.00', () => {
+    expect(INITIAL_SETTINGS.commission_rate).toBe(20);
   });
 
   it('awards commission exactly once on confirmed booking', () => {

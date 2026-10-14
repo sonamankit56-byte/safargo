@@ -767,6 +767,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setCurrentUserId(null);
     localStorage.removeItem(STORAGE_KEY_CURRENT_USER);
+    try {
+      sessionStorage.clear();
+      localStorage.removeItem('safargo_auth_token');
+      localStorage.removeItem('safargo_active_session');
+    } catch (e) {
+      console.warn('Session clear warning:', e);
+    }
     info('लॉगआउट सफल', 'आप सुरक्षित रूप से लॉगआउट हो चुके हैं।');
   };
 

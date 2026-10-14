@@ -119,8 +119,8 @@ const AppContent: React.FC = () => {
 
   // Strict Role-Based Route Guard: Protect admin, agent, promoter areas safely
   useEffect(() => {
-    // GO Agent Isolation: Immediately redirect GO Agent to their dedicated 3D /go-agent portal
-    if (role === 'agent') {
+    // GO Agent Isolation: Immediately redirect authenticated GO Agent to their dedicated 3D /go-agent portal
+    if (role === 'agent' && currentUser) {
       if (location.pathname !== '/go-agent') {
         navigate('/go-agent', { replace: true });
         return;
@@ -193,15 +193,16 @@ const AppContent: React.FC = () => {
 
   const selectedReviewBooking = bookings.find((b) => b.id === selectedReviewBookingId) || null;
 
-  const isGoAgentView = role === 'agent' || currentTab === 'go-agent';
+  const isGoAgentView = !!currentUser && role === 'agent';
+  const isAgentRoute = currentTab === 'go-agent';
 
   return (
-    <div className={`min-h-screen ${isGoAgentView ? 'bg-slate-950' : 'bg-slate-50'} flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950 overflow-x-hidden`}>
+    <div className={`min-h-screen ${isGoAgentView || isAgentRoute ? 'bg-slate-950' : 'bg-slate-50'} flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950 overflow-x-hidden`}>
       {/* Platform Live Announcement Broadcast Banner (Hidden for GO Agent to ensure clean isolated terminal) */}
-      {!isGoAgentView && <AnnouncementBanner />}
+      {!isGoAgentView && !isAgentRoute && <AnnouncementBanner />}
 
       {/* Navigation Header (Three-Dot / Main Menu hidden for GO Agent: GoAgentDashboard has its dedicated header) */}
-      {!isGoAgentView && (
+      {!isGoAgentView && !isAgentRoute && (
         <Navbar
           currentTab={currentTab}
           setCurrentTab={setCurrentTab}
@@ -212,12 +213,14 @@ const AppContent: React.FC = () => {
       )}
 
       {/* Main Content View Container */}
-      <main className={`flex-1 ${isGoAgentView ? 'pb-0' : 'pb-16'}`}>
+      <main className={`flex-1 ${isGoAgentView || isAgentRoute ? 'pb-0' : 'pb-16'}`}>
         {isGoAgentView ? (
           <GoAgentDashboard
-            onNavigateHome={() => navigate('/go-agent')}
+            onNavigateHome={() => navigate('/')}
             onOpenBookingModal={() => navigate('/go-agent')}
           />
+        ) : isAgentRoute ? (
+          <GoAgentSubdomainGateway />
         ) : currentTab === 'go-wallet' || currentTab === 'go_wallet' ? (
           <GoWalletHub onNavigate={setCurrentTab} onOpenAuth={handleOpenAuth} />
         ) : currentTab === 'track-order' ? (
