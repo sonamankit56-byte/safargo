@@ -308,20 +308,36 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
 
   const isKycVerified = currentUser?.kyc_status === 'verified' || currentUser?.agent_status === 'approved';
 
-  // GO USER Business Rules: Flat ₹20 Commission & ₹10,000 Fixed Salary at 280 tickets
+  // GO USER Business Rules: Flat ₹20 Commission OR ₹10,000 Fixed Salary at 280 tickets
   const FLAT_GO_COMMISSION = 20;
   const TARGET_SALARY_TICKETS = 280;
   const FIXED_MONTHLY_SALARY = 10000;
 
-  const confirmedBookings = myGoBookings.filter((b) => b.status === 'confirmed');
-  const confirmedCount = confirmedBookings.length;
-  const totalCommissionEarned = confirmedCount * FLAT_GO_COMMISSION;
+  // Track salary claims count from localStorage
+  const salaryClaimsCount = (() => {
+    try {
+      const saved = localStorage.getItem(`safargo_salary_claims_${currentUser?.id}`);
+      return saved ? JSON.parse(saved) : 0;
+    } catch {
+      return 0;
+    }
+  })();
 
-  const remainingSalaryTickets = Math.max(0, TARGET_SALARY_TICKETS - confirmedCount);
-  const isSalaryEligible = confirmedCount >= TARGET_SALARY_TICKETS;
+  const confirmedBookings = myGoBookings.filter((b) => b.status === 'confirmed');
+  const totalConfirmedCount = confirmedBookings.length;
+  // Active tickets in current salary cycle after deducting 280 for each salary claimed
+  const currentCycleTickets = Math.max(0, totalConfirmedCount - salaryClaimsCount * TARGET_SALARY_TICKETS);
+
+  const remainingSalaryTickets = Math.max(0, TARGET_SALARY_TICKETS - currentCycleTickets);
+  const isSalaryEligible = currentCycleTickets >= TARGET_SALARY_TICKETS;
   const earnedSalary = isSalaryEligible ? FIXED_MONTHLY_SALARY : 0;
-  const totalProjectedEarnings = totalCommissionEarned + earnedSalary;
-  const salaryProgressPercent = Math.min(100, Math.round((confirmedCount / TARGET_SALARY_TICKETS) * 100));
+  // User Rule: Flat ₹10,000 fixed salary upon achieving 280 target with NO extra commission on top!
+  // If target is not met, earnings = only per-ticket commission (₹20 per confirmed ticket)
+  const totalCommissionEarned = currentCycleTickets * FLAT_GO_COMMISSION;
+  const totalProjectedEarnings = isSalaryEligible ? FIXED_MONTHLY_SALARY : totalCommissionEarned;
+  const salaryProgressPercent = Math.min(100, Math.round((currentCycleTickets / TARGET_SALARY_TICKETS) * 100));
+
+  const [withdrawalModalMode, setWithdrawalModalMode] = useState<'salary' | 'wallet'>('salary');
 
   // Audio chime synthesizer for real-time ticket confirmation notification
   const playApprovalChime = useCallback(() => {
@@ -810,12 +826,11 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                     </div>
 
                     <h3 className="text-base sm:text-lg font-black text-white">
-                      280 कन्फर्म टिकट = ₹10,000 फिक्स्ड वेतन + ₹20/टिकट कमीशन
+                      280 कन्फर्म टिकट = फिक्स्ड ₹10,000 मासिक वेतन (कोई अतिरिक्त कमीशन नहीं)
                     </h3>
 
                     <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
-                      <strong>सख्त नियम:</strong> 280 टिकट पूरे होने पर ₹10,000 का फिक्स्ड वेतन मिलता है। 280 से कम होने पर वेतन 'अर्जित नहीं' रहेगा (कोई आंशिक कटौती नहीं)।
-                      280 टिकट पर: <strong>₹5,600 कमीशन (280 × ₹20) + ₹10,000 वेतन = ₹15,600 कुल कमाई</strong>!
+                      <strong>सख्त नियम:</strong> 280 टिकट पूरे होने पर फिक्स्ड ₹10,000 का मासिक वेतन मिलता है (इसके ऊपर कोई अलग कमीशन नहीं जुड़ता)। 280 से कम टिकट होने पर केवल प्रति टिकट ₹20 कमीशन मिलता है। निकासी करने पर लक्ष्य से 280 टिकट माइनस हो जाएंगे।
                     </p>
                   </div>
                 </div>
@@ -826,15 +841,17 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                     ₹{totalProjectedEarnings.toLocaleString('en-IN')}
                   </span>
                   <span className="text-[10px] text-slate-400 block mt-0.5">
-                    ₹{totalCommissionEarned.toLocaleString('en-IN')} कमीशन + ₹{earnedSalary.toLocaleString('en-IN')} वेतन
+                    {isSalaryEligible
+                      ? 'फिक्स्ड मासिक वेतन (280 लक्ष्य पूर्ण)'
+                      : `₹${totalCommissionEarned.toLocaleString('en-IN')} कमीशन (${currentCycleTickets} × ₹20)`}
                   </span>
                 </div>
               </div>
 
               {/* Progress bar towards 280 tickets */}
-              <div className="pt-2 border-t border-slate-800 space-y-1.5">
+              <div className="pt-2 border-t border-slate-800 space-y-2">
                 <div className="flex justify-between text-xs font-bold text-slate-300">
-                  <span>प्रगति: {confirmedCount} / {TARGET_SALARY_TICKETS} टिकट ({salaryProgressPercent}%)</span>
+                  <span>प्रगति: {currentCycleTickets} / {TARGET_SALARY_TICKETS} टिकट ({salaryProgressPercent}%)</span>
                   <span>
                     {isSalaryEligible ? 'सैलरी पात्रता: पूर्ण (Eligible)' : `लक्ष्य शेष: ${remainingSalaryTickets} टिकट`}
                   </span>
@@ -848,6 +865,39 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                     }`}
                     style={{ width: `${salaryProgressPercent}%` }}
                   />
+                </div>
+
+                {/* Salary Withdrawal Button */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                  <span className="text-[11px] text-slate-400">
+                    {salaryClaimsCount > 0
+                      ? `पूर्व में निकाली गई सैलरी: ${salaryClaimsCount} बार (₹${(salaryClaimsCount * 10000).toLocaleString('en-IN')})`
+                      : 'रविवार को वेतन निकासी उपलब्ध होती है'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWithdrawalModalMode('salary');
+                      setIsWithdrawalModalOpen(true);
+                    }}
+                    className={`px-4 py-2.5 rounded-xl font-black text-xs transition flex items-center gap-2 shadow-lg cursor-pointer ${
+                      isSalaryEligible
+                        ? 'bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 text-slate-950 animate-pulse'
+                        : 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700'
+                    }`}
+                  >
+                    {isSalaryEligible ? (
+                      <>
+                        <span>🎉 ₹10,000 वेतन विथड्रॉल करें (Sunday Payout)</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-3.5 h-3.5 text-amber-400" />
+                        <span>₹10,000 वेतन निकासी ({currentCycleTickets}/280 टिकट)</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
@@ -2379,7 +2429,10 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
 
       {/* 🏦 GO Agent Advance Withdrawal Modal */}
       {isWithdrawalModalOpen && (
-        <GoAgentWithdrawalModal onClose={() => setIsWithdrawalModalOpen(false)} />
+        <GoAgentWithdrawalModal
+          initialMode={withdrawalModalMode}
+          onClose={() => setIsWithdrawalModalOpen(false)}
+        />
       )}
 
       {/* 🟢 Live Ticket Green Card Modal */}

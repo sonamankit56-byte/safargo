@@ -4,7 +4,12 @@ import { useToast } from '../../context/ToastContext';
 import { SafarGoLogo } from '../common/SafarGoLogo';
 import { PendingLoginOtp } from '../../types';
 import { MP_NETWORK_CITIES } from '../../lib/mockData';
-import { maskMobileNumber } from '../../lib/securityUtils';
+import { maskMobileNumber, maskEmailAddress } from '../../lib/securityUtils';
+import {
+  sendRegistrationOtpEmail,
+  sendPasswordResetOtpEmail,
+  sendLoginOtpEmail,
+} from '../../lib/emailService';
 import {
   sendFirebasePasswordReset,
   registerWithEmailVerification,
@@ -315,6 +320,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         setCurrentPendingOtp(res.pendingOtp);
         setEnteredOtp('');
         setOtpCountdown(180);
+        success('नया OTP भेजा गया ✉️', 'नया 6-अंकीय सुरक्षा कोड आपके पंजीकृत Gmail पर भेज दिया गया है।');
       }
     } finally {
       setIsSubmitting(false);
@@ -367,16 +373,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setPendingForgotCode(code);
       setEnteredForgotCode('');
 
-      // Send Firebase reset email link
-      await sendFirebasePasswordReset(targetEmail);
+      // 1. Send professional password reset email via Resend (safargo.in)
+      await sendPasswordResetOtpEmail({
+        toEmail: targetEmail,
+        resetCode: code,
+      });
+
+      // 2. Also dispatch Firebase reset email in parallel as secondary channel
+      try {
+        await sendFirebasePasswordReset(targetEmail);
+      } catch (fbErr: any) {
+        console.warn('[Firebase] Password reset fallback notice:', fbErr);
+      }
 
       setForgotStep('verify');
       success(
-        'Gmail पर 6-अंकीय कोड व लिंक भेजा गया! ✉️',
-        `सत्यापन कोड और रीसेट लिंक आपके Gmail (${targetEmail}) पर भेज दिया गया है। बिना कोड सत्यापन के पासवर्ड नहीं बदला जा सकता।`
+        'Gmail पर 6-अंकीय कोड भेजा गया! ✉️',
+        `सत्यापन कोड आपके Gmail (${targetEmail}) पर भेज दिया गया है। कृपया इनबॉक्स या स्पैम चेक करें।`
       );
     } catch (err: any) {
-      error('त्रुटि', err?.message || 'रीसेट लिंक भेजने में समस्या आई।');
+      error('त्रुटि', err?.message || 'रीसेट कोड भेजने में समस्या आई।');
     } finally {
       setIsSendingResetEmail(false);
     }
@@ -445,7 +461,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       // 1. Generate 6-digit confirmation code
       const confirmCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-      // 2. Dispatch real Firebase confirmation email with link
+      // 2. Dispatch professional branded registration confirmation email via Resend
+      await sendRegistrationOtpEmail({
+        toEmail: details.email.trim(),
+        fullName: details.fullName.trim(),
+        confirmCode,
+        role,
+      });
+
+      // 3. Also dispatch Firebase confirmation email in parallel
       try {
         await registerWithEmailVerification({
           email: details.email.trim(),
@@ -455,7 +479,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           role,
         });
       } catch (fbErr: any) {
-        console.warn('Firebase registration notice:', fbErr);
+        console.warn('[Firebase] Registration notice:', fbErr);
       }
 
       setPendingRegData({
@@ -467,7 +491,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setActiveTab('gmail_confirm_wait');
       info(
         'Gmail पुष्टिकरण भेजा गया! ✉️',
-        `पुष्टि लिंक और 6-अंकीय कोड आपके Gmail (${details.email}) पर भेजा गया है। खाता सक्रिय करने हेतु इसे सत्यापित करें।`
+        `6-अंकीय सत्यापन कोड आपके Gmail (${details.email}) पर भेज दिया गया है। खाता सक्रिय करने हेतु इसे दर्ज करें।`
       );
     } finally {
       setIsSubmitting(false);
@@ -568,10 +592,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     try {
       const newCode = Math.floor(100000 + Math.random() * 900000).toString();
       setPendingRegData({ ...pendingRegData, confirmCode: newCode });
-      await resendVerificationEmail();
-      success('लिंक पुनः भेजा गया! ✉️', `सत्यापन लिंक और नया कोड ${pendingRegData.email} पर भेज दिया गया है।`);
+
+      await sendRegistrationOtpEmail({
+        toEmail: pendingRegData.email,
+        fullName: pendingRegData.fullName,
+        confirmCode: newCode,
+        role: pendingRegData.role,
+      });
+
+      try {
+        await resendVerificationEmail();
+      } catch (fbErr) {
+        console.warn(fbErr);
+      }
+
+      success('कोड पुनः भेजा गया! ✉️', `नया 6-अंकीय सत्यापन कोड ${pendingRegData.email} पर भेज दिया गया है।`);
     } catch {
-      info('पुनः भेजा गया', 'सत्यापन लिंक आपके ईमेल पर पुनः भेज दिया गया है।');
+      info('पुनः भेजा गया', 'सत्यापन कोड आपके ईमेल पर पुनः भेज दिया गया है।');
     } finally {
       setIsSubmitting(false);
     }
@@ -1543,46 +1580,63 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </form>
           ) : activeTab === 'otp_verify' && currentPendingOtp ? (
             /* ========================================================== */
-            /* 4. FREE 2-STEP OTP & DEVICE SECURITY SCREEN                */
+            /* 4. CONFIDENTIAL REAL GMAIL OTP & 2FA SECURITY SCREEN       */
             /* ========================================================== */
             <div className="space-y-4 animate-fadeIn">
-              <div className="bg-orange-500/10 border-2 border-orange-500/40 rounded-2xl p-4 flex items-start gap-3">
+              <div className="bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/10 border-2 border-orange-500/30 rounded-2xl p-4 flex items-start gap-3">
                 <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-md">
-                  <ShieldCheck className="w-5 h-5 animate-pulse" />
+                  <ShieldCheck className="w-5 h-5" />
                 </div>
-                <div className="space-y-0.5">
+                <div className="space-y-0.5 text-left">
                   <span className="text-[10px] uppercase font-black tracking-widest text-orange-600 bg-white px-2 py-0.5 rounded border border-orange-200">
-                    2-चरण सुरक्षा (Free OTP Verification)
+                    2-चरण सुरक्षा सत्यापन (Two-Factor Authentication)
                   </span>
                   <h3 className="font-black text-slate-900 text-sm">
                     सुरक्षित पहचान एवं डिवाइस सत्यापन
                   </h3>
                   <p className="text-xs text-slate-600">
-                    उपयोगकर्ता <strong>{currentPendingOtp.agent_name}</strong> (+91 {maskMobileNumber(currentPendingOtp.agent_mobile)}) के लिए 6-अंकों का सुरक्षा कोड तैयार है।
+                    उपयोगकर्ता: <strong>{currentPendingOtp.agent_name}</strong>
                   </p>
                 </div>
               </div>
 
-              {/* Free Security Test Code Banner */}
-              <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-3.5 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-emerald-900 flex items-center gap-1.5">
-                    <span>🛡️ 100% फ्री सुरक्षा कोड (Zero SMS Charge):</span>
-                  </span>
-                  <span className="text-xs font-mono font-black text-emerald-800 bg-white px-2.5 py-1 rounded-lg border border-emerald-300 shadow-2xs tracking-widest">
-                    {currentPendingOtp.otp_code}
-                  </span>
+              {/* Real Gmail Dispatch Status Card (No OTP shown on screen) */}
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-orange-300 rounded-2xl p-4 space-y-3 shadow-xs text-left">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-orange-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                    <Mail className="w-5 h-5 animate-bounce" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <h4 className="text-xs font-black text-slate-900">
+                        6-अंकीय सुरक्षा कोड आपके Gmail पर भेजा गया ✉️
+                      </h4>
+                    </div>
+                    <p className="text-xs text-slate-700 leading-relaxed mt-1">
+                      सुरक्षा कोड आपके पंजीकृत ईमेल <strong className="text-orange-600 font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-orange-200">{currentPendingOtp.agent_email ? maskEmailAddress(currentPendingOtp.agent_email) : 'पंजीकृत Gmail'}</strong> पर प्रेषित किया गया है।
+                    </p>
+                  </div>
                 </div>
-                <p className="text-[11px] text-emerald-700 leading-relaxed">
-                  सफ़ारगो में कोई महंगा SMS गेटवे चार्ज नहीं लगता। नीचे दिए गए कोड से तुरंत लॉगिन करें या WhatsApp पुष्टि लें।
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setEnteredOtp(currentPendingOtp.otp_code)}
-                  className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs shadow-xs transition"
-                >
-                  ⚡ यह सुरक्षा कोड ऑटो-भरें ({currentPendingOtp.otp_code})
-                </button>
+
+                <div className="bg-white/90 border border-orange-200/80 rounded-xl p-3 text-[11px] text-slate-700 space-y-1.5">
+                  <div className="flex items-center justify-between font-semibold">
+                    <span className="text-slate-600 flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-orange-500" /> कोड वैधता समय:
+                    </span>
+                    <span className="font-mono font-black text-orange-600 text-xs">
+                      {Math.floor(otpCountdown / 60)}:{(otpCountdown % 60).toString().padStart(2, '0')}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    💡 <strong>ध्यान दें:</strong> यदि इनबॉक्स में ईमेल न दिखे, तो कृपया अपने Gmail का <strong>Spam (स्पैम)</strong> या <strong>Updates</strong> फ़ोल्डर अवश्य चेक करें।
+                  </p>
+                </div>
+
+                <div className="text-[10px] text-slate-500 flex items-center justify-between border-t border-orange-200/60 pt-2 font-mono">
+                  <span>IP: {currentPendingOtp.ip_address}</span>
+                  <span>डिवाइस: {currentPendingOtp.device_info}</span>
+                </div>
               </div>
 
               {/* OTP Input Form */}
@@ -1590,10 +1644,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="font-bold text-slate-700 text-xs">
-                      6-अंकों का OTP कोड दर्ज करें *
+                      Gmail पर प्राप्त 6-अंकों का OTP कोड दर्ज करें *
                     </label>
                     <span className="text-[11px] font-mono font-bold text-slate-500">
-                      समय शेष: {Math.floor(otpCountdown / 60)}:{(otpCountdown % 60).toString().padStart(2, '0')}
+                      शेष: {Math.floor(otpCountdown / 60)}:{(otpCountdown % 60).toString().padStart(2, '0')}
                     </span>
                   </div>
                   <input
@@ -1602,8 +1656,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     maxLength={6}
                     value={enteredOtp}
                     onChange={(e) => setEnteredOtp(e.target.value.replace(/\D/g, ''))}
-                    placeholder="6-digit code"
-                    className="w-full p-3.5 rounded-2xl border-2 border-slate-300 text-center text-xl font-mono font-black tracking-[0.4em] focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition"
+                    placeholder="• • • • • •"
+                    className="w-full p-3.5 rounded-2xl border-2 border-slate-300 text-center text-2xl font-mono font-black tracking-[0.4em] focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition bg-white"
                     autoFocus
                   />
                 </div>
@@ -1611,21 +1665,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <button
                   type="submit"
                   disabled={isSubmitting || enteredOtp.length !== 6}
-                  className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-xl shadow-lg transition active:scale-98 disabled:opacity-50 text-xs"
+                  className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-black rounded-xl shadow-lg transition active:scale-98 disabled:opacity-50 text-xs cursor-pointer"
                 >
                   {isSubmitting ? 'सत्यापन हो रहा है...' : 'सुरक्षित लॉगिन सत्यापित करें (Verify & Login)'}
                 </button>
               </form>
 
-              {/* WhatsApp 1-Click Verification Link */}
+              {/* WhatsApp Admin Direct Verification Link (No OTP leakage) */}
               <a
-                href={`https://wa.me/919876543210?text=${encodeURIComponent(`नमस्ते SafarGo Admin, मेरा लॉगिन OTP कोड: ${currentPendingOtp.otp_code} है।\nयूजर: ${currentPendingOtp.agent_name}\nमोबाइल: ${currentPendingOtp.agent_mobile}\nIP: ${currentPendingOtp.ip_address}\nडिवाइस: ${currentPendingOtp.device_info}\nकृपया लॉगिन अधिकृत करें।`)}`}
+                href={`https://wa.me/919876543210?text=${encodeURIComponent(`नमस्ते SafarGo Admin, मैंने SafarGo पर लॉगिन का अनुरोध किया है।\nयूजर: ${currentPendingOtp.agent_name}\nमोबाइल: ${currentPendingOtp.agent_mobile}\nIP: ${currentPendingOtp.ip_address}\nडिवाइस: ${currentPendingOtp.device_info}\nकृपया मेरे लॉगिन सत्र को अधिकृत करें।`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition"
               >
                 <Phone className="w-4 h-4" />
-                <span>WhatsApp पर एडमिन से पुष्टि करें (फ्री)</span>
+                <span>WhatsApp पर एडमिन से त्वरित अधिकृत कराएं (Instant Approval)</span>
               </a>
 
               <div className="flex items-center justify-between pt-1 text-xs">

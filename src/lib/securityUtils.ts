@@ -67,3 +67,12 @@ export const maskIpAddress = (ip?: string | null): string => {
   }
   return ip;
 };
+
+export const maskEmailAddress = (email?: string | null): string => {
+  if (!email || !email.includes('@')) return email || '';
+  const [user, domain] = email.split('@');
+  if (user.length <= 2) return `${user[0]}*@${domain}`;
+  const visiblePrefix = user.slice(0, 2);
+  const visibleSuffix = user.slice(-1);
+  return `${visiblePrefix}${'*'.repeat(Math.max(user.length - 3, 3))}${visibleSuffix}@${domain}`;
+};

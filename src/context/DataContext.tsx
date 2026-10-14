@@ -135,6 +135,7 @@ interface DataContextType {
   rejectWalletRecharge: (rechargeId: string, reason: string) => Promise<boolean>;
   adjustAgentWallet: (agentId: string, amount: number, type: 'credit' | 'debit', reason: string) => Promise<boolean>;
   withdrawFromGoWallet: (amount: number, method: 'upi' | 'bank', destination: string) => Promise<boolean>;
+  withdrawMonthlySalary: (method: 'upi' | 'bank', destination: string) => Promise<boolean>;
   boostShopOnSafarGoTop: (shopId: string, shopName: string, planPrice: number, durationDays: number, planTitle: string) => Promise<boolean>;
 
   // Viral Creator & Social Media Promotion (Instagram 1M => ₹500, YouTube 10k => ₹100, 24-hr SLA)
@@ -1131,6 +1132,71 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     },
     [currentUser, agentWalletBalance, updateUserProfile, success, error]
+  );
+
+  // GO Agent: Withdraw Fixed ₹10,000 Monthly Salary (Requires 280 tickets target completed)
+  const withdrawMonthlySalary = useCallback(
+    async (method: 'upi' | 'bank', destination: string): Promise<boolean> => {
+      if (!currentUser) return false;
+      const SALARY_AMOUNT = 10000;
+      const TARGET_TICKETS = 280;
+
+      // Calculate confirmed bookings for current agent
+      const myConfirmedBookings = bookings.filter(
+        (b) => b.agent_id === currentUser.id && b.status === 'confirmed'
+      );
+
+      // Target cycles already claimed
+      const agentClaims = JSON.parse(
+        localStorage.getItem(`safargo_salary_claims_${currentUser.id}`) || '0'
+      );
+      const activeTickets = Math.max(
+        0,
+        myConfirmedBookings.length - agentClaims * TARGET_TICKETS
+      );
+
+      if (activeTickets < TARGET_TICKETS) {
+        error(
+          'लक्ष्य अपूर्ण (Target Incomplete)',
+          `₹10,000 फिक्स्ड वेतन निकासी के लिए 280 टिकट लक्ष्य आवश्यक है। आपके पास अभी ${activeTickets} / ${TARGET_TICKETS} टिकट हैं (${TARGET_TICKETS - activeTickets} बाकी)।`
+        );
+        return false;
+      }
+
+      // Check Sunday rule
+      const today = new Date();
+      if (today.getDay() !== 0) {
+        error(
+          'रविवार निकासी नियम (Sunday Only)',
+          'मासिक फिक्स्ड वेतन निकासी प्रत्येक रविवार (Sunday) को ही उपलब्ध होती है।'
+        );
+        return false;
+      }
+
+      // Deduct 280 tickets from target by incrementing claimed cycle count
+      const newClaims = agentClaims + 1;
+      safeSetItem(`safargo_salary_claims_${currentUser.id}`, JSON.stringify(newClaims));
+
+      const newTxn: WalletTransaction = {
+        id: `wtx-sal-${Date.now()}`,
+        agent_id: currentUser.id,
+        amount: SALARY_AMOUNT,
+        type: 'monthly_salary',
+        booking_code: `SAL-${Math.floor(100000 + Math.random() * 900000)}`,
+        description: `🎉 मासिक फिक्स्ड वेतन निकासी (280 टिकट लक्ष्य पूर्ण) -> ${method === 'upi' ? 'UPI ID' : 'बैंक खाता'} (${destination})`,
+        balance_after: agentWalletBalance,
+        created_at: new Date().toISOString(),
+      };
+
+      setWalletTransactions((prev) => [newTxn, ...prev]);
+
+      success(
+        '🎉 ₹10,000 मासिक वेतन निकासी सफल!',
+        `₹10,000 आपके ${method === 'upi' ? 'UPI ID' : 'बैंक खाते'} (${destination}) में भेज दिए गए हैं। 280 टिकट लक्ष्य से माइनस कर दिए गए हैं। नया लक्ष्य चक्र प्रारंभ हुआ!`
+      );
+      return true;
+    },
+    [currentUser, bookings, agentWalletBalance, success, error]
   );
 
   // Go Wallet: Boost Shop / Business on SafarGo Top (#1 Sponsored Ranking)
@@ -3869,6 +3935,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         rejectWalletRecharge,
         adjustAgentWallet,
         withdrawFromGoWallet,
+        withdrawMonthlySalary,
         boostShopOnSafarGoTop,
         promotionClaims,
         agentPromotionClaims,

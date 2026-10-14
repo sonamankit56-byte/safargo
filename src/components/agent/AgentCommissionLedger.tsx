@@ -75,11 +75,10 @@ export const AgentCommissionLedger: React.FC = () => {
   // Check if 280 target is met
   const isTargetMet = currentMonthConfirmed >= targetCount;
   // GO USER Business Rule:
-  // Commission and salary are separate ledger entries.
-  // Example: At 280 tickets: ₹5,600 commission + ₹10,000 salary = ₹15,600 total earnings before adjustments.
-  // Below target: salary is not earned (0); do not silently prorate!
+  // 280 ticket target met = Flat ₹10,000 Fixed Salary (no extra commission on top).
+  // Target not met = Only per-ticket commission.
   const earnedSalary = isTargetMet ? settings.monthly_salary : 0;
-  const effectiveTotalEarnings = netCommission + earnedSalary;
+  const effectiveTotalEarnings = isTargetMet ? settings.monthly_salary : netCommission;
 
   const availableBalance = Math.max(0, effectiveTotalEarnings - approvedPayouts - pendingPayouts);
 
@@ -178,7 +177,7 @@ export const AgentCommissionLedger: React.FC = () => {
               )}
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
-              <strong>वेतन पात्रता नियम:</strong> 280 बुकिंग्स पूरी होने पर ₹10,000 का फिक्स्ड मासिक वेतन मिलेगा। लक्ष्य से कम रहने पर वेतन 'अर्जित नहीं' रहेगा (कोई आंशिक कटौती नहीं)। कमीशन फ्लैट ₹20 प्रति टिकट अलग से लेज़र में जुड़ता है। उदाहरण: 280 टिकट पर <strong>₹5,600 कमीशन + ₹10,000 वेतन = ₹15,600 कुल कमाई</strong>।
+              <strong>वेतन पात्रता नियम:</strong> 280 बुकिंग्स पूरी होने पर फिक्स्ड ₹10,000 का मासिक वेतन मिलेगा। लक्ष्य पूरा होने पर कोई अतिरिक्त कमीशन अलग से नहीं जोड़ा जाएगा (फिक्स्ड ₹10,000 कुल वेतन)। लक्ष्य से कम रहने पर केवल प्रति टिकट ₹20 कमीशन मिलेगा।
             </p>
           </div>
         </div>

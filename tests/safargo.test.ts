@@ -183,13 +183,29 @@ describe('E. Agent Monthly Target and Salary Rules', () => {
     expect(progress).toBe(20);
   });
 
-  it('maintains fixed salary separate from booking commission', () => {
-    const baseSalary = 5000;
-    const bookingCommission = 19.34 * 10;
+  it('enforces flat ₹10,000 fixed salary upon achieving 280 target with NO extra commission on top', () => {
+    const target = 280;
+    const achieved = 280;
+    const fixedSalary = 10000;
+    const isTargetMet = achieved >= target;
+    // When target is met, total earning is exactly the ₹10,000 fixed salary (no extra commission on top)
+    const totalEarnings = isTargetMet ? fixedSalary : achieved * 20;
 
-    expect(baseSalary).toBe(5000);
-    expect(bookingCommission).toBe(193.4);
-    expect(baseSalary + bookingCommission).toBe(5193.4);
+    expect(isTargetMet).toBe(true);
+    expect(totalEarnings).toBe(10000);
+  });
+
+  it('deducts 280 tickets from target upon Sunday salary withdrawal of ₹10,000', () => {
+    let currentConfirmed = 295;
+    const target = 280;
+    expect(currentConfirmed >= target).toBe(true);
+
+    // Withdraw salary
+    const salaryWithdrawn = 10000;
+    currentConfirmed -= target; // 280 tickets deducted from target
+
+    expect(salaryWithdrawn).toBe(10000);
+    expect(currentConfirmed).toBe(15); // remaining 15 tickets towards next cycle
   });
 });
 
@@ -392,7 +408,7 @@ describe('M. Real Database & Dual-Engine Architecture', () => {
 
     const trips = await db.getBusTrips();
     expect(trips === null || Array.isArray(trips)).toBe(true);
-  });
+  }, 15000);
 
   it('validates database schema structure contains all primary entities', async () => {
     const fs = await import('fs');

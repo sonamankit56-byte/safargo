@@ -8,6 +8,7 @@ import { getClientDeviceString, fetchClientIpAddress, generateSecureOtpCode } fr
 import { safeSetItem } from '../lib/storageUtils';
 import { isFirebaseConfigured } from '../lib/firebase';
 import { registerWithEmailVerification, sendFirebasePasswordReset, signInWithGoogle } from '../lib/firebaseService';
+import { sendLoginOtpEmail, sendLoginSuccessAlertEmail } from '../lib/emailService';
 
 interface AuthContextType {
   currentUser: Profile | null;
@@ -282,6 +283,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           : found.role === 'shopkeeper'
           ? 'दुकानदार / मर्चेंट'
           : 'सीएससी एजेंट';
+
+      // Send real email login confirmation alert via Resend
+      if (found.email) {
+        sendLoginSuccessAlertEmail({
+          toEmail: found.email,
+          userName: found.full_name,
+          role: found.role,
+          clientDevice: deviceStr,
+        }).catch((err) => console.warn('[EmailService] Login alert notice:', err));
+      }
+
       success(`Welcome back, ${found.full_name}!`, `लॉगिन सफल (${roleLabel})`);
       return true;
     } else {
@@ -420,6 +432,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     setPendingLoginOtps((prev) => [newOtp, ...prev.filter((p) => p.agent_id !== found.id)]);
+
+    // Dispatch real Gmail / Email OTP via Resend API
+    if (found.email) {
+      sendLoginOtpEmail({
+        toEmail: found.email,
+        userName: found.full_name,
+        otpCode,
+        clientIp,
+        clientDevice,
+      }).catch((err) => console.error('[Resend] Failed to send login OTP email:', err));
+    }
+
     return { success: true, pendingOtp: newOtp };
   };
 
@@ -464,6 +488,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           last_login_at: nowIso,
         }).catch(console.error);
       }
+    }
+
+    // Dispatch login success alert email via Resend
+    if (target.agent_email) {
+      sendLoginSuccessAlertEmail({
+        toEmail: target.agent_email,
+        userName: target.agent_name,
+        role: 'agent',
+        clientIp: target.ip_address,
+        clientDevice: target.device_info,
+      }).catch((err) => console.warn('[EmailService] Login alert notice:', err));
     }
 
     setCurrentUserId(target.agent_id);
