@@ -506,6 +506,89 @@ export const AdminSettings: React.FC = () => {
       </div>
 
       {/* ======================================================== */}
+      {/* 🎯 GO AGENT EXCLUSIVE FOCUS CONTROL: HIDE/SHOW PROMOTER & DUKANDAR */}
+      {/* ======================================================== */}
+      <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-emerald-500/10 border-2 border-orange-300 rounded-3xl p-5 shadow-sm space-y-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-orange-600 text-white flex items-center justify-center font-black shadow-sm text-lg">
+              🎯
+            </div>
+            <div>
+              <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                GO Agent एक्सक्लूसिव फोकस कंट्रोल (प्रमोटर व दुकानदार टॉगल)
+                <span className="text-[10px] bg-orange-100 text-orange-800 font-bold px-2 py-0.5 rounded-full border border-orange-200">
+                  सुपर एडमिन कंट्रोल
+                </span>
+              </h2>
+              <p className="text-xs text-slate-600">
+                वेबसाइट से प्रमोटर व दुकानदार को कभी भी एक टिक / अनटिक से दिखाएं या पूरी तरह गायब करें।
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSaveFeatureToggles}
+            disabled={isSavingToggles}
+            className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2 self-start sm:self-auto cursor-pointer"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>{isSavingToggles ? 'सेव हो रहा है...' : 'फोकस सेटिंग्स लागू करें'}</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-orange-200/80">
+          {/* Promoter Toggle */}
+          <label className="flex items-start gap-3 p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs hover:border-orange-300 transition cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={featureModes['feature_promoter_program_mode'] === 'active'}
+              onChange={(e) => {
+                const newMode = e.target.checked ? 'active' : 'hidden';
+                handleUpdateFeatureMode('feature_promoter_program_mode', newMode);
+              }}
+              className="mt-1 w-5 h-5 rounded-md text-orange-600 border-slate-300 focus:ring-orange-500 cursor-pointer"
+            />
+            <div className="space-y-0.5">
+              <span className="text-xs font-black text-slate-900 block flex items-center gap-1.5">
+                🏆 प्रमोटर पार्टनर प्रोग्राम (Promoter Partner Program)
+              </span>
+              <p className="text-[11px] text-slate-500">
+                {featureModes['feature_promoter_program_mode'] === 'active'
+                  ? '🟢 अभी वेबसाइट पर लाइव दिख रहा है (Untick to Hide)'
+                  : '🚫 वेबसाइट से पूरी तरह गायब है (Tick to Show)'}
+              </p>
+            </div>
+          </label>
+
+          {/* Shopkeeper / Quick Delivery Toggle */}
+          <label className="flex items-start gap-3 p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs hover:border-orange-300 transition cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={featureModes['feature_shopkeeper_portal_mode'] === 'active'}
+              onChange={(e) => {
+                const newMode = e.target.checked ? 'active' : 'hidden';
+                handleUpdateFeatureMode('feature_shopkeeper_portal_mode', newMode);
+                handleUpdateFeatureMode('feature_quick_delivery_mode', newMode);
+              }}
+              className="mt-1 w-5 h-5 rounded-md text-orange-600 border-slate-300 focus:ring-orange-500 cursor-pointer"
+            />
+            <div className="space-y-0.5">
+              <span className="text-xs font-black text-slate-900 block flex items-center gap-1.5">
+                🏪 लोकल दुकानदार व क्विक डिलीवरी (Shopkeeper & Quick Delivery)
+              </span>
+              <p className="text-[11px] text-slate-500">
+                {featureModes['feature_shopkeeper_portal_mode'] === 'active'
+                  ? '🟢 अभी वेबसाइट पर लाइव दिख रहा है (Untick to Hide)'
+                  : '🚫 वेबसाइट से पूरी तरह गायब है (Tick to Show)'}
+              </p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      {/* ======================================================== */}
       {/* TAB: PAYMENT GATEWAY & QR CODE (QR, GPay, PhonePe, Bank) */}
       {/* ======================================================== */}
       {activeTab === 'payment' && (

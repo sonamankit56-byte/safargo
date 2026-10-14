@@ -370,11 +370,14 @@ export interface WalletRechargeRequest {
   agent_id: string;
   agent_name: string;
   agent_mobile: string;
-  amount: number; // Minimum ₹2,000
+  amount: number;
   payment_method: 'upi_qr' | 'bank_transfer';
   utr_number: string;
   screenshot_url?: string;
   status: WalletRechargeStatus;
+  timer_ends_at?: string; // 3-Minute verification timer
+  is_3m_auto_timer?: boolean;
+  rejection_reason?: string;
   admin_notes?: string;
   approved_by?: string;
   approved_at?: string;
@@ -628,3 +631,52 @@ export interface QuickDeliveryOrder {
   delivered_at?: string;
   deadline_15m_at?: string; // customer_confirmed_at + 15 minutes
 }
+
+// =====================================================================
+// GO AGENT SUPPORT / HELPDESK TICKET SYSTEM (24-HOUR RESOLUTION SLA)
+// =====================================================================
+
+export type TicketCategory =
+  | 'bus_booking'
+  | 'seat_passenger'
+  | 'wallet_add_money'
+  | 'commission_payout'
+  | 'cancellation_refund'
+  | 'technical_issue'
+  | 'other';
+
+export type TicketStatus = 'pending' | 'in_progress' | 'resolved' | 'closed';
+export type TicketPriority = 'normal' | 'urgent' | 'critical';
+
+export interface SupportTicketMessage {
+  id: string;
+  sender_role: 'agent' | 'admin' | 'system';
+  sender_name: string;
+  message: string;
+  attachment_url?: string;
+  created_at: string;
+}
+
+export interface SupportTicket {
+  id: string;
+  ticket_code: string; // e.g. "TKT-20261014-001"
+  agent_id: string;
+  agent_name: string;
+  agent_mobile: string;
+  category: TicketCategory;
+  subject: string;
+  description: string;
+  priority: TicketPriority;
+  status: TicketStatus;
+  related_booking_id?: string;
+  related_booking_code?: string;
+  screenshot_url?: string;
+  resolution_notes?: string;
+  resolved_at?: string;
+  resolved_by?: string;
+  sla_deadline: string; // 24-hour SLA guaranteed resolution
+  messages: SupportTicketMessage[];
+  created_at: string;
+  updated_at: string;
+}
+

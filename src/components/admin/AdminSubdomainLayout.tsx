@@ -11,6 +11,7 @@ import { AdminSettings } from './AdminSettings';
 import { AdminAuditLogs } from './AdminAuditLogs';
 import { AdminSecurityDesk } from './AdminSecurityDesk';
 import { AdminPromoterManagement } from './AdminPromoterManagement';
+import { AdminSupportDesk } from './AdminSupportDesk';
 import { SafarGoLogo } from '../common/SafarGoLogo';
 import { buildSubdomainUrl } from '../../lib/subdomain';
 import {
@@ -33,7 +34,8 @@ import {
   AlertCircle,
   FileCheck,
   ChevronRight,
-  Globe
+  Globe,
+  LifeBuoy
 } from 'lucide-react';
 
 interface AdminSubdomainLayoutProps {
@@ -42,7 +44,7 @@ interface AdminSubdomainLayoutProps {
 
 export const AdminSubdomainLayout: React.FC<AdminSubdomainLayoutProps> = () => {
   const { currentUser, role, isAdmin, login, logout, pendingLoginOtps } = useAuth();
-  const { walletRecharges, bookings } = useData();
+  const { walletRecharges, bookings, supportTickets } = useData();
 
   const [activeAdminTab, setActiveAdminTab] = useState<string>('dashboard');
   const [selectedReviewBookingId, setSelectedReviewBookingId] = useState<string | null>(null);
@@ -57,6 +59,9 @@ export const AdminSubdomainLayout: React.FC<AdminSubdomainLayoutProps> = () => {
   const pendingRechargesCount = (walletRecharges || []).filter((r) => r.status === 'pending').length;
   const pendingBookingsCount = (bookings || []).filter(
     (b) => b.status === 'booking_request' || b.status === 'awaiting_operator_confirmation'
+  ).length;
+  const pendingTicketsCount = (supportTickets || []).filter(
+    (t) => t.status === 'pending' || t.status === 'open'
   ).length;
 
   const nowIsoStr = new Date().toISOString();
@@ -239,6 +244,7 @@ export const AdminSubdomainLayout: React.FC<AdminSubdomainLayoutProps> = () => {
                 { id: 'trips', label: 'बस ट्रिप्स', icon: Bus },
                 { id: 'promoters', label: 'प्रमोटर (5 स्लॉट)', icon: Award },
                 { id: 'security', label: `सुरक्षा (${activeOtpCount})`, icon: ShieldCheck },
+                { id: 'support', label: `सपोर्ट (${pendingTicketsCount})`, icon: LifeBuoy },
                 { id: 'settings', label: 'सेटिंग्स व डोमेन', icon: Settings },
                 { id: 'logs', label: 'ऑडिट लॉग्स', icon: History },
               ].map((tab) => {
@@ -296,6 +302,7 @@ export const AdminSubdomainLayout: React.FC<AdminSubdomainLayoutProps> = () => {
               { id: 'salary', label: 'वेतन' },
               { id: 'trips', label: 'बसें' },
               { id: 'security', label: `सुरक्षा (${activeOtpCount})` },
+              { id: 'support', label: `सपोर्ट (${pendingTicketsCount})` },
               { id: 'settings', label: 'सेटिंग्स' },
               { id: 'logs', label: 'लॉग्स' },
             ].map((tab) => (
@@ -327,6 +334,7 @@ export const AdminSubdomainLayout: React.FC<AdminSubdomainLayoutProps> = () => {
               else if (tab === 'admin-trips') setActiveAdminTab('trips');
               else if (tab === 'admin-settings') setActiveAdminTab('settings');
               else if (tab === 'admin-security-desk') setActiveAdminTab('security');
+              else if (tab === 'admin-support-desk') setActiveAdminTab('support');
               else if (tab === 'go-wallet') setActiveAdminTab('wallet');
               else setActiveAdminTab(tab);
             }}
@@ -360,6 +368,10 @@ export const AdminSubdomainLayout: React.FC<AdminSubdomainLayoutProps> = () => {
 
         {activeAdminTab === 'security' && (
           <AdminSecurityDesk />
+        )}
+
+        {activeAdminTab === 'support' && (
+          <AdminSupportDesk />
         )}
 
         {activeAdminTab === 'settings' && (

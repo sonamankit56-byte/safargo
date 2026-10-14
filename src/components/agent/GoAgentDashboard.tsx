@@ -6,6 +6,8 @@ import { Go3DUltraLogo } from '../common/Go3DUltraLogo';
 import { WalletRechargeModal } from './WalletRechargeModal';
 import { GoInstantAddMoneyModal } from './GoInstantAddMoneyModal';
 import { GoAgentWithdrawalModal } from './GoAgentWithdrawalModal';
+import { GoAgentSupportDesk } from './GoAgentSupportDesk';
+import { GoAccountHistoryDesk } from './GoAccountHistoryDesk';
 import { LiveTicketGreenCard } from '../common/LiveTicketGreenCard';
 import { PrintTicketModal } from '../common/PrintTicketModal';
 import { RedBusSeatMapModal, SelectedSeatItem } from '../bus/RedBusSeatMapModal';
@@ -153,6 +155,9 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
 
   // Sub-Tab in Bookings & Refund Desk: 'auto_book' (GO Edition Booking) vs 'history' (My Bookings & Refund)
   const [bookingSubTab, setBookingSubTab] = useState<'auto_book' | 'history'>('auto_book');
+
+  // Sub-Tab in Go Account Desk: 'tickets' (Support Tickets & 24h SLA) vs 'history' (Add Money 3m Timers & All Ledgers) vs 'kyc' (KYC Form & Profile)
+  const [accountSubTab, setAccountSubTab] = useState<'tickets' | 'history' | 'kyc'>('tickets');
 
   // Auto Bus Booking Engine State (GO Bus Special Bus System)
   const [searchSource, setSearchSource] = useState('Bhopal');
@@ -1489,8 +1494,64 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
               </button>
             </div>
 
-            {/* Profile Digital ID Card */}
-            <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-2 border-amber-400/60 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            {/* Account Sub-Navigation Switcher */}
+            <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => setAccountSubTab('tickets')}
+                className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer ${
+                  accountSubTab === 'tickets'
+                    ? 'bg-amber-400 text-slate-950 font-black shadow-md'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <span>🎫 टिकट व सहायता (24h SLA)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAccountSubTab('history')}
+                className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer ${
+                  accountSubTab === 'history'
+                    ? 'bg-amber-400 text-slate-950 font-black shadow-md'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <span>📊 ऐड मनी हिस्ट्री व 3m टाइमर</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAccountSubTab('kyc')}
+                className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer ${
+                  accountSubTab === 'kyc'
+                    ? 'bg-amber-400 text-slate-950 font-black shadow-md'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <span>🛡️ Go KYC व प्रोफाइल विवरण</span>
+              </button>
+            </div>
+
+            {/* TAB: SUPPORT TICKETS & HELPDESK (24-Hour SLA) */}
+            {accountSubTab === 'tickets' && (
+              <div className="animate-fadeIn">
+                <GoAgentSupportDesk />
+              </div>
+            )}
+
+            {/* TAB: ADD MONEY HISTORY & 3-MINUTE TIMERS */}
+            {accountSubTab === 'history' && (
+              <div className="animate-fadeIn">
+                <GoAccountHistoryDesk />
+              </div>
+            )}
+
+            {/* TAB: KYC & PROFILE DETAILS */}
+            {accountSubTab === 'kyc' && (
+              <div className="space-y-6 animate-fadeIn">
+                {/* Profile Digital ID Card */}
+                <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-2 border-amber-400/60 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-400 via-orange-500 to-cyan-400 text-slate-950 font-black text-2xl flex items-center justify-center shadow-lg shrink-0">
                   {currentUser?.full_name?.charAt(0) || 'G'}
@@ -1695,9 +1756,11 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                 </button>
               </form>
             </div>
-
           </div>
         )}
+
+      </div>
+    )}
 
       </main>
 

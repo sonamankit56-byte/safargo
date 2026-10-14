@@ -15,7 +15,8 @@ import {
   PartnerShop,
   AgentCallLog,
   QuickDeliveryOrder,
-  PromoCode
+  PromoCode,
+  SupportTicket
 } from '../types';
 
 export const INITIAL_SETTINGS: AdminSettings = {
@@ -50,11 +51,12 @@ export const INITIAL_SETTINGS: AdminSettings = {
   },
 
   // Master Platform Feature Visibility Controls ('active' | 'coming_soon' | 'hidden')
+  // Defaulted to 'hidden' for promoter, quick delivery, and shopkeeper to focus strictly on GO Agent!
   feature_bus_booking_mode: 'active',
-  feature_quick_delivery_mode: 'active',
-  feature_promoter_program_mode: 'active',
+  feature_quick_delivery_mode: 'hidden',
+  feature_promoter_program_mode: 'hidden',
   feature_boarding_sathi_mode: 'active',
-  feature_shopkeeper_portal_mode: 'active',
+  feature_shopkeeper_portal_mode: 'hidden',
   feature_customer_portal_mode: 'active',
   feature_creator_rewards_mode: 'active',
   feature_promo_codes_mode: 'active',
@@ -1377,6 +1379,76 @@ export const INITIAL_PROMO_CODES: PromoCode[] = [
     created_at: '2026-10-10T14:00:00Z',
   }
 ];
+
+export const INITIAL_SUPPORT_TICKETS: SupportTicket[] = [
+  {
+    id: 'tkt-01',
+    ticket_code: 'TKT-20261014-001',
+    agent_id: 'usr-agent-01',
+    agent_name: 'पवन कुमार वर्मा (एजेंट)',
+    agent_mobile: '9826011223',
+    category: 'bus_booking',
+    subject: 'सीट कन्फर्मेशन एवं PNR जनरेशन में देरी',
+    description: 'भोपाल से इंदौर बस ट्रिप की बुकिंग की थी, 10 मिनट हो गए हैं लेकिन ऑपरेटर साइड से सीट नंबर कन्फर्म नहीं दिखा रहा है। कृपया चेक करें।',
+    priority: 'urgent',
+    status: 'in_progress',
+    related_booking_code: 'SFG-BK-001',
+    sla_deadline: new Date(Date.now() + 18 * 60 * 60 * 1000).toISOString(),
+    messages: [
+      {
+        id: 'msg-01',
+        sender_role: 'agent',
+        sender_name: 'पवन कुमार वर्मा',
+        message: 'भोपाल से इंदौर बस ट्रिप की बुकिंग की थी, 10 मिनट हो गए हैं लेकिन ऑपरेटर साइड से सीट नंबर कन्फर्म नहीं दिखा रहा है।',
+        created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        id: 'msg-02',
+        sender_role: 'admin',
+        sender_name: 'SafarGo सुपर एडमिन',
+        message: 'नमस्ते पवन जी, ऑपरेटर से बात हो गई है। चार्ट फाइनल हो रहा है, अगले 5 मिनट में आपकी सीट L2 कन्फर्म हो जाएगी।',
+        created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+      }
+    ],
+    created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'tkt-02',
+    ticket_code: 'TKT-20261013-002',
+    agent_id: 'usr-agent-01',
+    agent_name: 'पवन कुमार वर्मा (एजेंट)',
+    agent_mobile: '9826011223',
+    category: 'wallet_add_money',
+    subject: '₹500 UTR वेरिफिकेशन एवं Go Wallet क्रेडिट',
+    description: 'मैंने PhonePe से ₹500 का भुगतान किया था, UTR: 428910293847 सबमिट किया है।',
+    priority: 'normal',
+    status: 'resolved',
+    resolution_notes: 'बैंक स्टेटमेंट वेरीफाई हो गया। ₹500 राशि आपके Go Wallet में क्रेडिट कर दी गई है।',
+    resolved_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+    resolved_by: 'SafarGo Helpdesk',
+    sla_deadline: new Date(Date.now() - 10 * 60 * 60 * 1000).toISOString(),
+    messages: [
+      {
+        id: 'msg-03',
+        sender_role: 'agent',
+        sender_name: 'पवन कुमार वर्मा',
+        message: 'मैंने PhonePe से ₹500 का भुगतान किया था, UTR: 428910293847 सबमिट किया है।',
+        created_at: new Date(Date.now() - 16 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        id: 'msg-04',
+        sender_role: 'admin',
+        sender_name: 'सुपर एडमिन',
+        message: 'वेरिफाइड! ₹500 आपके Go Wallet में जोड़ दिए गए हैं। +₹20 हर टिकट पर कमाना जारी रखें!',
+        created_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+      }
+    ],
+    created_at: new Date(Date.now() - 16 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+  }
+];
+
 
 
 

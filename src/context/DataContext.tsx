@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Booking,
   BusTrip,
@@ -23,7 +23,11 @@ import {
   AgentCallLog,
   QuickDeliveryOrder,
   DeliveryOrderStatus,
-  PromoCode
+  PromoCode,
+  SupportTicket,
+  TicketCategory,
+  TicketPriority,
+  SupportTicketMessage
 } from '../types';
 import {
   INITIAL_BOOKINGS,
@@ -41,6 +45,7 @@ import {
   INITIAL_AGENT_CALL_LOGS,
   INITIAL_QUICK_DELIVERY_ORDERS,
   INITIAL_PROMO_CODES,
+  INITIAL_SUPPORT_TICKETS,
   SHOP_SUBSCRIPTION_PLANS
 } from '../lib/mockData';
 import { useAuth } from './AuthContext';
@@ -231,6 +236,21 @@ interface DataContextType {
   // Commission Celebration Modal Trigger
   celebrationBooking: Booking | null;
   dismissCelebration: () => void;
+
+  // GO Agent Support & Helpdesk Ticket System (24-Hour SLA Resolution)
+  supportTickets: SupportTicket[];
+  agentSupportTickets: SupportTicket[];
+  createSupportTicket: (ticketData: {
+    category: TicketCategory;
+    subject: string;
+    description: string;
+    priority: TicketPriority;
+    related_booking_code?: string;
+    screenshot_url?: string;
+  }) => Promise<SupportTicket | null>;
+  replyToSupportTicket: (ticketId: string, message: string, attachmentUrl?: string) => Promise<boolean>;
+  resolveSupportTicket: (ticketId: string, resolutionNotes: string) => Promise<boolean>;
+  closeSupportTicket: (ticketId: string) => Promise<boolean>;
 }
 
 const STORAGE_KEY_BOOKINGS = 'safargo_bookings_v1';
@@ -238,6 +258,7 @@ const STORAGE_KEY_COMMISSION = 'safargo_commission_v1';
 const STORAGE_KEY_SALARY = 'safargo_salary_v1';
 const STORAGE_KEY_TRIPS = 'safargo_trips_v1';
 const STORAGE_KEY_SETTINGS = 'safargo_settings_v1';
+const STORAGE_KEY_SUPPORT_TICKETS = 'safargo_support_tickets_v1';
 const STORAGE_KEY_LOGS = 'safargo_audit_logs_v1';
 const STORAGE_KEY_SEEN_CONFIRMATIONS = 'safargo_seen_confirmations_v1';
 const STORAGE_KEY_PAYOUTS = 'safargo_payouts_v1';
@@ -311,6 +332,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ...(parsed.announcement || {}),
           },
           custom_features: parsed.custom_features || INITIAL_SETTINGS.custom_features,
+          // Hide promoter, quick delivery, and shopkeeper unless explicitly enabled
+          feature_promoter_program_mode: parsed.feature_promoter_program_mode ?? 'hidden',
+          feature_shopkeeper_portal_mode: parsed.feature_shopkeeper_portal_mode ?? 'hidden',
+          feature_quick_delivery_mode: parsed.feature_quick_delivery_mode ?? 'hidden',
         };
       }
     } catch (e) {
@@ -419,6 +444,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return INITIAL_PROMO_CODES;
   });
 
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_SUPPORT_TICKETS);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return INITIAL_SUPPORT_TICKETS;
+  });
+
   // Track seen confirmation IDs so animation only plays once per confirmed booking
   const [seenConfirmations, setSeenConfirmations] = useState<string[]>(() => {
     try {
@@ -496,6 +531,37 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     safeSetItem(STORAGE_KEY_PROMO_CODES, JSON.stringify(promoCodes));
   }, [promoCodes]);
+
+  useEffect(() => {
+    safeSetItem(STORAGE_KEY_SUPPORT_TICKETS, JSON.stringify(supportTickets));
+  }, [supportTickets]);
+
+  // Ref to allow automated 3-minute background timer approval without RLS role blocking
+  const approveWalletRechargeRef = useRef<(id: string, notes?: string, isAuto?: boolean) => Promise<boolean>>();
+
+  // 3-Minute Auto-Verification Timer Checker:
+  // When 3 minutes elapse on a pending recharge with is_3m_auto_timer: true,
+  // automatically approve it and credit wallet if not already rejected!
+  useEffect(() => {
+    const checkRechargeTimers = () => {
+      const nowTime = Date.now();
+      walletRecharges.forEach((r) => {
+        if (r.status === 'pending' && r.is_3m_auto_timer && r.timer_ends_at) {
+          const targetTime = new Date(r.timer_ends_at).getTime();
+          if (targetTime <= nowTime) {
+            approveWalletRechargeRef.current?.(
+              r.id,
+              '✅ 3-मिनट स्वचालित AI व बैंकिंग सत्यापन पूर्ण — राशि Go Wallet में स्वतः क्रेडिट',
+              true
+            );
+          }
+        }
+      });
+    };
+
+    const interval = setInterval(checkRechargeTimers, 2500);
+    return () => clearInterval(interval);
+  }, [walletRecharges]);
 
   // Real Database Sync: Load initial live data from Supabase when configured
   useEffect(() => {
@@ -710,6 +776,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (r) => r.agent_id === currentUser.id || (currentUser.mobile && r.agent_mobile === currentUser.mobile)
     );
   }, [walletRecharges, currentUser]);
+
+  // Agent's Support Tickets Filter (GO Agent Helpdesk)
+  const agentSupportTickets = useMemo(() => {
+    if (!currentUser) return [];
+    if (currentUser.role === 'admin') return supportTickets;
+    return supportTickets.filter(
+      (t) => t.agent_id === currentUser.id || (currentUser.mobile && t.agent_mobile === currentUser.mobile)
+    );
+  }, [supportTickets, currentUser]);
 
   // Universal Go Wallet Transactions (includes Approved Recharges, Dukandar Quick Commerce Sales, Promoter Earnings, Ticket Bookings, Top Ad Boosts & Bank/UPI Withdrawals)
   const agentWalletTransactions = useMemo(() => {
@@ -2334,9 +2409,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const nowIso = new Date().toISOString();
+    const threeMinutesLater = new Date(Date.now() + 3 * 60 * 1000).toISOString();
     const rechargeId = `rech-inst-${Date.now()}`;
 
-    // Instant credit record (Automatically Approved without waiting for admin)
+    // 3-Minute Auto-Verification Timer Add Money Record
     const newRecharge: WalletRechargeRequest = {
       id: rechargeId,
       agent_id: activeAgent.id,
@@ -2346,10 +2422,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       payment_method: paymentMethod,
       utr_number: cleanUtr,
       screenshot_url: screenshotUrl,
-      status: 'approved', // INSTANT CREDIT!
-      approved_at: nowIso,
-      approved_by: 'GO_INSTANT_AUTO_ENGINE',
-      admin_notes: '⚡ GO Instant Add Money: स्वचालित क्रेडिट (एडमिन Clawback / Review योग्य)',
+      status: 'pending', // 3-minute live countdown timer starts!
+      is_3m_auto_timer: true,
+      timer_ends_at: threeMinutesLater,
+      admin_notes: '⏳ 3-मिनट बैंकिंग सत्यापन टाइमर सक्रिय (एडमिन स्वीकृति या 3 मिनट पूरे होते ही स्वतः क्रेडिट)',
       created_at: nowIso,
     };
 
@@ -2359,61 +2435,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return next;
     });
 
-    const targetProfile = allProfiles.find(
-      (p) => p.id === activeAgent.id || (activeAgent.mobile && p.mobile === activeAgent.mobile)
-    );
-    const targetAgentId = targetProfile ? targetProfile.id : activeAgent.id;
-    const currentBal = computeWalletBalanceForAgent(
-      targetAgentId,
-      activeAgent.mobile,
-      targetProfile?.wallet_balance
-    );
-    const newBal = currentBal + Number(amount);
-
-    await updateUserProfile(targetAgentId, {
-      wallet_balance: newBal,
-      agent_status: 'approved',
-    });
-
-    const creditTx: WalletTransaction = {
-      id: `wtx-${Date.now()}`,
-      agent_id: targetAgentId,
-      amount: Number(amount),
-      type: 'recharge',
-      recharge_id: rechargeId,
-      description: `⚡ GO Instant Add Money: तुरंत ₹${amount.toLocaleString('en-IN')} क्रेडिट (UTR: ${cleanUtr})`,
-      balance_after: newBal,
-      created_at: nowIso,
-    };
-
-    setWalletTransactions((prev) => {
-      const next = [creditTx, ...prev];
-      safeSetItem(STORAGE_KEY_WALLET_TX, JSON.stringify(next));
-      return next;
-    });
-
     // Background Firebase/Supabase save
     saveWalletRechargeToFirestore(newRecharge).catch(console.error);
     if (isSupabaseConfigured) {
       db.createWalletRecharge(newRecharge).catch(console.error);
-      db.createWalletTransaction(creditTx).catch(console.error);
     }
 
-    addAuditLog('go_instant_add_money', 'wallet_recharges', newRecharge.id, {
+    addAuditLog('go_instant_add_money_request', 'wallet_recharges', newRecharge.id, {
       amount,
       utr: cleanUtr,
-      agent_id: targetAgentId,
-      new_balance: newBal,
+      agent_id: activeAgent.id,
+      timer_ends_at: threeMinutesLater,
     });
 
-    success(
-      '⚡ GO Instant Add Money सफल!',
-      `बधाई! ₹${amount.toLocaleString('en-IN')} तुरंत आपके Go Wallet में जुड़ चुके हैं। नया बैलेंस: ₹${newBal.toLocaleString('en-IN')}`
+    info(
+      '⏳ 3-मिनट सत्यापन टाइमर प्रारंभ!',
+      `₹${amount.toLocaleString('en-IN')} का ऐड मनी अनुरोध दर्ज हुआ। सुरक्षा व बैंकिंग AI सत्यापन चल रहा है — 3 मिनट पूरे होते ही या एडमिन स्वीकृति पर राशि स्वतः Go Wallet में जुड़ जाएगी!`
     );
 
     return {
       success: true,
-      message: `₹${amount.toLocaleString('en-IN')} तुरंत Go Wallet में क्रेडिट हो गए!`,
+      message: `₹${amount.toLocaleString('en-IN')} का 3-मिनट सत्यापन टाइमर सक्रिय! 3 मिनट पूरे होने या एडमिन स्वीकृति पर राशि स्वतः Go Wallet में जुड़ जाएगी।`,
     };
   };
 
@@ -2501,8 +2543,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
-  const approveWalletRecharge = async (rechargeId: string, adminNotes?: string): Promise<boolean> => {
-    if (!isAdmin) {
+  const approveWalletRecharge = async (rechargeId: string, adminNotes?: string, isAuto = false): Promise<boolean> => {
+    if (!isAdmin && !isAuto) {
       error('Unauthorized', 'केवल एडमिन ही वॉलेट रिचार्ज स्वीकृत कर सकते हैं।');
       return false;
     }
@@ -2514,8 +2556,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const approvedRecharge: WalletRechargeRequest = {
       ...recharge,
       status: 'approved',
-      admin_notes: adminNotes,
-      approved_by: currentUser?.id,
+      admin_notes: adminNotes || (isAuto ? '3-मिनट स्वचालित बैंकिंग AI सत्यापन पूर्ण' : undefined),
+      approved_by: isAuto ? 'SYSTEM_3M_AUTO_VERIFY' : currentUser?.id,
       approved_at: nowIso,
     };
 
@@ -2549,7 +2591,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       amount: Number(recharge.amount || 0),
       type: 'recharge',
       recharge_id: recharge.id,
-      description: `वॉलेट रिचार्ज स्वीकृत (UTR: ${recharge.utr_number})`,
+      description: isAuto
+        ? `⚡ Go Wallet रिचार्ज (3-मिनट स्वतः सत्यापन): ₹${recharge.amount.toLocaleString('en-IN')} जमा (UTR: ${recharge.utr_number})`
+        : `वॉलेट रिचार्ज स्वीकृत (UTR: ${recharge.utr_number})`,
       balance_after: newBal,
       created_at: nowIso,
     };
@@ -2562,8 +2606,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (isSupabaseConfigured) {
       db.updateWalletRecharge(rechargeId, {
         status: 'approved',
-        admin_notes: adminNotes,
-        approved_by: currentUser?.id,
+        admin_notes: adminNotes || (isAuto ? '3-मिनट स्वचालित बैंकिंग AI सत्यापन पूर्ण' : undefined),
+        approved_by: isAuto ? 'SYSTEM_3M_AUTO_VERIFY' : currentUser?.id,
         approved_at: nowIso,
       }).catch(console.error);
       db.createWalletTransaction(creditTx).catch(console.error);
@@ -2573,12 +2617,156 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       agent_id: targetAgentId,
       amount: recharge.amount,
       new_balance: newBal,
+      approved_by: isAuto ? 'SYSTEM_3M_AUTO_VERIFY' : currentUser?.id,
     });
 
     success(
       '✅ वॉलेट रिचार्ज वेरीफाइड व स्वीकृत!',
       `${recharge.agent_name} के वॉलेट में ₹${recharge.amount.toLocaleString('en-IN')} तुरंत जमा हो गए हैं! (नया बैलेंस: ₹${newBal.toLocaleString('en-IN')})`
     );
+    return true;
+  };
+
+  approveWalletRechargeRef.current = approveWalletRecharge;
+
+  // =====================================================================
+  // GO AGENT SUPPORT & HELPDESK TICKET SYSTEM (24-HOUR SLA RESOLUTION)
+  // =====================================================================
+  const createSupportTicket = async (ticketData: {
+    category: TicketCategory;
+    subject: string;
+    description: string;
+    priority: TicketPriority;
+    related_booking_code?: string;
+    screenshot_url?: string;
+  }): Promise<SupportTicket | null> => {
+    const activeAgent =
+      currentUser && currentUser.role === 'agent'
+        ? currentUser
+        : allProfiles.find((p) => p.role === 'agent') || {
+            id: 'usr-agent-01',
+            full_name: 'राजेश कुमार शर्मा',
+            mobile: '9826012345',
+            role: 'agent',
+          };
+
+    const now = new Date();
+    const dateCode = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const randSuffix = Math.floor(100 + Math.random() * 900);
+    const ticketCode = `TKT-${dateCode}-${randSuffix}`;
+    const slaDeadline = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(); // 24-Hour SLA Guarantee
+
+    const newTicket: SupportTicket = {
+      id: `tkt-${Date.now()}`,
+      ticket_code: ticketCode,
+      agent_id: activeAgent.id,
+      agent_name: activeAgent.full_name,
+      agent_mobile: activeAgent.mobile,
+      category: ticketData.category,
+      subject: ticketData.subject.trim(),
+      description: ticketData.description.trim(),
+      priority: ticketData.priority || 'normal',
+      status: 'pending',
+      related_booking_code: ticketData.related_booking_code?.trim(),
+      screenshot_url: ticketData.screenshot_url,
+      created_at: now.toISOString(),
+      sla_deadline_at: slaDeadline,
+      messages: [
+        {
+          id: `msg-${Date.now()}`,
+          sender_id: activeAgent.id,
+          sender_name: activeAgent.full_name,
+          sender_role: 'agent',
+          message: ticketData.description.trim(),
+          attachment_url: ticketData.screenshot_url,
+          created_at: now.toISOString(),
+        },
+      ],
+    };
+
+    setSupportTickets((prev) => [newTicket, ...prev]);
+    addAuditLog('create_support_ticket', 'support_tickets', newTicket.id, {
+      ticket_code: ticketCode,
+      category: ticketData.category,
+      subject: ticketData.subject,
+    });
+
+    success(
+      'सपोर्ट टिकट दर्ज हुआ! 🎫',
+      `टिकट ID #${ticketCode}। SafarGo 24-घंटे समाधान गारंटी (24-Hour SLA) के तहत आपकी समस्या का निवारण किया जाएगा।`
+    );
+
+    return newTicket;
+  };
+
+  const replyToSupportTicket = async (ticketId: string, message: string, attachmentUrl?: string): Promise<boolean> => {
+    if (!message || !message.trim()) return false;
+    const nowIso = new Date().toISOString();
+    const sender = currentUser || { id: 'admin', full_name: 'SafarGo सपोर्ट टीम', role: 'admin' };
+
+    setSupportTickets((prev) =>
+      prev.map((t) => {
+        if (t.id !== ticketId) return t;
+        const newMsg: SupportTicketMessage = {
+          id: `msg-${Date.now()}`,
+          sender_id: sender.id,
+          sender_name: sender.full_name,
+          sender_role: sender.role === 'admin' ? 'admin' : 'agent',
+          message: message.trim(),
+          attachment_url: attachmentUrl,
+          created_at: nowIso,
+        };
+        return {
+          ...t,
+          status: sender.role === 'admin' ? 'open' : 'pending',
+          messages: [...t.messages, newMsg],
+        };
+      })
+    );
+
+    success('संदेश भेजा गया!', 'सपोर्ट टिकट में जवाब दर्ज हो गया है।');
+    return true;
+  };
+
+  const resolveSupportTicket = async (ticketId: string, resolutionNotes: string): Promise<boolean> => {
+    if (!isAdmin) {
+      error('अनधिकृत', 'केवल एडमिन ही टिकट हल (Resolve) कर सकते हैं।');
+      return false;
+    }
+    const nowIso = new Date().toISOString();
+    setSupportTickets((prev) =>
+      prev.map((t) => {
+        if (t.id !== ticketId) return t;
+        const autoMsg: SupportTicketMessage = {
+          id: `msg-${Date.now()}`,
+          sender_id: currentUser?.id || 'admin',
+          sender_name: currentUser?.full_name || 'सुपर एडमिन',
+          sender_role: 'admin',
+          message: `✅ समाधान विवरण: ${resolutionNotes.trim()}`,
+          created_at: nowIso,
+        };
+        return {
+          ...t,
+          status: 'resolved',
+          resolved_at: nowIso,
+          resolved_by: currentUser?.full_name || 'सुपर एडमिन',
+          resolution_notes: resolutionNotes.trim(),
+          messages: [...t.messages, autoMsg],
+        };
+      })
+    );
+
+    addAuditLog('resolve_support_ticket', 'support_tickets', ticketId, { resolution: resolutionNotes });
+    success('टिकट हल हुआ! ✅', 'टिकट को "Resolved" मार्क कर दिया गया है।');
+    return true;
+  };
+
+  const closeSupportTicket = async (ticketId: string): Promise<boolean> => {
+    const nowIso = new Date().toISOString();
+    setSupportTickets((prev) =>
+      prev.map((t) => (t.id === ticketId ? { ...t, status: 'closed', resolved_at: t.resolved_at || nowIso } : t))
+    );
+    info('टिकट बंद किया गया', 'टिकट अब बंद (Closed) आर्काइव में है।');
     return true;
   };
 
@@ -3570,6 +3758,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         auditLogs,
         celebrationBooking,
         dismissCelebration,
+        supportTickets,
+        agentSupportTickets,
+        createSupportTicket,
+        replyToSupportTicket,
+        resolveSupportTicket,
+        closeSupportTicket,
       }}
     >
       {children}

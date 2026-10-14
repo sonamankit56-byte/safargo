@@ -105,6 +105,25 @@ export const GoInstantAddMoneyModal: React.FC<GoInstantAddMoneyModalProps> = ({ 
     }
   };
 
+  const [timerSeconds, setTimerSeconds] = useState(180);
+
+  // Active countdown timer when request is submitted
+  React.useEffect(() => {
+    let interval: any = null;
+    if (isSuccess && timerSeconds > 0) {
+      interval = setInterval(() => {
+        setTimerSeconds((prev) => Math.max(0, prev - 1));
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isSuccess, timerSeconds]);
+
+  const mins = Math.floor(timerSeconds / 60);
+  const secs = timerSeconds % 60;
+  const formattedCountdown = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in">
       <div className="bg-slate-900 border-2 border-amber-400 rounded-3xl max-w-lg w-full text-white shadow-2xl overflow-hidden my-4">
@@ -118,14 +137,14 @@ export const GoInstantAddMoneyModal: React.FC<GoInstantAddMoneyModalProps> = ({ 
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-black text-sm sm:text-base text-white">
-                  GO Instant Add Money
+                  GO 3-Minute Auto Add Money
                 </h3>
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-500 text-slate-950 animate-pulse">
-                  ⚡ 0-Second Instant
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 animate-pulse">
+                  ⏳ 3-Min Timer
                 </span>
               </div>
               <p className="text-[11px] text-amber-300 font-medium">
-                स्वचालित AI वेरिफिकेशन — तुरंत वॉलेट में पैसे जोड़ें!
+                स्वचालित AI व बैंकिंग सत्यापन — 3 मिनट में स्वतः वॉलेट में जमा!
               </p>
             </div>
           </div>
@@ -141,34 +160,49 @@ export const GoInstantAddMoneyModal: React.FC<GoInstantAddMoneyModalProps> = ({ 
         {/* Content */}
         {isSuccess ? (
           <div className="p-6 sm:p-8 text-center space-y-5 animate-in zoom-in-95">
-            <div className="w-20 h-20 rounded-full bg-emerald-500/20 text-emerald-400 border-2 border-emerald-400 flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(16,185,129,0.4)] animate-bounce">
-              <CheckCircle2 className="w-10 h-10" />
+            <div className="relative w-28 h-28 mx-auto flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full border-4 border-amber-500/20 animate-ping" />
+              <div className="w-24 h-24 rounded-full bg-amber-500/10 border-4 border-amber-400 flex flex-col items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.3)]">
+                <span className="font-mono text-2xl font-black text-amber-400 tracking-wider">
+                  {formattedCountdown}
+                </span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-amber-300">
+                  सत्यापन टाइमर
+                </span>
+              </div>
             </div>
 
-            <div className="space-y-1">
-              <span className="text-xs uppercase font-black tracking-widest text-emerald-400">
-                पेमेंट स्वीकृत व क्रेडिट!
+            <div className="space-y-1.5">
+              <span className="text-xs uppercase font-black tracking-widest text-amber-400">
+                ⏳ 3-मिनट बैंकिंग सत्यापन टाइमर चालू!
               </span>
               <h2 className="text-2xl sm:text-3xl font-black text-white font-mono">
                 +₹{creditedAmount.toLocaleString('en-IN')}
               </h2>
-              <p className="text-xs text-slate-300">
-                राशि तुरंत आपके Go Wallet बैलेंस में जोड़ दी गई है। अब आप बिना रुके बस टिकट बुक कर सकते हैं!
+              <p className="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
+                आपका अनुरोध दर्ज हो चुका है (UTR: <span className="font-mono font-bold text-amber-300">{utrNumber}</span>)।
+                जैसे ही 3 मिनट पूरे होंगे या एडमिन स्वीकृति देंगे, यह राशि स्वतः आपके Go Wallet में क्रेडिट हो जाएगी!
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs flex justify-between items-center font-mono">
-              <span className="text-slate-400">नया उपलब्ध बैलेंस:</span>
-              <strong className="text-emerald-400 text-base font-black">
-                ₹{(agentWalletBalance || 0).toLocaleString('en-IN')}.00
-              </strong>
+            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-left space-y-2">
+              <div className="flex justify-between items-center font-mono">
+                <span className="text-slate-400">वर्तमान वॉलेट बैलेंस:</span>
+                <strong className="text-amber-400 text-sm font-black">
+                  ₹{(agentWalletBalance || 0).toLocaleString('en-IN')}.00
+                </strong>
+              </div>
+              <div className="text-[11px] text-slate-400 flex items-center gap-1.5 pt-1 border-t border-slate-800/80">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>आप इस लाइव टाइमर को अपने <strong>Go अकाउंट ➔ 'हिस्ट्री'</strong> टैब में भी कभी भी देख सकते हैं।</span>
+              </div>
             </div>
 
             <button
               onClick={onClose}
-              className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black rounded-xl text-sm transition shadow-lg cursor-pointer"
+              className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black rounded-xl text-sm transition shadow-lg cursor-pointer"
             >
-              टिकट बुकिंग जारी रखें ➔
+              समझ गया / विंडो बंद करें ➔
             </button>
           </div>
         ) : (
