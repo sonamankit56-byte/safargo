@@ -21,7 +21,8 @@ import {
   CreditCard,
   ShieldCheck,
   Wallet,
-  Zap
+  Zap,
+  Briefcase
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -208,6 +209,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
           >
             <Sparkles className="w-4 h-4 text-purple-200" />
             <span>वायरल प्रमोशन ({pendingPromotionsCount})</span>
+          </button>
+          <button
+            onClick={() => onNavigate('admin-jobs')}
+            className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg transition cursor-pointer"
+            title="जॉब्स एवं भर्ती पोर्टल (careers.safargo.in)"
+          >
+            <Briefcase className="w-4 h-4 text-indigo-200" />
+            <span>जॉब्स एवं भर्ती</span>
           </button>
           <button
             onClick={() => onNavigate('admin-bookings')}

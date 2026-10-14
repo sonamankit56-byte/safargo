@@ -48,6 +48,19 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
     return () => clearInterval(interval);
   }, [isSubmittedSuccess, countdownSeconds]);
 
+  // Check if admin approved this recharge request in real time
+  const activeSubmittedRecharge = isSubmittedSuccess
+    ? (agentWalletRecharges || []).find(
+        (r) =>
+          (utrNumber.trim().length > 0 && r?.utr_number?.trim() === utrNumber.trim()) ||
+          (Number(r?.amount) === (parseFloat(amount) || 0) &&
+            r?.status === 'approved' &&
+            r?.created_at &&
+            new Date(r.created_at).getTime() > Date.now() - 3600000)
+      )
+    : undefined;
+  const isApprovedByAdmin = activeSubmittedRecharge?.status === 'approved';
+
   // Intercept browser back / refresh / tab close while timer is active
   useEffect(() => {
     if (!isSubmittedSuccess || isApprovedByAdmin || countdownSeconds <= 0) return;
@@ -73,19 +86,6 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
       window.removeEventListener('popstate', handlePopState);
     };
   }, [isSubmittedSuccess, isApprovedByAdmin, countdownSeconds]);
-
-  // Check if admin approved this recharge request in real time
-  const activeSubmittedRecharge = isSubmittedSuccess
-    ? (agentWalletRecharges || []).find(
-        (r) =>
-          (utrNumber.trim().length > 0 && r?.utr_number?.trim() === utrNumber.trim()) ||
-          (Number(r?.amount) === (parseFloat(amount) || 0) &&
-            r?.status === 'approved' &&
-            r?.created_at &&
-            new Date(r.created_at).getTime() > Date.now() - 3600000)
-      )
-    : undefined;
-  const isApprovedByAdmin = activeSubmittedRecharge?.status === 'approved';
 
   const upiId = settings?.safargo_upi_id || 'safargo.booking@icici';
   const parsedAmount = parseFloat(amount) || 0;

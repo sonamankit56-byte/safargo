@@ -356,7 +356,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         avatar_url: gPhoto,
         city: 'Indore',
         district: 'Indore',
+        address: 'Indore, MP',
+        referral_code: 'SFG-GOOGLE',
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         last_login_at: new Date().toISOString(),
       };
 

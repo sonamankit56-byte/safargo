@@ -40,6 +40,7 @@ import {
   Crown,
   AlertTriangle,
 } from 'lucide-react';
+import { buildSubdomainUrl } from '../../lib/subdomain';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -140,7 +141,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [district, setDistrict] = useState('Indore');
   const [address, setAddress] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
-  const [referralCodeInput, setReferralCodeInput] = useState('');
+  const [referralCodeInput, setReferralCodeInput] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const fromUrl = params.get('ref') || params.get('referral') || params.get('refCode');
+      if (fromUrl) {
+        const clean = fromUrl.trim().toUpperCase();
+        localStorage.setItem('safargo_active_ref_code', clean);
+        return clean;
+      }
+      return localStorage.getItem('safargo_active_ref_code') || '';
+    } catch {
+      return '';
+    }
+  });
 
   // Shopkeeper specific inputs
   const [shopName, setShopName] = useState('');
@@ -196,16 +210,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     try {
       const term = loginIdentifier.trim().toLowerCase();
 
-      // Super Admin special direct login
-      if (term === 'jia647155@gmail.com' || term === 'admin' || term.includes('9876543210')) {
-        const ok = await login(loginIdentifier.trim(), loginPassword.trim());
-        if (ok) {
-          onClose();
-          return;
-        }
-      }
-
-      // Check if user is an agent or admin
+      // Check if user is an agent, admin, or shopkeeper
       const foundProfile = (allProfiles || []).find(
         (p) =>
           p.email.toLowerCase() === term ||
@@ -213,32 +218,44 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           p.id.toLowerCase() === term
       );
 
-      // Pre-Launch Lock: 15 October Launch Enforcement (Only Admin can log in before 15 Oct)
-      if (isPreLaunch && foundProfile?.role !== 'admin') {
+      // Super Admin Isolation: Admin login strictly restricted to admin.safargo.in
+      if (term === 'jia647155@gmail.com' || term === 'admin' || term.includes('9876543210') || foundProfile?.role === 'admin') {
+        error(
+          'एडमिन पोर्टल अलग है (Admin Portal Restricted)',
+          'सुरक्षा कारणों से एडमिन लॉगिन केवल admin.safargo.in पर उपलब्ध है। आपको एडमिन पोर्टल पर भेजा जा रहा है...'
+        );
+        setTimeout(() => {
+          window.location.href = buildSubdomainUrl('admin');
+        }, 1200);
+        return;
+      }
+
+      // GO Agent Isolation: Redirect to agent.safargo.in
+      if (foundProfile && foundProfile.role === 'agent') {
+        info('एजेंट पोर्टल री-डायरेक्ट', 'एजेंट लॉगिन के लिए आपको आधिकारिक GO एजेंट पोर्टल (agent.safargo.in) पर भेजा जा रहा है...');
+        setTimeout(() => {
+          window.location.href = buildSubdomainUrl('agent');
+        }, 1000);
+        return;
+      }
+
+      // Shopkeeper Isolation: Redirect to shop.safargo.in
+      if (foundProfile && foundProfile.role === 'shopkeeper') {
+        info('दुकानदार पोर्टल री-डायरेक्ट', 'दुकानदार लॉगिन के लिए आपको मर्चेंट पोर्टल (shop.safargo.in) पर भेजा जा रहा है...');
+        setTimeout(() => {
+          window.location.href = buildSubdomainUrl('shop');
+        }, 1000);
+        return;
+      }
+
+      // Pre-Launch Lock: 15 October Launch Enforcement
+      if (isPreLaunch) {
         info(
           '🚀 15 अक्टूबर महा-लॉन्च!',
           'आपका रजिस्ट्रेशन सुरक्षित है! SafarGo का आधिकारिक लॉगिन 15 अक्टूबर 2026 सुबह 09:00 बजे से लाइव अनलॉक होगा। कृपया नए साथियों का रजिस्ट्रेशन कराएं!'
         );
         setActiveTab('register');
         return;
-      }
-
-      if (foundProfile && foundProfile.role === 'agent') {
-        // Enforce OTP Verification for Agent Login!
-        if (loginPassword.trim() && foundProfile.password && foundProfile.password !== loginPassword.trim()) {
-          error('गलत पासवर्ड', 'कृपया सही पासवर्ड दर्ज करें या पासवर्ड रीसेट करें।');
-          return;
-        }
-
-        const res = await initiateAgentLogin(loginIdentifier.trim(), loginPassword.trim());
-        if (res.success && res.pendingOtp) {
-          setCurrentPendingOtp(res.pendingOtp);
-          setEnteredOtp('');
-          setOtpCountdown(180);
-          setActiveTab('otp_verify');
-          info('सुरक्षा OTP भेजा गया', `OTP आपके पंजीकृत ईमेल (${foundProfile.email}) पर भेज दिया गया है।`);
-          return;
-        }
       }
 
       // If customer, shopkeeper or promoter: direct login
@@ -1038,28 +1055,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
                   <button
                     type="button"
-                    onClick={() => setRegisterRole('shopkeeper')}
-                    className={`p-2.5 rounded-xl border text-left transition flex flex-col items-center justify-center text-center gap-1 ${
-                      registerRole === 'shopkeeper'
-                        ? 'border-emerald-500 bg-emerald-50 text-emerald-950 font-bold shadow-xs'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                    }`}
+                    onClick={() => {
+                      window.location.href = buildSubdomainUrl('shop');
+                    }}
+                    className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 text-left transition flex flex-col items-center justify-center text-center gap-1 cursor-pointer"
+                    title="दुकानदार पोर्टल (shop.safargo.in)"
                   >
-                    <Store className={`w-5 h-5 ${registerRole === 'shopkeeper' ? 'text-emerald-600' : 'text-slate-400'}`} />
-                    <span className="text-[11px] leading-tight">🏪 दुकानदार (Merchant)</span>
+                    <Store className="w-5 h-5 text-emerald-600" />
+                    <span className="text-[11px] leading-tight">🏪 दुकानदार पोर्टल ➔</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setRegisterRole('agent')}
-                    className={`p-2.5 rounded-xl border text-left transition flex flex-col items-center justify-center text-center gap-1 ${
-                      registerRole === 'agent'
-                        ? 'border-indigo-500 bg-indigo-50 text-indigo-950 font-bold shadow-xs'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                    }`}
+                    onClick={() => {
+                      window.location.href = buildSubdomainUrl('agent');
+                    }}
+                    className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 text-left transition flex flex-col items-center justify-center text-center gap-1 cursor-pointer"
+                    title="GO एजेंट पोर्टल (agent.safargo.in)"
                   >
-                    <Bike className={`w-5 h-5 ${registerRole === 'agent' ? 'text-indigo-600' : 'text-slate-400'}`} />
-                    <span className="text-[11px] leading-tight">🤝 सीएससी एजेंट (Runner)</span>
+                    <Bike className="w-5 h-5 text-indigo-600" />
+                    <span className="text-[11px] leading-tight">👑 GO एजेंट पोर्टल ➔</span>
                   </button>
                 </div>
               </div>

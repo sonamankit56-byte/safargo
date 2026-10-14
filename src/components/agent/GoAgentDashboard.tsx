@@ -45,6 +45,7 @@ import {
   LogOut,
   Zap,
   ArrowUpRight,
+  ArrowRight,
   ArrowDownLeft,
   X,
   FileText,
@@ -325,6 +326,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
 
   const confirmedBookings = myGoBookings.filter((b) => b.status === 'confirmed');
   const totalConfirmedCount = confirmedBookings.length;
+  const confirmedCount = confirmedBookings.length;
   // Active tickets in current salary cycle after deducting 280 for each salary claimed
   const currentCycleTickets = Math.max(0, totalConfirmedCount - salaryClaimsCount * TARGET_SALARY_TICKETS);
 

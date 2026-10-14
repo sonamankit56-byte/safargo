@@ -184,7 +184,7 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
           if (requestPayout) {
             await requestPayout({
               amount: parsedWalletAmount,
-              payout_method: payoutMethod,
+              payout_method: payoutMethod === 'bank' ? 'bank_transfer' : 'upi',
               upi_id: payoutMethod === 'upi' ? destination : undefined,
               bank_account_holder: payoutMethod === 'bank' ? accountHolder : undefined,
               bank_account_number: payoutMethod === 'bank' ? accountNumber : undefined,

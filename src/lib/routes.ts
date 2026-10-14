@@ -19,6 +19,10 @@ export const TAB_TO_PATH: Record<string, string> = {
   'agent-deliveries': '/agent/deliveries',
   'agent-profile': '/agent/profile',
 
+  // Special / Subdomain tabs
+  'creator': '/creator',
+  'careers': '/careers',
+
   // Admin tabs
   'admin-dashboard': '/admin/dashboard',
   'admin-promoters': '/admin/promoters',
@@ -32,6 +36,7 @@ export const TAB_TO_PATH: Record<string, string> = {
   'admin-settings': '/admin/settings',
   'admin-logs': '/admin/logs',
   'admin-support-desk': '/admin/support',
+  'admin-jobs': '/admin/jobs',
 };
 
 export const PATH_TO_TAB: Record<string, string> = {
@@ -45,6 +50,8 @@ export const PATH_TO_TAB: Record<string, string> = {
   '/shop': 'shopkeeper-portal',
   '/shopkeeper-portal': 'shopkeeper-portal',
   '/go-wallet': 'go-wallet',
+  '/creator': 'creator',
+  '/careers': 'careers',
 
   // Agent paths
   '/go-agent': 'go-agent',
@@ -72,6 +79,7 @@ export const PATH_TO_TAB: Record<string, string> = {
   '/admin/settings': 'admin-settings',
   '/admin/logs': 'admin-logs',
   '/admin/support': 'admin-support-desk',
+  '/admin/jobs': 'admin-jobs',
 };
 
 export function getTabFromPath(pathname: string): string {

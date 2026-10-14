@@ -26,6 +26,7 @@ import {
   ArrowRight,
   Send,
   AlertTriangle,
+  Gift,
 } from 'lucide-react';
 
 interface GoAgentAuthModalProps {
@@ -61,6 +62,22 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
   const [district, setDistrict] = useState('Indore');
   const [address, setAddress] = useState('');
 
+  // Referral code input with automatic link capture
+  const [referralCode, setReferralCode] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const fromUrl = params.get('ref') || params.get('referral') || params.get('refCode');
+      if (fromUrl) {
+        const clean = fromUrl.trim().toUpperCase();
+        localStorage.setItem('safargo_active_ref_code', clean);
+        return clean;
+      }
+      return localStorage.getItem('safargo_active_ref_code') || '';
+    } catch {
+      return '';
+    }
+  });
+
   // Pending Gmail confirmation
   const [pendingConfirmation, setPendingConfirmation] = useState<{
     code: string;
@@ -72,6 +89,7 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
     district: string;
     address: string;
     password: string;
+    referral_code?: string;
   } | null>(null);
   const [enteredConfirmCode, setEnteredConfirmCode] = useState('');
   const [isCheckingGmailLink, setIsCheckingGmailLink] = useState(false);
@@ -253,6 +271,7 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
         district: district.trim(),
         address: address.trim() || city.trim(),
         password: password.trim(),
+        referral_code: referralCode.trim() ? referralCode.trim().toUpperCase() : undefined,
       });
 
       setEnteredConfirmCode('');
@@ -288,6 +307,7 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
         address: pendingConfirmation.address,
         shop_name: pendingConfirmation.agency,
         password: pendingConfirmation.password,
+        referral_code: pendingConfirmation.referral_code,
       });
 
       if (registered) {
@@ -641,6 +661,84 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                   />
                 </div>
               </div>
+
+              {/* Apply Referral Code Section (Automatic URL link capture & manual entry) */}
+              {(() => {
+                const matchedReferrer = allProfiles?.find(
+                  (p) => p.referral_code && p.referral_code.toUpperCase() === referralCode.trim().toUpperCase()
+                );
+                return (
+                  <div className="p-3 bg-slate-800/80 border border-slate-700/80 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="font-bold text-slate-300 text-xs flex items-center gap-1.5">
+                        <Gift className="w-3.5 h-3.5 text-amber-400" />
+                        <span>रेफरल कोड (Apply Referral Code)</span>
+                      </label>
+                      {matchedReferrer ? (
+                        <span className="text-[10px] font-black text-emerald-400 bg-emerald-950/80 border border-emerald-500/40 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          सत्यापित रेफरल कोड ✓
+                        </span>
+                      ) : referralCode.trim() ? (
+                        <span className="text-[10px] font-medium text-amber-300">
+                          रेफरल कोड दर्ज
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400">वैकल्पिक (Optional)</span>
+                      )}
+                    </div>
+
+                    <div className="relative flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={referralCode}
+                        onChange={(e) => {
+                          const val = e.target.value.toUpperCase();
+                          setReferralCode(val);
+                          try {
+                            if (val) localStorage.setItem('safargo_active_ref_code', val);
+                            else localStorage.removeItem('safargo_active_ref_code');
+                          } catch {}
+                        }}
+                        placeholder="उदा. SFG-REF-PAWAN50"
+                        className="flex-1 p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 text-xs font-mono font-bold uppercase focus:ring-2 focus:ring-amber-400 outline-none"
+                      />
+                      {referralCode.trim() && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReferralCode('');
+                            try {
+                              localStorage.removeItem('safargo_active_ref_code');
+                            } catch {}
+                          }}
+                          className="px-2.5 py-2 text-slate-400 hover:text-white bg-slate-700/60 hover:bg-slate-700 rounded-xl text-xs transition cursor-pointer"
+                          title="हटाएं"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+
+                    {matchedReferrer ? (
+                      <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-[11px] text-emerald-300 flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>
+                          रेफरल लिंक ऑटोमैटिक लागू: <strong>{matchedReferrer.full_name}</strong> ({matchedReferrer.shop_name || matchedReferrer.city}) के रेफरल से जुड़ रहे हैं।
+                        </span>
+                      </div>
+                    ) : referralCode.trim() ? (
+                      <p className="text-[10px] text-slate-400">
+                        रेफरल कोड <strong>{referralCode}</strong> रजिस्ट्रेशन के साथ स्वतः लिंक हो जाएगा।
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-slate-400 leading-snug">
+                        💡 यदि किसी साथी एजेंट ने आपको लिंक भेजा है, तो रेफरल कोड ऑटोमैटिक भर जाएगा या यहाँ टाइप करें।
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
 
               <button
                 type="submit"

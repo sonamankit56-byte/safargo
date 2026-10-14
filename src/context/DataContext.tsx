@@ -27,7 +27,13 @@ import {
   SupportTicket,
   TicketCategory,
   TicketPriority,
-  SupportTicketMessage
+  SupportTicketMessage,
+  JobPosting,
+  JobApplication,
+  JobType,
+  JobStatus,
+  ApplicationStatus,
+  PayoutStatus
 } from '../types';
 import {
   INITIAL_BOOKINGS,
@@ -46,6 +52,8 @@ import {
   INITIAL_QUICK_DELIVERY_ORDERS,
   INITIAL_PROMO_CODES,
   INITIAL_SUPPORT_TICKETS,
+  INITIAL_JOB_POSTINGS,
+  INITIAL_JOB_APPLICATIONS,
   SHOP_SUBSCRIPTION_PLANS
 } from '../lib/mockData';
 import { useAuth } from './AuthContext';
@@ -252,6 +260,15 @@ interface DataContextType {
   replyToSupportTicket: (ticketId: string, message: string, attachmentUrl?: string) => Promise<boolean>;
   resolveSupportTicket: (ticketId: string, resolutionNotes: string) => Promise<boolean>;
   closeSupportTicket: (ticketId: string) => Promise<boolean>;
+
+  // Careers & Job Postings System ("We will post jobs and users can apply for jobs")
+  jobPostings: JobPosting[];
+  jobApplications: JobApplication[];
+  addJobPosting: (job: Omit<JobPosting, 'id' | 'created_at' | 'updated_at'>) => Promise<boolean>;
+  updateJobPosting: (id: string, updates: Partial<JobPosting>) => Promise<boolean>;
+  deleteJobPosting: (id: string) => Promise<boolean>;
+  applyForJob: (app: Omit<JobApplication, 'id' | 'status' | 'created_at' | 'updated_at'>) => Promise<boolean>;
+  updateJobApplicationStatus: (id: string, status: ApplicationStatus, notes?: string) => Promise<boolean>;
 }
 
 const STORAGE_KEY_BOOKINGS = 'safargo_bookings_v1';
@@ -260,6 +277,8 @@ const STORAGE_KEY_SALARY = 'safargo_salary_v1';
 const STORAGE_KEY_TRIPS = 'safargo_trips_v1';
 const STORAGE_KEY_SETTINGS = 'safargo_settings_v1';
 const STORAGE_KEY_SUPPORT_TICKETS = 'safargo_support_tickets_v1';
+const STORAGE_KEY_JOB_POSTINGS = 'safargo_job_postings_v1';
+const STORAGE_KEY_JOB_APPLICATIONS = 'safargo_job_applications_v1';
 const STORAGE_KEY_LOGS = 'safargo_audit_logs_v1';
 const STORAGE_KEY_SEEN_CONFIRMATIONS = 'safargo_seen_confirmations_v1';
 const STORAGE_KEY_PAYOUTS = 'safargo_payouts_v1';
@@ -455,6 +474,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return INITIAL_SUPPORT_TICKETS;
   });
 
+  const [jobPostings, setJobPostings] = useState<JobPosting[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_JOB_POSTINGS);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return INITIAL_JOB_POSTINGS;
+  });
+
+  const [jobApplications, setJobApplications] = useState<JobApplication[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_JOB_APPLICATIONS);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return INITIAL_JOB_APPLICATIONS;
+  });
+
   // Track seen confirmation IDs so animation only plays once per confirmed booking
   const [seenConfirmations, setSeenConfirmations] = useState<string[]>(() => {
     try {
@@ -536,6 +575,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     safeSetItem(STORAGE_KEY_SUPPORT_TICKETS, JSON.stringify(supportTickets));
   }, [supportTickets]);
+
+  useEffect(() => {
+    safeSetItem(STORAGE_KEY_JOB_POSTINGS, JSON.stringify(jobPostings));
+  }, [jobPostings]);
+
+  useEffect(() => {
+    safeSetItem(STORAGE_KEY_JOB_APPLICATIONS, JSON.stringify(jobApplications));
+  }, [jobApplications]);
 
   // Ref to allow automated 3-minute background timer approval without RLS role blocking
   const approveWalletRechargeRef = useRef<(id: string, notes?: string, isAuto?: boolean) => Promise<boolean>>();
@@ -1380,7 +1427,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const randomSuffix = Math.floor(100 + Math.random() * 900);
     const bookingCode = `SFG-${dateCode}-${randomSuffix}`;
     const isGoAgentBooking =
-      activeActor.role === 'agent' ||
+      (activeActor as any)?.role === 'agent' ||
       isInstantAutoRequest ||
       Boolean(bookingData.agent_notes?.includes('GO Edition'));
     const timerMins = isGoAgentBooking ? 3 : 15;
@@ -3895,6 +3942,115 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   };
 
+  // ============================================================================
+  // CAREERS & JOB POSTINGS SYSTEM ("We will post jobs and users can apply for jobs")
+  // ============================================================================
+
+  const addJobPosting = async (
+    job: Omit<JobPosting, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<boolean> => {
+    try {
+      const nowIso = new Date().toISOString();
+      const newJob: JobPosting = {
+        ...job,
+        id: `job-${Date.now()}`,
+        created_at: nowIso,
+        updated_at: nowIso,
+      };
+      setJobPostings((prev) => [newJob, ...prev]);
+      addAuditLog('create_job_posting', 'careers', newJob.id, {
+        title: newJob.title,
+        department: newJob.department,
+        salary_range: newJob.salary_range,
+      });
+      success('जॉब पोस्टिंग प्रकाशित!', `"${newJob.title}" सफलतापूर्वक प्रकाशित कर दी गई है।`);
+      return true;
+    } catch (err: any) {
+      error('जॉब पोस्टिंग विफल', err?.message || 'जॉब पोस्ट करने में समस्या आई।');
+      return false;
+    }
+  };
+
+  const updateJobPosting = async (
+    id: string,
+    updates: Partial<JobPosting>
+  ): Promise<boolean> => {
+    try {
+      setJobPostings((prev) =>
+        prev.map((j) => (j.id === id ? { ...j, ...updates, updated_at: new Date().toISOString() } : j))
+      );
+      addAuditLog('update_job_posting', 'careers', id, updates);
+      success('जॉब अपडेट सफल', 'जॉब विवरण सफलतापूर्वक अपडेट कर दिया गया है।');
+      return true;
+    } catch (err: any) {
+      error('अपडेट विफल', err?.message);
+      return false;
+    }
+  };
+
+  const deleteJobPosting = async (id: string): Promise<boolean> => {
+    try {
+      setJobPostings((prev) => prev.filter((j) => j.id !== id));
+      addAuditLog('delete_job_posting', 'careers', id, {});
+      success('जॉब हटाई गई', 'जॉब पोस्टिंग सफलतापूर्वक हटा दी गई है।');
+      return true;
+    } catch (err: any) {
+      error('हटाने में विफल', err?.message);
+      return false;
+    }
+  };
+
+  const applyForJob = async (
+    app: Omit<JobApplication, 'id' | 'status' | 'created_at' | 'updated_at'>
+  ): Promise<boolean> => {
+    try {
+      const nowIso = new Date().toISOString();
+      const newApp: JobApplication = {
+        ...app,
+        id: `app-${Date.now()}`,
+        status: 'pending',
+        created_at: nowIso,
+        updated_at: nowIso,
+      };
+      setJobApplications((prev) => [newApp, ...prev]);
+      addAuditLog('submit_job_application', 'careers', newApp.id, {
+        job_title: newApp.job_title,
+        applicant_name: newApp.applicant_name,
+        mobile: newApp.mobile,
+      });
+      success(
+        'आवेदन सफलतापूर्वक जमा हुआ! 🎉',
+        `"${newApp.job_title}" पद हेतु आपका आवेदन दर्ज हो गया है। SafarGo एचआर टीम आपसे शीघ्र संपर्क करेगी।`
+      );
+      return true;
+    } catch (err: any) {
+      error('आवेदन विफल', err?.message || 'आवेदन सबमिट करने में समस्या आई।');
+      return false;
+    }
+  };
+
+  const updateJobApplicationStatus = async (
+    id: string,
+    status: ApplicationStatus,
+    notes?: string
+  ): Promise<boolean> => {
+    try {
+      setJobApplications((prev) =>
+        prev.map((a) =>
+          a.id === id
+            ? { ...a, status, admin_notes: notes ?? a.admin_notes, updated_at: new Date().toISOString() }
+            : a
+        )
+      );
+      addAuditLog('update_job_application_status', 'careers', id, { status, notes });
+      success('आवेदन स्टेटस अपडेट', `स्टेटस बदलकर "${status}" कर दिया गया है।`);
+      return true;
+    } catch (err: any) {
+      error('स्टेटस अपडेट विफल', err?.message);
+      return false;
+    }
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -3985,6 +4141,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         replyToSupportTicket,
         resolveSupportTicket,
         closeSupportTicket,
+        jobPostings,
+        jobApplications,
+        addJobPosting,
+        updateJobPosting,
+        deleteJobPosting,
+        applyForJob,
+        updateJobApplicationStatus,
       }}
     >
       {children}

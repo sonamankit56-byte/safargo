@@ -13,7 +13,7 @@
  * - Session/LocalStorage persistence
  */
 
-export type AppSubdomain = 'main' | 'admin' | 'agent' | 'promoter' | 'shop';
+export type AppSubdomain = 'main' | 'admin' | 'agent' | 'promoter' | 'shop' | 'creator' | 'careers';
 
 export interface SubdomainConfig {
   id: AppSubdomain;
@@ -71,6 +71,24 @@ export const SUBDOMAIN_CONFIGS: Record<AppSubdomain, SubdomainConfig> = {
     subdomainPrefix: 'shop',
     themeColor: 'from-emerald-600 to-teal-600',
   },
+  creator: {
+    id: 'creator',
+    title: 'SafarGo वायरल क्रिएटर व प्रमोशन धमाका',
+    badge: 'Creator Rewards',
+    description: 'Instagram Reel (1M = ₹500) व YouTube (10k = ₹100) नकद रिवॉर्ड क्लेम पोर्टल',
+    pathFallback: '/creator',
+    subdomainPrefix: 'creator',
+    themeColor: 'from-pink-600 via-purple-600 to-indigo-700',
+  },
+  careers: {
+    id: 'careers',
+    title: 'SafarGo करियर व जॉब्स पोर्टल',
+    badge: 'Careers & Hiring',
+    description: 'मध्य प्रदेश व ग्रामीण भारत में स्थायी रोजगार, जॉब्स व ऑनलाइन आवेदन',
+    pathFallback: '/careers',
+    subdomainPrefix: 'careers',
+    themeColor: 'from-blue-600 to-indigo-800',
+  },
 };
 
 const STORAGE_KEY_CUSTOM_DOMAIN = 'safargo_custom_domain';
@@ -102,14 +120,14 @@ export function detectSubdomain(): AppSubdomain {
   // 1. Priority: URL query parameter for testing (e.g. ?subdomain=admin)
   const searchParams = new URLSearchParams(window.location.search);
   const querySub = searchParams.get('subdomain')?.toLowerCase().trim();
-  if (querySub && ['admin', 'agent', 'promoter', 'shop', 'main'].includes(querySub)) {
+  if (querySub && ['admin', 'agent', 'promoter', 'shop', 'creator', 'careers', 'main'].includes(querySub)) {
     return querySub as AppSubdomain;
   }
 
   // 2. LocalStorage override if set manually by developer/admin switcher
   try {
     const storedOverride = sessionStorage.getItem(STORAGE_KEY_SUBDOMAIN_OVERRIDE);
-    if (storedOverride && ['admin', 'agent', 'promoter', 'shop', 'main'].includes(storedOverride)) {
+    if (storedOverride && ['admin', 'agent', 'promoter', 'shop', 'creator', 'careers', 'main'].includes(storedOverride)) {
       return storedOverride as AppSubdomain;
     }
   } catch {}
@@ -145,6 +163,26 @@ export function detectSubdomain(): AppSubdomain {
     hostname === 'shop.localhost'
   ) {
     return 'shop';
+  }
+
+  // Creator subdomains (creator.safargo.in)
+  if (
+    hostname.startsWith('creator.') ||
+    hostname.startsWith('influencer.') ||
+    hostname === 'creator.localhost'
+  ) {
+    return 'creator';
+  }
+
+  // Careers / Jobs subdomains (careers.safargo.in)
+  if (
+    hostname.startsWith('careers.') ||
+    hostname.startsWith('career.') ||
+    hostname.startsWith('jobs.') ||
+    hostname === 'careers.localhost' ||
+    hostname === 'jobs.localhost'
+  ) {
+    return 'careers';
   }
 
   return 'main';

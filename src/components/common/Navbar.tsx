@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { ComingSoonModal } from './ComingSoonModal';
 import { getFeatureMode } from '../../lib/featureFlags';
+import { buildSubdomainUrl } from '../../lib/subdomain';
 
 interface NavbarProps {
   currentTab: string;
@@ -232,23 +233,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
               </button>
             )}
 
-            {/* ⚡ GO Special Agent Ultra 3D Terminal Option (Hidden for Super Admin) */}
+            {/* ⚡ GO Special Agent Ultra 3D Terminal Option (Direct Subdomain Redirection) */}
             {(!isAdmin && role !== 'admin') && (
               <button
                 onClick={() => {
-                  if (!currentUser) {
-                    if (onOpenGoAuth) onOpenGoAuth('login');
-                    else onOpenAuth('login');
-                  } else {
-                    handleTabChange('go-agent');
-                  }
+                  window.location.href = buildSubdomainUrl('agent');
                 }}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-black text-xs shadow-md transition border cursor-pointer active:scale-95 ${
                   currentTab === 'go-agent'
                     ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-300 text-slate-950 border-white ring-2 ring-amber-400'
                     : 'bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 hover:border-amber-400 text-white border-amber-400/70 shadow-amber-500/20'
                 }`}
-                title="👑 GO Special Agent Ultra 3D Terminal — फ्लैट ₹20/टिकट कमीशन"
+                title="👑 GO Special Agent Ultra 3D Terminal — फ्लैट ₹20/टिकट कमीशन (agent.safargo.in)"
               >
                 <Go3DUltraLogo size="sm" showBadge={false} interactive={false} />
                 <span className="hidden xl:inline-block px-1.5 py-0.5 rounded-full text-[9px] font-black bg-amber-400 text-slate-950">
@@ -280,18 +276,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                 </span>
               )}
             </button>
-
-            {/* Dedicated Subdomain Directory Trigger */}
-            {onOpenSubdomains && (
-              <button
-                onClick={onOpenSubdomains}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-amber-300 hover:text-white font-bold text-xs border border-amber-400/30 transition cursor-pointer shadow-xs active:scale-95"
-                title="SafarGo सबडोमेन डायरेक्टरी (Admin, Agent, Promoter, Shop)"
-              >
-                <Globe className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden xl:inline">सबडोमेन</span>
-              </button>
-            )}
 
             {currentUser && role === 'agent' && (
               <>
@@ -357,12 +341,15 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                 </button>
 
                 <button
-                  onClick={() => handleTabChange('viral-promotions')}
+                  onClick={() => {
+                    window.location.href = buildSubdomainUrl('creator');
+                  }}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition ${
                     currentTab === 'viral-promotions'
                       ? 'bg-purple-600 text-white shadow-sm'
                       : 'text-purple-300 hover:text-white hover:bg-slate-800'
                   }`}
+                  title="क्रिएटर रिवॉर्ड पोर्टल (creator.safargo.in)"
                 >
                   <Sparkles className="w-4 h-4 text-purple-400" />
                   क्रिएटर बोनस (Earn ₹500)
@@ -570,8 +557,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                 )}
 
                 <button
-                  onClick={() => onOpenAuth('register')}
-                  className="px-3.5 py-2 bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-xs rounded-xl transition flex items-center gap-1.5 shadow-md active:scale-95"
+                  onClick={() => {
+                    window.location.href = buildSubdomainUrl('agent');
+                  }}
+                  className="px-3.5 py-2 bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-xs rounded-xl transition flex items-center gap-1.5 shadow-md active:scale-95 cursor-pointer"
+                  title="अधिकृत SafarGo एजेंट बनें (agent.safargo.in)"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   <span>फ्री एजेंट बनें</span>
@@ -808,24 +798,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
               )}
             </button>
 
-            {/* Subdomain Directory Button in Mobile Menu */}
-            {onOpenSubdomains && (
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onOpenSubdomains();
-                }}
-                className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between bg-slate-950 border border-amber-400/40 text-amber-300 shadow-sm cursor-pointer"
-              >
-                <span className="flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-amber-400" />
-                  <span>🌐 SafarGo सबडोमेन डायरेक्टरी</span>
-                </span>
-                <span className="text-[10px] bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded-full font-bold">
-                  5 सबडोमेन
-                </span>
-              </button>
-            )}
 
             {qdMode !== 'hidden' && (
               <button
@@ -943,12 +915,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    onOpenAuth('register');
+                    window.location.href = buildSubdomainUrl('agent');
                   }}
-                  className="w-full py-2.5 bg-orange-600 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5"
+                  className="w-full py-2.5 bg-orange-600 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <UserPlus className="w-4 h-4" />
-                  फ्री एजेंट बनें
+                  फ्री एजेंट बनें (agent.safargo.in)
                 </button>
               </div>
             ) : role === 'agent' ? (

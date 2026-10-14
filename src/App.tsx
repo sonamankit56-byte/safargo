@@ -45,7 +45,11 @@ import { AdminSubdomainLayout } from './components/admin/AdminSubdomainLayout';
 import { GoAgentSubdomainGateway } from './components/agent/GoAgentSubdomainGateway';
 import { PromoterSubdomainGateway } from './components/promoter/PromoterSubdomainGateway';
 import { ShopSubdomainGateway } from './components/shop/ShopSubdomainGateway';
+import { CreatorSubdomainGateway } from './components/creator/CreatorSubdomainGateway';
+import { CareersSubdomainGateway } from './components/careers/CareersSubdomainGateway';
+import { AdminJobsDesk } from './components/admin/AdminJobsDesk';
 import { SubdomainDirectoryModal } from './components/common/SubdomainDirectoryModal';
+import { buildSubdomainUrl } from './lib/subdomain';
 import { Bus, ShieldCheck, Heart, UserPlus, LogIn, ExternalLink, Zap, Globe } from 'lucide-react';
 
 const AppContent: React.FC = () => {
@@ -89,6 +93,19 @@ const AppContent: React.FC = () => {
     setGoAuthInitialMode(mode);
     setIsGoAuthModalOpen(true);
   };
+
+  // Capture referral code from URL query params (e.g. ?ref=SFG-REF-PAWAN50 or ?referral=...)
+  useEffect(() => {
+    try {
+      const search = new URLSearchParams(location.search);
+      const refCode = search.get('ref') || search.get('referral') || search.get('refCode');
+      if (refCode) {
+        const clean = refCode.trim().toUpperCase();
+        localStorage.setItem('safargo_active_ref_code', clean);
+        sessionStorage.setItem('safargo_active_ref_code', clean);
+      }
+    } catch {}
+  }, [location.search]);
 
   // Auto-redirect to role-specific dashboard upon fresh login or logout
   const previousUserIdRef = useRef<string | null>(null);
@@ -189,6 +206,14 @@ const AppContent: React.FC = () => {
 
   if (activeSubdomain === 'shop') {
     return <ShopSubdomainGateway />;
+  }
+
+  if (activeSubdomain === 'creator') {
+    return <CreatorSubdomainGateway />;
+  }
+
+  if (activeSubdomain === 'careers') {
+    return <CareersSubdomainGateway />;
   }
 
   const selectedReviewBooking = bookings.find((b) => b.id === selectedReviewBookingId) || null;
@@ -331,6 +356,12 @@ const AppContent: React.FC = () => {
           <AdminSettings />
         ) : currentTab === 'admin-logs' ? (
           <AdminAuditLogs />
+        ) : currentTab === 'admin-jobs' ? (
+          <AdminJobsDesk />
+        ) : currentTab === 'creator' ? (
+          <CreatorSubdomainGateway />
+        ) : currentTab === 'careers' ? (
+          <CareersSubdomainGateway />
         ) : (
           <HomePage
             onOpenAuth={handleOpenAuth}
@@ -437,12 +468,11 @@ const AppContent: React.FC = () => {
                   <li>
                     <button
                       onClick={() => {
-                        if (!currentUser) handleOpenAuth('login');
-                        else setCurrentTab(role === 'admin' ? 'admin-dashboard' : 'dashboard');
+                        window.location.href = buildSubdomainUrl('agent');
                       }}
                       className="hover:text-white transition"
                     >
-                      एजेंट डैशबोर्ड (Agent Portal)
+                      एजेंट पोर्टल (GO Agent Terminal)
                     </button>
                   </li>
                   <li>
@@ -458,13 +488,18 @@ const AppContent: React.FC = () => {
                   </li>
                   <li>
                     <button
-                      onClick={() => {
-                        if (!isAdmin) handleOpenAuth('login');
-                        else setCurrentTab('admin-dashboard');
-                      }}
-                      className="hover:text-white transition"
+                      onClick={() => setCurrentTab('careers')}
+                      className="hover:text-white transition flex items-center gap-1.5 text-blue-400 font-bold"
                     >
-                      एडमिन कंट्रोल डेस्क (Admin Desk)
+                      💼 करियर एवं जॉब्स (Careers @ SafarGo)
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={() => setCurrentTab('creator')}
+                      className="hover:text-white transition flex items-center gap-1.5 text-pink-400 font-bold"
+                    >
+                      ✨ क्रिएटर रिवॉर्ड्स (Reel & YouTube)
                     </button>
                   </li>
                 </ul>
@@ -499,11 +534,7 @@ const AppContent: React.FC = () => {
                 <div className="space-y-2">
                   <button
                     onClick={() => {
-                      if (!currentUser) {
-                        handleOpenGoAuth('login');
-                      } else {
-                        setCurrentTab('go-agent');
-                      }
+                      window.location.href = buildSubdomainUrl('agent');
                     }}
                     className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-500 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer"
                   >

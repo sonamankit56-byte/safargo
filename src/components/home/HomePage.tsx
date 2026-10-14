@@ -51,6 +51,7 @@ import { AutoBusBookingCheckoutModal } from '../bus/AutoBusBookingCheckoutModal'
 import { GrandLaunchBanner } from '../common/GrandLaunchBanner';
 import { SeatCategory } from '../../types';
 import { MP_NETWORK_CITIES } from '../../lib/mockData';
+import { buildSubdomainUrl } from '../../lib/subdomain';
 
 interface HomePageProps {
   onOpenAuth: (initialTab?: 'login' | 'register' | 'promoter_login') => void;
@@ -261,7 +262,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
               ) : (
                 <>
                   <button
-                    onClick={() => onOpenAuth('register')}
+                    onClick={() => {
+                      window.location.href = buildSubdomainUrl('agent');
+                    }}
                     className="w-full sm:w-auto px-8 py-3.5 sm:py-4 bg-orange-500 hover:bg-orange-600 text-white font-black text-sm sm:text-base rounded-2xl shadow-xl shadow-orange-500/30 transition transform hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span>मुफ़्त एजेंट बनें (Join as Agent)</span>
@@ -269,7 +272,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                   </button>
 
                   <button
-                    onClick={() => onOpenAuth('login')}
+                    onClick={() => {
+                      window.location.href = buildSubdomainUrl('agent');
+                    }}
                     className="w-full sm:w-auto px-6 py-3.5 sm:py-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm sm:text-base rounded-2xl border border-slate-700 transition flex items-center justify-center cursor-pointer"
                   >
                     एजेंट लॉगिन (Sign In)
@@ -374,12 +379,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                   <button
                     type="button"
                     onClick={() => {
-                      if (!currentUser) {
-                        if (onOpenGoAuth) onOpenGoAuth('register');
-                        else onOpenAuth('register');
-                      } else {
-                        onNavigateTab('go-agent');
-                      }
+                      window.location.href = buildSubdomainUrl('agent');
                     }}
                     className="w-full sm:w-auto py-3 px-5 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-300 hover:from-amber-300 text-slate-950 font-black text-xs shadow-lg transition active:scale-95 cursor-pointer"
                   >
@@ -389,12 +389,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                   <button
                     type="button"
                     onClick={() => {
-                      if (!currentUser) {
-                        if (onOpenGoAuth) onOpenGoAuth('login');
-                        else onOpenAuth('login');
-                      } else {
-                        onNavigateTab('go-agent');
-                      }
+                      window.location.href = buildSubdomainUrl('agent');
                     }}
                     className="w-full sm:w-auto py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition cursor-pointer"
                   >
@@ -1341,7 +1336,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                           desc: 'Instagram Reel क्लेम प्रोग्राम बहुत जल्द शुरू हो रहा है! 1 Million Views पर ₹500 पाने के लिए तैयार रहें।'
                         });
                       } else {
-                        handleOpenClaimModal('instagram');
+                        window.location.href = buildSubdomainUrl('creator');
                       }
                     }}
                     className="w-full py-3.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 hover:from-pink-500 hover:to-purple-500 text-white font-black text-xs rounded-2xl shadow-lg transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
@@ -1405,7 +1400,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                           desc: 'YouTube Video क्लेम प्रोग्राम बहुत जल्द शुरू हो रहा है! 10K Views पर ₹100 पाने के लिए तैयार रहें।'
                         });
                       } else {
-                        handleOpenClaimModal('youtube');
+                        window.location.href = buildSubdomainUrl('creator');
                       }
                     }}
                     className="w-full py-3.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-xs rounded-2xl shadow-lg transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
@@ -1831,7 +1826,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
             ) : (
               <>
                 <button
-                  onClick={() => onOpenAuth('register')}
+                  onClick={() => {
+                    window.location.href = buildSubdomainUrl('agent');
+                  }}
                   className="w-full sm:w-auto px-8 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>फ्री में एजेंट बनें</span>

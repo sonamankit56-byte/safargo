@@ -30,7 +30,11 @@ import {
 } from 'lucide-react';
 import { PayoutStatus } from '../../types';
 
-export const AdminCommissionAndSalary: React.FC = () => {
+interface AdminCommissionAndSalaryProps {
+  initialTab?: 'salaries' | 'payouts' | 'wallet' | 'ledger' | string;
+}
+
+export const AdminCommissionAndSalary: React.FC<AdminCommissionAndSalaryProps> = ({ initialTab }) => {
   const {
     commissions,
     salaryRecords,
@@ -50,7 +54,13 @@ export const AdminCommissionAndSalary: React.FC = () => {
   const { allProfiles, currentUser } = useAuth();
   const { success, error, info } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'salaries' | 'payouts' | 'wallet' | 'ledger'>('salaries');
+  const [activeTab, setActiveTab] = useState<'salaries' | 'payouts' | 'wallet' | 'ledger'>(() => {
+    if (initialTab === 'wallet_requests' || initialTab === 'wallet') return 'wallet';
+    if (initialTab === 'salary_review' || initialTab === 'salaries') return 'salaries';
+    if (initialTab === 'payouts') return 'payouts';
+    if (initialTab === 'ledger') return 'ledger';
+    return 'salaries';
+  });
   
   // Settlement Desk Filter States
   const [settlementStatusFilter, setSettlementStatusFilter] = useState<'all' | 'pending' | 'processing' | 'paid' | 'failed'>('all');

@@ -40,6 +40,7 @@ export interface Passenger {
   name: string;
   age: number;
   gender: 'male' | 'female' | 'other';
+  seat_number?: string;
 }
 
 export type KycStatus = 'not_submitted' | 'pending' | 'verified' | 'rejected';
@@ -52,14 +53,14 @@ export interface Profile {
   email: string;
   city: string;
   district: string;
-  address: string;
+  address?: string;
   shop_name?: string;
   shop_id?: string;
   wallet_balance?: number;
   agent_status: AgentStatus;
   approved_by?: string;
   approved_at?: string;
-  referral_code: string;
+  referral_code?: string;
   referred_by_code?: string;
   referred_by_id?: string;
   password?: string;
@@ -135,6 +136,7 @@ export interface Booking {
   journey_date: string;
   departure_time_pref: string;
   operator_preference: string;
+  bus_operator?: string;
   seat_category: SeatCategory;
   seat_count: number;
   boarding_point: string;
@@ -260,6 +262,9 @@ export interface BusTrip {
   boarding_points: string[];
   drop_points: string[];
   notes?: string;
+  is_ac?: boolean;
+  has_sleeper?: boolean;
+  has_seater?: boolean;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -396,7 +401,8 @@ export interface WalletTransaction {
     | 'quick_commerce_sale'
     | 'shop_ad_boost'
     | 'bank_withdrawal'
-    | 'promoter_earning';
+    | 'promoter_earning'
+    | 'monthly_salary';
   booking_id?: string;
   booking_code?: string;
   recharge_id?: string;
@@ -638,6 +644,7 @@ export interface QuickDeliveryOrder {
 
 export type TicketCategory =
   | 'bus_booking'
+  | 'ticket_booking_issue'
   | 'seat_passenger'
   | 'wallet_add_money'
   | 'commission_payout'
@@ -645,13 +652,14 @@ export type TicketCategory =
   | 'technical_issue'
   | 'other';
 
-export type TicketStatus = 'pending' | 'in_progress' | 'resolved' | 'closed';
+export type TicketStatus = 'pending' | 'open' | 'in_progress' | 'resolved' | 'closed';
 export type TicketPriority = 'normal' | 'urgent' | 'critical';
 
 export interface SupportTicketMessage {
   id: string;
   sender_role: 'agent' | 'admin' | 'system';
   sender_name: string;
+  sender_id?: string;
   message: string;
   attachment_url?: string;
   created_at: string;
@@ -675,8 +683,55 @@ export interface SupportTicket {
   resolved_at?: string;
   resolved_by?: string;
   sla_deadline: string; // 24-hour SLA guaranteed resolution
+  sla_deadline_at?: string;
   messages: SupportTicketMessage[];
   created_at: string;
   updated_at: string;
 }
+
+// ============================================================================
+// SAFARGO CAREERS & JOB POSTINGS SYSTEM
+// ============================================================================
+
+export type JobType = 'full_time' | 'part_time' | 'contract' | 'internship' | 'remote';
+export type JobStatus = 'open' | 'closed' | 'draft';
+export type ApplicationStatus = 'pending' | 'reviewing' | 'shortlisted' | 'rejected' | 'hired';
+
+export interface JobPosting {
+  id: string;
+  title: string;
+  department: string;
+  location: string;
+  job_type: JobType;
+  salary_range: string;
+  openings: number;
+  experience_required: string;
+  description: string;
+  responsibilities: string[];
+  requirements: string[];
+  benefits: string[];
+  status: JobStatus;
+  posted_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JobApplication {
+  id: string;
+  job_id: string;
+  job_title: string;
+  applicant_name: string;
+  mobile: string;
+  email: string;
+  city: string;
+  experience: string;
+  highest_qualification: string;
+  resume_url_or_bio: string;
+  cover_note?: string;
+  status: ApplicationStatus;
+  admin_notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 

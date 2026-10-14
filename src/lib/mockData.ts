@@ -16,7 +16,9 @@ import {
   AgentCallLog,
   QuickDeliveryOrder,
   PromoCode,
-  SupportTicket
+  SupportTicket,
+  JobPosting,
+  JobApplication
 } from '../types';
 
 export const INITIAL_SETTINGS: AdminSettings = {
@@ -1448,6 +1450,176 @@ export const INITIAL_SUPPORT_TICKETS: SupportTicket[] = [
     updated_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
   }
 ];
+
+// ============================================================================
+// SAFARGO CAREERS & JOB OPENINGS
+// ============================================================================
+
+export const INITIAL_JOB_POSTINGS: JobPosting[] = [
+  {
+    id: 'job-01',
+    title: 'CSC एवं ग्राम एजेंट रिलेशनशिप मैनेजर (Relationship Manager)',
+    department: 'Operations & Network',
+    location: 'Bhopal / Indore, MP',
+    job_type: 'full_time',
+    salary_range: '₹18,000 - ₹28,000 / माह + इंसेंटिव्स',
+    openings: 4,
+    experience_required: '0-3 वर्ष (फ्रेशर्स भी आवेदन कर सकते हैं)',
+    description: 'मध्य प्रदेश के ग्रामीण जन सेवा केंद्रों (CSC), ऑनलाइन कैफे एवं किराना दुकानदारों को SafarGo GO एजेंट नेटवर्क से जोड़ना, ट्रेनिंग देना और उनकी दैनिक बुकिंग्स में सहायता करना।',
+    responsibilities: [
+      'नए सीएससी एवं ऑनलाइन केंद्रों की ऑनबोर्डिंग व केवाईसी सत्यापन में मदद करना',
+      'एजेंटों को Go Agent 3D टर्मिनल व तत्काल वॉलेट टॉप-अप का प्रशिक्षण देना',
+      'प्रति माह 50+ नए सक्रिय एजेंटों का नेटवर्क विस्तार करना',
+      'दैनिक आधार पर एजेंटों की समस्याओं का समाधान करना'
+    ],
+    requirements: [
+      '12वीं पास अथवा स्नातक (Any Graduate)',
+      'मध्य प्रदेश के कस्बों व तहसीलों की अच्छी भौगोलिक जानकारी',
+      'उत्कृष्ट संचार व बातचीत कौशल (Hindi fluency)',
+      'स्मार्टफोन एवं कंप्यूटर चलाने की सामान्य समझ'
+    ],
+    benefits: [
+      'फिक्स सैलरी + प्रति सफल एजेंट ऑनबोर्डिंग आकर्षक इंसेंटिव',
+      'मोबाइल व इंटरनेट भत्ता',
+      'त्योहारी बोनस एवं वार्षिक वेतन वृद्धि',
+      'तेजी से बढ़ते स्टार्टअप में करियर ग्रोथ'
+    ],
+    status: 'open',
+    posted_by: 'SafarGo HR Team',
+    created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'job-02',
+    title: 'बस ऑपरेशंस एवं टिकट वेरिफिकेशन कोऑर्डिनेटर (Operations Coordinator)',
+    department: 'Ticketing & Operations',
+    location: 'Guna / Vidisha / Bhopal, MP',
+    job_type: 'full_time',
+    salary_range: '₹15,000 - ₹24,000 / माह',
+    openings: 3,
+    experience_required: '1-2 वर्ष अनुभव',
+    description: 'बस ऑपरेटर्स से सीधे फोन/सिस्टम पर संपर्क साधकर यात्रियों की पसंदीदा सीटों का लाइव कन्फर्मेशन, ऑपरेटर PNR जारी करना एवं 15-मिनट SLA का पालन सुनिश्चित करना।',
+    responsibilities: [
+      'एजेंटों द्वारा सबमिट की गई बस बुकिंग्स को 15 मिनट के अंदर ऑपरेटर से कन्फर्म कराना',
+      'ऑपरेटर चार्ट से मिलान कर वास्तविक PNR, बस नंबर व बोर्डिंग पॉइंट जारी करना',
+      'सीट अनुपलब्ध होने पर तुरंत वैकल्पिक बस का सुझाव देना',
+      'रिफंड व कैंसिलेशन अनुरोधों की त्वरित प्रोसेसिंग'
+    ],
+    requirements: [
+      'स्नातक (Graduate) अथवा ट्रैवेल ऑपरेशंस में डिप्लोमा',
+      'बस टिकटिंग पोर्टल्स (RedBus, AbhiBus या ट्रेवल एजेंट्स) का पूर्व अनुभव प्राथमिकता',
+      'दबाव में समयबद्ध कार्य करने की क्षमता (Time Management)',
+      'मूलभूत कंप्यूटर एवं एक्सेल ज्ञान'
+    ],
+    benefits: [
+      'आकर्षक मासिक वेतन समय पर भुगतान',
+      'ओवरटाइम अलाउंस',
+      'कंपनी की ओर से परिवार हेतु रियायती बस यात्रा'
+    ],
+    status: 'open',
+    posted_by: 'SafarGo Operations Lead',
+    created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'job-03',
+    title: '15-मिनट क्विक डिलीवरी हब रनर सुपरवाइजर (Delivery Hub Lead)',
+    department: 'Logistics & Quick Delivery',
+    location: 'Sironj / Kurwai / Chanderi, MP',
+    job_type: 'full_time',
+    salary_range: '₹14,000 - ₹20,000 / माह + फ्यूल अलाउंस',
+    openings: 5,
+    experience_required: '0-2 वर्ष',
+    description: 'तहसील व कस्बों में 15-मिनट क्विक डिलीवरी रनर्स की टीम को लीड करना, स्थानीय किराना/मेडिकल दुकानों से आर्डर पिकअप व सुरक्षित डिलीवरी मॉनिटर करना।',
+    responsibilities: [
+      'स्थानीय डिलीवरी बॉयज/रनर्स की शिफ्ट व आर्डर असाइनमेंट मैनेज करना',
+      'पिकअप से लेकर 15 मिनट में ग्राहक तक सामान डिलीवरी का ऑडिट करना',
+      'स्थानीय पार्टनर दुकानदारों से समन्वय बनाए रखना',
+      'कस्टमर फीडबैक व डिलीवरी क्वालिटी बनाए रखना'
+    ],
+    requirements: [
+      '10वीं / 12वीं पास',
+      'वैध ड्राइविंग लाइसेंस एवं स्वयं का दोपहिया वाहन (Bike)',
+      'कस्बे की गलियों व मुख्य बाजारों की सटीक जानकारी',
+      'ईमानदार व समय का पाबंद'
+    ],
+    benefits: [
+      'पेट्रोल/फ्यूल भत्ता अलग से',
+      'प्रति डिलीवरी विशेष इंसेंटिव बोनस',
+      'सुरक्षा बीमा (Accidental Insurance)'
+    ],
+    status: 'open',
+    posted_by: 'SafarGo Logistics Desk',
+    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'job-04',
+    title: 'कस्टमर सपोर्ट एवं हेल्पडेस्क एग्जीक्यूटिव (Customer Support Executive)',
+    department: 'Customer Success',
+    location: 'Remote / Work from Home (MP Candidates)',
+    job_type: 'remote',
+    salary_range: '₹12,000 - ₹18,000 / माह',
+    openings: 6,
+    experience_required: 'फ्रेशर्स / 0-2 वर्ष',
+    description: 'यात्रियों एवं ग्रामीण सीएससी एजेंटों को कॉल व WhatsApp पर टिकट डाउनलोड, सीट स्टेटस, पेमेंट वेरिफिकेशन एवं यात्रा संबंधी सहायता प्रदान करना।',
+    responsibilities: [
+      'हेल्पलाइन WhatsApp व टिकटिंग सिस्टम पर आने वाली इनबाउंड क्वेरीज का समाधान',
+      'यात्रियों को लाइव टिकट डाउनलोड लिंक व बस बोर्डिंग पॉइंट्स की जानकारी देना',
+      'रिफंड स्टेटस अपडेट व संतुष्ट ग्राहक अनुभव प्रदान करना'
+    ],
+    requirements: [
+      'अच्छी हिंदी संवाद क्षमता (विनम्र व मददगार स्वभाव)',
+      'घर पर लैपटॉप/कंप्यूटर एवं स्थिर इंटरनेट कनेक्शन',
+      'रोटेशनल शिफ्ट्स में काम करने की तत्परता'
+    ],
+    benefits: [
+      '100% वर्क फ्रॉम होम (Work from Home)',
+      'इंटरनेट खर्च प्रतिपूर्ति',
+      'परफॉरमेंस बेस्ड मासिक इंसेंटिव्स'
+    ],
+    status: 'open',
+    posted_by: 'SafarGo HR Team',
+    created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  }
+];
+
+export const INITIAL_JOB_APPLICATIONS: JobApplication[] = [
+  {
+    id: 'app-01',
+    job_id: 'job-01',
+    job_title: 'CSC एवं ग्राम एजेंट रिलेशनशिप मैनेजर (Relationship Manager)',
+    applicant_name: 'अंकित शर्मा',
+    mobile: '9827112233',
+    email: 'ankit.sharma@gmail.com',
+    city: 'Bhopal',
+    experience: '1.5 वर्ष (FMCG Sales)',
+    highest_qualification: 'B.Com Graduate',
+    resume_url_or_bio: 'भोपाल एवं रायसेन क्षेत्र में 1.5 साल से रिटेल डिस्ट्रीब्यूशन व ग्रामीण दुकानों के साथ काम करने का अनुभव।',
+    cover_note: 'नमस्ते, मैं SafarGo के साथ जुड़कर ग्रामीण जन सेवा केंद्रों को जोड़ने के लिए पूरी तरह तैयार हूँ।',
+    status: 'reviewing',
+    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'app-02',
+    job_id: 'job-04',
+    job_title: 'कस्टमर सपोर्ट एवं हेल्पडेस्क एग्जीक्यूटिव (Customer Support Executive)',
+    applicant_name: 'पूजा धाकड़',
+    mobile: '9754889900',
+    email: 'pooja.dhakad@gmail.com',
+    city: 'Guna',
+    experience: 'फ्रेशर (Fresher)',
+    highest_qualification: 'BA Graduate',
+    resume_url_or_bio: 'कस्टमर केयर व कंप्यूटर टाइपिंग में दक्ष। घर से वर्क फ्रॉम होम के लिए लैपटॉप व ब्रॉडबैंड उपलब्ध।',
+    cover_note: 'मैं यात्रियों की समस्याओं को धैर्यपूर्वक सुनकर हल करने में सक्षम हूँ।',
+    status: 'shortlisted',
+    created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  }
+];
+
 
 
 

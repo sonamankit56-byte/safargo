@@ -12,6 +12,7 @@ import { AdminAuditLogs } from './AdminAuditLogs';
 import { AdminSecurityDesk } from './AdminSecurityDesk';
 import { AdminPromoterManagement } from './AdminPromoterManagement';
 import { AdminSupportDesk } from './AdminSupportDesk';
+import { AdminJobsDesk } from './AdminJobsDesk';
 import { SafarGoLogo } from '../common/SafarGoLogo';
 import { buildSubdomainUrl } from '../../lib/subdomain';
 import {
@@ -35,7 +36,8 @@ import {
   FileCheck,
   ChevronRight,
   Globe,
-  LifeBuoy
+  LifeBuoy,
+  Briefcase
 } from 'lucide-react';
 
 interface AdminSubdomainLayoutProps {
@@ -239,6 +241,7 @@ export const AdminSubdomainLayout: React.FC<AdminSubdomainLayoutProps> = () => {
                 { id: 'dashboard', label: 'डैशबोर्ड', icon: LayoutDashboard },
                 { id: 'bookings', label: `बुकिंग्स (${pendingBookingsCount})`, icon: FileCheck },
                 { id: 'agents', label: 'एजेंट प्रबंधन', icon: Users },
+                { id: 'jobs', label: 'जॉब्स एवं भर्ती', icon: Briefcase },
                 { id: 'wallet', label: `Go Wallet (${pendingRechargesCount})`, icon: DollarSign },
                 { id: 'salary', label: 'वेतन व कमीशन', icon: DollarSign },
                 { id: 'trips', label: 'बस ट्रिप्स', icon: Bus },
@@ -298,6 +301,7 @@ export const AdminSubdomainLayout: React.FC<AdminSubdomainLayoutProps> = () => {
               { id: 'dashboard', label: 'डैशबोर्ड' },
               { id: 'bookings', label: `बुकिंग्स (${pendingBookingsCount})` },
               { id: 'agents', label: 'एजेंट' },
+              { id: 'jobs', label: 'जॉब्स' },
               { id: 'wallet', label: `वॉलेट (${pendingRechargesCount})` },
               { id: 'salary', label: 'वेतन' },
               { id: 'trips', label: 'बसें' },
@@ -330,6 +334,7 @@ export const AdminSubdomainLayout: React.FC<AdminSubdomainLayoutProps> = () => {
             onNavigate={(tab) => {
               if (tab === 'admin-bookings') setActiveAdminTab('bookings');
               else if (tab === 'admin-agents') setActiveAdminTab('agents');
+              else if (tab === 'admin-jobs') setActiveAdminTab('jobs');
               else if (tab === 'admin-salary') setActiveAdminTab('salary');
               else if (tab === 'admin-trips') setActiveAdminTab('trips');
               else if (tab === 'admin-settings') setActiveAdminTab('settings');
@@ -372,6 +377,10 @@ export const AdminSubdomainLayout: React.FC<AdminSubdomainLayoutProps> = () => {
 
         {activeAdminTab === 'support' && (
           <AdminSupportDesk />
+        )}
+
+        {activeAdminTab === 'jobs' && (
+          <AdminJobsDesk />
         )}
 
         {activeAdminTab === 'settings' && (
