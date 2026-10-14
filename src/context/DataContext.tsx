@@ -119,6 +119,13 @@ interface DataContextType {
   agentWalletTransactions: WalletTransaction[];
   agentWalletBalance: number;
   requestWalletRecharge: (amount: number, utr: string, screenshotUrl?: string, paymentMethod?: 'upi_qr' | 'bank_transfer') => Promise<boolean>;
+  goInstantAddMoney: (params: {
+    amount: number;
+    utr: string;
+    screenshotUrl?: string;
+    paymentMethod?: 'upi_qr' | 'bank_transfer';
+  }) => Promise<{ success: boolean; message: string; fraudWarning?: string }>;
+  adminReverseInstantRecharge: (rechargeId: string, reason: string) => Promise<boolean>;
   approveWalletRecharge: (rechargeId: string, adminNotes?: string) => Promise<boolean>;
   rejectWalletRecharge: (rechargeId: string, reason: string) => Promise<boolean>;
   adjustAgentWallet: (agentId: string, amount: number, type: 'credit' | 'debit', reason: string) => Promise<boolean>;
@@ -919,16 +926,25 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         promoterEarningsTotal = promoClaimsAmt + onboardedShopsAmt;
       }
 
-      const totalEarnedOrRecharged = approvedRechargesTotal + shopSalesTotal + promoterEarningsTotal;
+      // GO Agent Ticket Booking Commissions (₹20 per confirmed ticket)
+      const agentCommissionsTotal = (commissions || [])
+        .filter(
+          (c) =>
+            c.status === 'credited' &&
+            (c.agent_id === agentId || (agentMobile && (c as any).agent_mobile === agentMobile))
+        )
+        .reduce((sum, c) => sum + Number(c.amount || 20), 0);
+
+      const totalEarnedOrRecharged = approvedRechargesTotal + agentCommissionsTotal + shopSalesTotal + promoterEarningsTotal;
       const totalDebits = ticketDebitsTotal + bankWithdrawalsTotal + shopAdBoostTotal;
 
       if (totalEarnedOrRecharged > 0) {
         return Math.max(0, totalEarnedOrRecharged + refundsTotal + adjustmentsTotal - totalDebits);
       }
 
-      return Math.max(0, (profileBalance || 0) + refundsTotal + adjustmentsTotal - totalDebits);
+      return Math.max(0, (profileBalance || 0) + agentCommissionsTotal + refundsTotal + adjustmentsTotal - totalDebits);
     },
-    [walletRecharges, walletTransactions, partnerShops, quickDeliveryOrders, promotionClaims, currentUser]
+    [walletRecharges, walletTransactions, partnerShops, quickDeliveryOrders, promotionClaims, commissions, currentUser]
   );
 
   // User's live Go Wallet balance (Agent, Dukandar, Promoter, Customer)
@@ -1311,7 +1327,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     }
 
-    const commRate = settings.commission_rate;
+    const commRate = Math.max(20, Number(settings?.commission_rate) || 20); // Flat ₹20 Commission
     const nowIso = new Date().toISOString();
 
     // 1. Update Booking
@@ -1439,7 +1455,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return list;
     });
 
+    // 2d. Instant Credit ₹20 directly into Agent's Go Wallet
+    const commWalletTx: WalletTransaction = {
+      id: `wtx-comm-${Date.now()}`,
+      agent_id: target.agent_id,
+      amount: commRate,
+      type: 'recharge',
+      booking_code: target.booking_code,
+      description: `⚡ GO Agent बस टिकट कमीशन (₹${commRate} इंस्टेंट क्रेडिट) - Booking: ${target.booking_code}`,
+      balance_after: 0,
+      created_at: nowIso,
+    };
+    setWalletTransactions((prev) => {
+      const next = [commWalletTx, ...prev];
+      safeSetItem(STORAGE_KEY_WALLET_TX, JSON.stringify(next));
+      return next;
+    });
+
+    const targetAgentProfile = allProfiles.find((p) => p.id === target.agent_id);
+    if (targetAgentProfile) {
+      const updatedBal = (targetAgentProfile.wallet_balance || 0) + commRate;
+      updateUserProfile(target.agent_id, { wallet_balance: updatedBal });
+    }
+
     if (isSupabaseConfigured) {
+      db.createWalletTransaction(commWalletTx).catch(console.error);
       db.updateBooking(bookingId, {
         status: 'confirmed',
         actual_fare: verificationData.actual_fare,
@@ -2230,6 +2270,233 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     success(
       '💥 Boom! Your amount added soon!',
       `हम वेरीफाई कर रहे हैं! 10 मिनट के टाइमर तक वेट कीजिए, पैसे वॉलेट में जमा हो जाएंगे।`
+    );
+    return true;
+  };
+
+  // GO INSTANT ADD MONEY (Advanced Fraud-Proof Instant Wallet Credit Engine)
+  const goInstantAddMoney = async (params: {
+    amount: number;
+    utr: string;
+    screenshotUrl?: string;
+    paymentMethod?: 'upi_qr' | 'bank_transfer';
+  }): Promise<{ success: boolean; message: string; fraudWarning?: string }> => {
+    const { amount, utr, screenshotUrl, paymentMethod = 'upi_qr' } = params;
+
+    const activeAgent =
+      currentUser && (currentUser.role === 'agent' || currentUser.role === 'admin' || currentUser.role === 'shopkeeper' || currentUser.role === 'promoter')
+        ? currentUser
+        : allProfiles.find((p) => p.role === 'agent') || {
+            id: 'usr-agent-01',
+            full_name: 'पवन कुमार वर्मा (एजेंट)',
+            mobile: '9826011223',
+            role: 'agent',
+          };
+
+    if (!amount || amount <= 0) {
+      error('अमान्य राशि', 'कृपया ₹100 या अधिक की मान्य राशि दर्ज करें।');
+      return { success: false, message: 'कृपया मान्य राशि दर्ज करें।' };
+    }
+
+    const cleanUtr = utr ? utr.trim().toUpperCase() : '';
+
+    if (!cleanUtr || cleanUtr.length < 8) {
+      error('अमान्य UTR नंबर', 'कृपया बैंक/UPI ऐप (PhonePe, GPay, Paytm) का असली 8-12 अंकों का UTR / UPI Ref No दर्ज करें।');
+      return { success: false, message: 'UTR नंबर कम से कम 8 से 12 अंकों का होना अनिवार्य है।' };
+    }
+
+    // Security Check 1: Dummy / Placeholder UTR Detection
+    const dummyPatterns = ['12345678', '00000000', '11111111', '123456789012', 'TEST', 'FAKE', 'DUMMY', '99999999'];
+    if (dummyPatterns.some((p) => cleanUtr.includes(p))) {
+      error('⚠️ संदेहास्पद UTR अस्वीकृत', 'फर्जी / डमी UTR स्वीकार्य नहीं है। कृपया असली बैंक पेमेंट UTR दर्ज करें।');
+      return { success: false, message: 'संदेहास्पद UTR पकड़ा गया।' };
+    }
+
+    // Security Check 2: Duplicate UTR Check across the entire database
+    const isDuplicateUtr = walletRecharges.some(
+      (r) => r.utr_number && r.utr_number.trim().toUpperCase() === cleanUtr
+    ) || walletTransactions.some(
+      (t) => t.description && t.description.toUpperCase().includes(cleanUtr)
+    );
+
+    if (isDuplicateUtr) {
+      error(
+        '⚠️ सुरक्षा चेतावनी: डुप्लीकेट UTR!',
+        `यह UTR नंबर (${cleanUtr}) पहले ही सिस्टम में उपयोग किया जा चुका है! सुरक्षा कारणों से डुप्लीकेट पेमेंट अनुरोध निरस्त किया गया।`
+      );
+      return { success: false, message: 'यह UTR पहले से उपयोग में है।' };
+    }
+
+    // Security Check 3: Screenshot Integrity
+    if (screenshotUrl && screenshotUrl.length < 200) {
+      error('⚠️ अमान्य स्क्रीनशॉट', 'अपलोड किया गया स्क्रीनशॉट अमान्य है।');
+      return { success: false, message: 'अमान्य स्क्रीनशॉट।' };
+    }
+
+    const nowIso = new Date().toISOString();
+    const rechargeId = `rech-inst-${Date.now()}`;
+
+    // Instant credit record (Automatically Approved without waiting for admin)
+    const newRecharge: WalletRechargeRequest = {
+      id: rechargeId,
+      agent_id: activeAgent.id,
+      agent_name: activeAgent.full_name,
+      agent_mobile: activeAgent.mobile,
+      amount,
+      payment_method: paymentMethod,
+      utr_number: cleanUtr,
+      screenshot_url: screenshotUrl,
+      status: 'approved', // INSTANT CREDIT!
+      approved_at: nowIso,
+      approved_by: 'GO_INSTANT_AUTO_ENGINE',
+      admin_notes: '⚡ GO Instant Add Money: स्वचालित क्रेडिट (एडमिन Clawback / Review योग्य)',
+      created_at: nowIso,
+    };
+
+    setWalletRecharges((prev) => {
+      const next = [newRecharge, ...prev];
+      safeSetItem(STORAGE_KEY_WALLET_RECHARGES, JSON.stringify(sanitizeWalletRecharges(next)));
+      return next;
+    });
+
+    const targetProfile = allProfiles.find(
+      (p) => p.id === activeAgent.id || (activeAgent.mobile && p.mobile === activeAgent.mobile)
+    );
+    const targetAgentId = targetProfile ? targetProfile.id : activeAgent.id;
+    const currentBal = computeWalletBalanceForAgent(
+      targetAgentId,
+      activeAgent.mobile,
+      targetProfile?.wallet_balance
+    );
+    const newBal = currentBal + Number(amount);
+
+    await updateUserProfile(targetAgentId, {
+      wallet_balance: newBal,
+      agent_status: 'approved',
+    });
+
+    const creditTx: WalletTransaction = {
+      id: `wtx-${Date.now()}`,
+      agent_id: targetAgentId,
+      amount: Number(amount),
+      type: 'recharge',
+      recharge_id: rechargeId,
+      description: `⚡ GO Instant Add Money: तुरंत ₹${amount.toLocaleString('en-IN')} क्रेडिट (UTR: ${cleanUtr})`,
+      balance_after: newBal,
+      created_at: nowIso,
+    };
+
+    setWalletTransactions((prev) => {
+      const next = [creditTx, ...prev];
+      safeSetItem(STORAGE_KEY_WALLET_TX, JSON.stringify(next));
+      return next;
+    });
+
+    // Background Firebase/Supabase save
+    saveWalletRechargeToFirestore(newRecharge).catch(console.error);
+    if (isSupabaseConfigured) {
+      db.createWalletRecharge(newRecharge).catch(console.error);
+      db.createWalletTransaction(creditTx).catch(console.error);
+    }
+
+    addAuditLog('go_instant_add_money', 'wallet_recharges', newRecharge.id, {
+      amount,
+      utr: cleanUtr,
+      agent_id: targetAgentId,
+      new_balance: newBal,
+    });
+
+    success(
+      '⚡ GO Instant Add Money सफल!',
+      `बधाई! ₹${amount.toLocaleString('en-IN')} तुरंत आपके Go Wallet में जुड़ चुके हैं। नया बैलेंस: ₹${newBal.toLocaleString('en-IN')}`
+    );
+
+    return {
+      success: true,
+      message: `₹${amount.toLocaleString('en-IN')} तुरंत Go Wallet में क्रेडिट हो गए!`,
+    };
+  };
+
+  // ADMIN CLAWBACK / REVERSAL FOR FRAUDULENT RECHARGE
+  const adminReverseInstantRecharge = async (rechargeId: string, reason: string): Promise<boolean> => {
+    if (!isAdmin) {
+      error('Unauthorized', 'केवल एडमिन ही रिचार्ज वापस (Clawback) कर सकते हैं।');
+      return false;
+    }
+
+    const recharge = walletRecharges.find((r) => r.id === rechargeId);
+    if (!recharge) return false;
+
+    const nowIso = new Date().toISOString();
+    const rejectedRecharge: WalletRechargeRequest = {
+      ...recharge,
+      status: 'rejected',
+      admin_notes: `⚠️ एडमिन रिवर्सल (फर्जी/गलत): ${reason}`,
+      approved_by: currentUser?.id,
+      approved_at: nowIso,
+    };
+
+    setWalletRecharges((prev) => {
+      const next = prev.map((r) => (r.id === rechargeId ? rejectedRecharge : r));
+      safeSetItem(STORAGE_KEY_WALLET_RECHARGES, JSON.stringify(sanitizeWalletRecharges(next)));
+      return next;
+    });
+
+    if (recharge.status === 'approved') {
+      const targetProfile = allProfiles.find(
+        (p) => p.id === recharge.agent_id || (recharge.agent_mobile && p.mobile === recharge.agent_mobile)
+      );
+      const targetAgentId = targetProfile ? targetProfile.id : recharge.agent_id;
+      const currentBal = computeWalletBalanceForAgent(
+        targetAgentId,
+        recharge.agent_mobile,
+        targetProfile?.wallet_balance
+      );
+      const newBal = Math.max(0, currentBal - Number(recharge.amount || 0));
+
+      await updateUserProfile(targetAgentId, { wallet_balance: newBal });
+
+      const debitTx: WalletTransaction = {
+        id: `wtx-rev-${Date.now()}`,
+        agent_id: targetAgentId,
+        amount: -Number(recharge.amount || 0),
+        type: 'adjustment',
+        recharge_id: recharge.id,
+        description: `⚠️ एडमिन रिवर्सल (-₹${recharge.amount}): फर्जी/गलत UTR के कारण राशि वापस काटी गई (${reason})`,
+        balance_after: newBal,
+        created_at: nowIso,
+      };
+
+      setWalletTransactions((prev) => {
+        const next = [debitTx, ...prev];
+        safeSetItem(STORAGE_KEY_WALLET_TX, JSON.stringify(next));
+        return next;
+      });
+
+      if (isSupabaseConfigured) {
+        db.createWalletTransaction(debitTx).catch(console.error);
+      }
+    }
+
+    saveWalletRechargeToFirestore(rejectedRecharge).catch(console.error);
+    if (isSupabaseConfigured) {
+      db.updateWalletRecharge(rechargeId, {
+        status: 'rejected',
+        admin_notes: `⚠️ एडमिन रिवर्सल (फर्जी/गलत): ${reason}`,
+        approved_by: currentUser?.id,
+        approved_at: nowIso,
+      }).catch(console.error);
+    }
+
+    addAuditLog('admin_reverse_wallet_recharge', 'wallet_recharges', recharge.id, {
+      amount: recharge.amount,
+      reason,
+      agent_id: recharge.agent_id,
+    });
+
+    warning(
+      '⚠️ राशि वापस काटी गई (Clawback Executed)',
+      `एजेंट ${recharge.agent_name} के खाते से ₹${recharge.amount.toLocaleString('en-IN')} काट लिए गए हैं व रिचार्ज निरस्त कर दिया गया है।`
     );
     return true;
   };
@@ -3254,6 +3521,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         agentWalletTransactions,
         agentWalletBalance,
         requestWalletRecharge,
+        goInstantAddMoney,
+        adminReverseInstantRecharge,
         approveWalletRecharge,
         rejectWalletRecharge,
         adjustAgentWallet,

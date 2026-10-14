@@ -725,7 +725,7 @@ export const ManualBookingForm: React.FC = () => {
                       placeholder={`Passenger ${idx + 1} Name`}
                       value={p.name}
                       onChange={(e) => updatePassenger(idx, 'name', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white focus:ring-2 focus:ring-orange-500 outline-none"
+                      className="w-full px-3 py-2 rounded-lg border-2 border-slate-300 bg-white font-bold text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none shadow-xs"
                     />
                   </div>
                   <div className="sm:col-span-2">
@@ -736,18 +736,18 @@ export const ManualBookingForm: React.FC = () => {
                       placeholder="Age"
                       value={p.age}
                       onChange={(e) => updatePassenger(idx, 'age', Number(e.target.value))}
-                      className="w-full px-2 py-2 rounded-lg border border-slate-300 bg-white focus:ring-2 focus:ring-orange-500 outline-none"
+                      className="w-full px-2 py-2 rounded-lg border-2 border-slate-300 bg-white font-bold font-mono text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none shadow-xs text-center"
                     />
                   </div>
                   <div className="sm:col-span-3">
                     <select
                       value={p.gender}
                       onChange={(e) => updatePassenger(idx, 'gender', e.target.value)}
-                      className="w-full px-2 py-2 rounded-lg border border-slate-300 bg-white focus:ring-2 focus:ring-orange-500 outline-none"
+                      className="w-full px-2 py-2 rounded-lg border-2 border-slate-300 bg-white font-bold text-slate-900 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none shadow-xs cursor-pointer"
                     >
-                      <option value="male">Male (पुरुष)</option>
-                      <option value="female">Female (महिला)</option>
-                      <option value="other">Other</option>
+                      <option value="male" className="text-slate-900">Male (पुरुष)</option>
+                      <option value="female" className="text-slate-900">Female (महिला)</option>
+                      <option value="other" className="text-slate-900">Other</option>
                     </select>
                   </div>
                 </div>

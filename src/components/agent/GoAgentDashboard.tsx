@@ -4,6 +4,9 @@ import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { Go3DUltraLogo } from '../common/Go3DUltraLogo';
 import { WalletRechargeModal } from './WalletRechargeModal';
+import { GoInstantAddMoneyModal } from './GoInstantAddMoneyModal';
+import { GoAgentWithdrawalModal } from './GoAgentWithdrawalModal';
+import { LiveTicketGreenCard } from '../common/LiveTicketGreenCard';
 import { PrintTicketModal } from '../common/PrintTicketModal';
 import { RedBusSeatMapModal, SelectedSeatItem } from '../bus/RedBusSeatMapModal';
 import { AutoBusBookingCheckoutModal } from '../bus/AutoBusBookingCheckoutModal';
@@ -17,6 +20,7 @@ import {
   User,
   ShieldCheck,
   TrendingUp,
+  TrendingDown,
   Clock,
   CheckCircle2,
   AlertCircle,
@@ -169,6 +173,9 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
 
   // Modals
   const [isRechargeModalOpen, setIsRechargeModalOpen] = useState(false);
+  const [isInstantAddMoneyModalOpen, setIsInstantAddMoneyModalOpen] = useState(false);
+  const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
+  const [selectedGreenCardBooking, setSelectedGreenCardBooking] = useState<Booking | null>(null);
   const [selectedPrintBooking, setSelectedPrintBooking] = useState<Booking | null>(null);
   const [refundBooking, setRefundBooking] = useState<Booking | null>(null);
   const [refundReason, setRefundReason] = useState('');
@@ -399,10 +406,11 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              onClick={() => setIsRechargeModalOpen(true)}
+              onClick={() => setIsInstantAddMoneyModalOpen(true)}
               className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs px-2.5 sm:px-3.5 py-1.5 rounded-xl shadow-md transition flex items-center gap-1 sm:gap-1.5 cursor-pointer active:scale-95"
+              title="⚡ GO Instant Add Money — तुरंत बैलेंस लोड करें"
             >
-              <Wallet className="w-3.5 h-3.5 shrink-0" />
+              <Zap className="w-3.5 h-3.5 shrink-0 fill-slate-950" />
               <span className="font-mono">₹{(agentWalletBalance || 0).toLocaleString('en-IN')}</span>
               <span className="text-[9px] bg-slate-950/30 text-white px-1 py-0.2 rounded font-bold">+</span>
             </button>
@@ -464,11 +472,11 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
 
                   <button
                     type="button"
-                    onClick={() => setIsRechargeModalOpen(true)}
-                    className="py-3 px-4 rounded-2xl bg-slate-800/90 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 shadow-md transition active:scale-95 flex items-center gap-2 cursor-pointer"
+                    onClick={() => setIsInstantAddMoneyModalOpen(true)}
+                    className="py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-slate-950 font-black text-xs shadow-md transition active:scale-95 flex items-center gap-2 cursor-pointer"
                   >
-                    <Wallet className="w-4 h-4 text-emerald-400" />
-                    <span>वॉलेट में पैसे जोड़ें</span>
+                    <Zap className="w-4 h-4 fill-slate-950" />
+                    <span>⚡ GO Instant Add Money</span>
                   </button>
                 </div>
               </div>
@@ -490,10 +498,10 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                 </div>
                 <button
                   type="button"
-                  onClick={() => setIsRechargeModalOpen(true)}
-                  className="text-[10px] font-bold text-emerald-400 hover:underline flex items-center gap-1"
+                  onClick={() => setIsInstantAddMoneyModalOpen(true)}
+                  className="text-[10px] font-bold text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  <span>10-मिनट टाइमर से रीचार्ज करें</span>
+                  <span>⚡ तुरंत पैसे जोड़ें (Instant Add)</span>
                   <ChevronRight className="w-3 h-3" />
                 </button>
               </div>
@@ -757,14 +765,26 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                             +₹20.00 कमीशन
                           </span>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedPrintBooking(b)}
-                          className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl transition"
-                          title="प्रिंट / डाउनलोड"
-                        >
-                          <Printer className="w-4 h-4" />
-                        </button>
+                        {b.status === 'confirmed' ? (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedGreenCardBooking(b)}
+                            className="py-1.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                            title="🟢 लाइव ग्रीन कार्ड देखें"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping inline-block" />
+                            <span>ग्रीन कार्ड</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPrintBooking(b)}
+                            className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl transition cursor-pointer"
+                            title="प्रिंट / डाउनलोड"
+                          >
+                            <Printer className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -1147,15 +1167,26 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                           </div>
                         </div>
 
-                        {/* Action Buttons: Print & Refund */}
-                        <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                        {/* Action Buttons: Green Card, Print & Refund */}
+                        <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
+                          {b.status === 'confirmed' && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedGreenCardBooking(b)}
+                              className="flex-1 min-w-[130px] py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs transition flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping inline-block" />
+                              <span>🟢 लाइव ग्रीन कार्ड</span>
+                            </button>
+                          )}
+
                           <button
                             type="button"
                             onClick={() => setSelectedPrintBooking(b)}
-                            className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                            className="flex-1 min-w-[110px] py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                           >
                             <Printer className="w-3.5 h-3.5 text-amber-400" />
-                            <span>टिकट प्रिंट करें</span>
+                            <span>ई-टिकट प्रिंट</span>
                           </button>
 
                           {b.status === 'confirmed' && b.refund_status !== 'approved' && b.refund_status !== 'requested' && (
@@ -1260,14 +1291,25 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setIsRechargeModalOpen(true)}
-                className="py-2.5 px-5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs transition flex items-center gap-2 shadow-lg cursor-pointer"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>Go Wallet में पैसे जोड़ें (Add Money)</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsInstantAddMoneyModalOpen(true)}
+                  className="py-2.5 px-4 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-400 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-xs transition flex items-center gap-2 shadow-lg cursor-pointer active:scale-95"
+                >
+                  <Zap className="w-4 h-4 fill-slate-950" />
+                  <span>⚡ GO Instant Add Money</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsWithdrawalModalOpen(true)}
+                  className="py-2.5 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/40 font-black text-xs transition flex items-center gap-2 shadow-md cursor-pointer active:scale-95"
+                >
+                  <TrendingDown className="w-4 h-4" />
+                  <span>🏦 बैंक / UPI निकासी</span>
+                </button>
+              </div>
             </div>
 
             {/* 3D Fintech Virtual Card Visualization */}
@@ -1769,6 +1811,24 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
       {/* Wallet Recharge Modal (With 10-Minute Lock & Strict Warnings) */}
       {isRechargeModalOpen && (
         <WalletRechargeModal onClose={() => setIsRechargeModalOpen(false)} />
+      )}
+
+      {/* ⚡ GO Instant Add Money Modal */}
+      {isInstantAddMoneyModalOpen && (
+        <GoInstantAddMoneyModal onClose={() => setIsInstantAddMoneyModalOpen(false)} />
+      )}
+
+      {/* 🏦 GO Agent Advance Withdrawal Modal */}
+      {isWithdrawalModalOpen && (
+        <GoAgentWithdrawalModal onClose={() => setIsWithdrawalModalOpen(false)} />
+      )}
+
+      {/* 🟢 Live Ticket Green Card Modal */}
+      {selectedGreenCardBooking && (
+        <LiveTicketGreenCard
+          booking={selectedGreenCardBooking}
+          onClose={() => setSelectedGreenCardBooking(null)}
+        />
       )}
 
       {/* Print Ticket Modal */}

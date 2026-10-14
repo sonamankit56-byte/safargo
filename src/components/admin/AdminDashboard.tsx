@@ -20,7 +20,8 @@ import {
   Sparkles,
   CreditCard,
   ShieldCheck,
-  Wallet
+  Wallet,
+  Zap
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -30,7 +31,7 @@ interface AdminDashboardProps {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOpenBooking }) => {
   const { allProfiles, approveAgent, approveAgentKyc, pendingLoginOtps } = useAuth();
-  const { bookings, commissions, salaryRecords, settings, promotionClaims, walletRecharges, approveWalletRecharge, rejectWalletRecharge, confirmBooking } = useData();
+  const { bookings, commissions, salaryRecords, settings, promotionClaims, walletRecharges, approveWalletRecharge, rejectWalletRecharge, adminReverseInstantRecharge, confirmBooking } = useData();
 
   const now = new Date();
   const todayStr = now.toISOString().split('T')[0];
@@ -415,6 +416,74 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
                       className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 font-bold text-xs transition cursor-pointer"
                     >
                       अस्वीकार
+                    </button>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {/* ⚡ GO Instant Add Money समीक्षा व फ्रॉड रिवर्सल (Recent Instant Top-ups Desk) */}
+      {walletRecharges && walletRecharges.filter(r => (r.admin_notes?.includes('GO Instant Add Money') || r.approved_by === 'GO_INSTANT_AUTO_ENGINE') && r.status === 'approved').length > 0 && (
+        <div className="bg-white rounded-3xl border-2 border-amber-400 shadow-lg overflow-hidden animate-fadeIn">
+          <div className="p-5 bg-gradient-to-r from-amber-950 via-slate-900 to-amber-950 text-white flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black shadow">
+                <Zap className="w-5 h-5 fill-slate-950" />
+              </div>
+              <div>
+                <h2 className="text-base font-black flex items-center gap-2">
+                  <span>⚡ GO Instant Add Money समीक्षा ({walletRecharges.filter(r => (r.admin_notes?.includes('GO Instant Add Money') || r.approved_by === 'GO_INSTANT_AUTO_ENGINE') && r.status === 'approved').length})</span>
+                  <span className="text-[10px] bg-emerald-400 text-slate-950 px-2 py-0.5 rounded-full font-black">
+                    Auto-Credited
+                  </span>
+                </h2>
+                <p className="text-xs text-amber-200">
+                  स्वचालित क्रेडिटेड टॉप-अप्स: फर्जी UTR या गलत राशि पाए जाने पर 1-क्लिक से राशि वापस काटें (Clawback)!
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="divide-y divide-slate-100 overflow-x-auto">
+            {walletRecharges
+              .filter(r => (r.admin_notes?.includes('GO Instant Add Money') || r.approved_by === 'GO_INSTANT_AUTO_ENGINE') && r.status === 'approved')
+              .slice(0, 5)
+              .map((recharge) => (
+                <div key={recharge.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-900 font-black text-sm flex items-center justify-center shrink-0">
+                      ₹{recharge.amount}
+                    </div>
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <strong className="text-slate-900 text-sm font-black">{recharge.agent_name}</strong>
+                        <span className="font-mono text-xs text-slate-500">({recharge.agent_mobile})</span>
+                        <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                          सक्रिय क्रेडिट
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-600 flex flex-wrap items-center gap-2">
+                        <span>UTR: <strong className="font-mono text-slate-900">{recharge.utr_number}</strong></span>
+                        <span>•</span>
+                        <span>समय: <strong className="text-slate-700">{new Date(recharge.created_at).toLocaleTimeString('hi-IN')}</strong></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <button
+                      onClick={async () => {
+                        const reason = window.prompt('फर्जी/गलत UTR का कारण दर्ज करें (यह राशि एजेंट के वॉलेट से वापस काटी जाएगी):', 'फर्जी/डमी UTR नंबर');
+                        if (reason) {
+                          await adminReverseInstantRecharge(recharge.id, reason);
+                        }
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                    >
+                      <AlertTriangle className="w-4 h-4" />
+                      <span>⚠️ फर्जी UTR - राशि वापस काटें (Reject & Clawback)</span>
                     </button>
                   </div>
                 </div>

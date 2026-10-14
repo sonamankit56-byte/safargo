@@ -239,20 +239,20 @@ export const AutoBusBookingCheckoutModal: React.FC<AutoBusBookingCheckoutModalPr
               </h3>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">पूरा नाम (Full Name) *</label>
+                <label className="block font-bold text-slate-800 mb-1">पूरा नाम (Full Name) *</label>
                 <input
                   type="text"
                   required
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="उदा. राहुल शर्मा"
-                  className="w-full p-2.5 rounded-xl border border-slate-300 font-bold focus:ring-2 focus:ring-red-500 outline-none text-xs bg-white"
+                  className="w-full p-2.5 rounded-xl border-2 border-slate-300 font-bold text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none text-xs bg-white shadow-xs"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">मोबाइल नंबर *</label>
+                  <label className="block font-bold text-slate-800 mb-1">मोबाइल नंबर *</label>
                   <input
                     type="tel"
                     required
@@ -260,32 +260,32 @@ export const AutoBusBookingCheckoutModal: React.FC<AutoBusBookingCheckoutModalPr
                     value={customerMobile}
                     onChange={(e) => setCustomerMobile(e.target.value)}
                     placeholder="10-अंकों का मोबाइल"
-                    className="w-full p-2.5 rounded-xl border border-slate-300 font-bold font-mono focus:ring-2 focus:ring-red-500 outline-none text-xs bg-white"
+                    className="w-full p-2.5 rounded-xl border-2 border-slate-300 font-bold font-mono text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none text-xs bg-white shadow-xs"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">उम्र (Age)</label>
+                    <label className="block font-bold text-slate-800 mb-1">उम्र (Age)</label>
                     <input
                       type="number"
                       min={5}
                       max={99}
                       value={customerAge}
                       onChange={(e) => setCustomerAge(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-300 font-bold focus:ring-2 focus:ring-red-500 outline-none text-xs bg-white text-center font-mono"
+                      className="w-full p-2.5 rounded-xl border-2 border-slate-300 font-bold text-slate-900 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none text-xs bg-white text-center font-mono shadow-xs"
                     />
                   </div>
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">लिंग</label>
+                    <label className="block font-bold text-slate-800 mb-1">लिंग</label>
                     <select
                       value={customerGender}
                       onChange={(e) => setCustomerGender(e.target.value as any)}
-                      className="w-full p-2.5 rounded-xl border border-slate-300 font-bold focus:ring-2 focus:ring-red-500 outline-none text-xs bg-white"
+                      className="w-full p-2.5 rounded-xl border-2 border-slate-300 font-bold text-slate-900 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none text-xs bg-white shadow-xs cursor-pointer"
                     >
-                      <option value="M">पुरुष (M)</option>
-                      <option value="F">महिला (F)</option>
-                      <option value="O">अन्य (O)</option>
+                      <option value="M" className="text-slate-900">पुरुष (M)</option>
+                      <option value="F" className="text-slate-900">महिला (F)</option>
+                      <option value="O" className="text-slate-900">अन्य (O)</option>
                     </select>
                   </div>
                 </div>

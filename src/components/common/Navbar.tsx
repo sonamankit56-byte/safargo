@@ -230,28 +230,30 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
               </button>
             )}
 
-            {/* ⚡ GO Special Agent Ultra 3D Terminal Option */}
-            <button
-              onClick={() => {
-                if (!currentUser) {
-                  if (onOpenGoAuth) onOpenGoAuth('login');
-                  else onOpenAuth('login');
-                } else {
-                  handleTabChange('go-agent');
-                }
-              }}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-black text-xs shadow-md transition border cursor-pointer active:scale-95 ${
-                currentTab === 'go-agent'
-                  ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-300 text-slate-950 border-white ring-2 ring-amber-400'
-                  : 'bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 hover:border-amber-400 text-white border-amber-400/70 shadow-amber-500/20'
-              }`}
-              title="👑 GO Special Agent Ultra 3D Terminal — फ्लैट ₹20/टिकट कमीशन"
-            >
-              <Go3DUltraLogo size="sm" showBadge={false} interactive={false} />
-              <span className="hidden xl:inline-block px-1.5 py-0.5 rounded-full text-[9px] font-black bg-amber-400 text-slate-950">
-                ₹20/टिकट
-              </span>
-            </button>
+            {/* ⚡ GO Special Agent Ultra 3D Terminal Option (Hidden for Super Admin) */}
+            {(!isAdmin && role !== 'admin') && (
+              <button
+                onClick={() => {
+                  if (!currentUser) {
+                    if (onOpenGoAuth) onOpenGoAuth('login');
+                    else onOpenAuth('login');
+                  } else {
+                    handleTabChange('go-agent');
+                  }
+                }}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-black text-xs shadow-md transition border cursor-pointer active:scale-95 ${
+                  currentTab === 'go-agent'
+                    ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-300 text-slate-950 border-white ring-2 ring-amber-400'
+                    : 'bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 hover:border-amber-400 text-white border-amber-400/70 shadow-amber-500/20'
+                }`}
+                title="👑 GO Special Agent Ultra 3D Terminal — फ्लैट ₹20/टिकट कमीशन"
+              >
+                <Go3DUltraLogo size="sm" showBadge={false} interactive={false} />
+                <span className="hidden xl:inline-block px-1.5 py-0.5 rounded-full text-[9px] font-black bg-amber-400 text-slate-950">
+                  ₹20/टिकट
+                </span>
+              </button>
+            )}
 
             {/* Universal 3D Go Wallet Option (For Agent, Dukandar, Promoter & All Users) */}
             <button
@@ -743,30 +745,32 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
               <Home className="w-4 h-4" /> Home
             </button>
 
-            {/* ⚡ GO Special Agent Ultra 3D Option (Mobile) */}
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                if (!currentUser) {
-                  if (onOpenGoAuth) onOpenGoAuth('login');
-                  else onOpenAuth('login');
-                } else {
-                  handleTabChange('go-agent');
-                }
-              }}
-              className={`w-full text-left px-3 py-2.5 rounded-2xl text-sm font-black flex items-center justify-between border cursor-pointer ${
-                currentTab === 'go-agent'
-                  ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-300 text-slate-950 border-white shadow-lg'
-                  : 'bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 text-white border-amber-400/60 shadow-md'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Go3DUltraLogo size="sm" showBadge={false} interactive={false} />
-              </div>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-950">
-                ₹20/टिकट
-              </span>
-            </button>
+            {/* ⚡ GO Special Agent Ultra 3D Option (Mobile) - Hidden for Super Admin */}
+            {(!isAdmin && role !== 'admin') && (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  if (!currentUser) {
+                    if (onOpenGoAuth) onOpenGoAuth('login');
+                    else onOpenAuth('login');
+                  } else {
+                    handleTabChange('go-agent');
+                  }
+                }}
+                className={`w-full text-left px-3 py-2.5 rounded-2xl text-sm font-black flex items-center justify-between border cursor-pointer ${
+                  currentTab === 'go-agent'
+                    ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-300 text-slate-950 border-white shadow-lg'
+                    : 'bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 text-white border-amber-400/60 shadow-md'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Go3DUltraLogo size="sm" showBadge={false} interactive={false} />
+                </div>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-950">
+                  ₹20/टिकट
+                </span>
+              </button>
+            )}
 
             <button
               onClick={() => {
