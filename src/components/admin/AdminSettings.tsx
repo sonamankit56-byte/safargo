@@ -51,8 +51,17 @@ import {
   Tag,
   Search,
   CheckCircle2,
-  EyeOff
+  EyeOff,
+  Globe
 } from 'lucide-react';
+import {
+  getCustomDomain,
+  setCustomDomain,
+  SUBDOMAIN_CONFIGS,
+  buildSubdomainUrl,
+  setSubdomainOverride,
+  AppSubdomain
+} from '../../lib/subdomain';
 
 export const AdminSettings: React.FC = () => {
   const {
@@ -66,7 +75,9 @@ export const AdminSettings: React.FC = () => {
   } = useData();
   const { success, error, info } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'payment' | 'viral_promo' | 'core' | 'announcement' | 'features' | 'database'>('payment');
+  const [activeTab, setActiveTab] = useState<'payment' | 'viral_promo' | 'core' | 'announcement' | 'features' | 'database' | 'subdomains'>('payment');
+  const [customDomainInput, setCustomDomainInput] = useState<string>(getCustomDomain());
+  const [copiedSubdomainKey, setCopiedSubdomainKey] = useState<string | null>(null);
 
   // VIRAL CREATOR PROMOTION SETTINGS STATE
   const [promoInstaActive, setPromoInstaActive] = useState<boolean>(settings.promo_instagram_active ?? true);
@@ -478,6 +489,18 @@ export const AdminSettings: React.FC = () => {
           >
             <Database className="w-3.5 h-3.5" />
             {isSupabaseConfigured ? '🟢 लाइव DB' : 'डेटाबेस (Database)'}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('subdomains')}
+            className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
+              activeTab === 'subdomains'
+                ? 'bg-white text-orange-600 shadow-xs font-bold'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Globe className="w-3.5 h-3.5 text-orange-600" />
+            डोमेन व सबडोमेन (Subdomains)
           </button>
         </div>
       </div>
@@ -1844,6 +1867,210 @@ VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`}
               </pre>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB: SUBDOMAIN ARCHITECTURE & DNS CONFIGURATION         */}
+      {/* ======================================================== */}
+      {activeTab === 'subdomains' && (
+        <div className="space-y-6 animate-fadeIn">
+          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8 space-y-6">
+            
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold shadow-xs">
+                  <Globe className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base sm:text-lg font-black text-slate-900">
+                    SafarGo अलग-अलग सबडोमेन सिस्टम एवं DNS सेटअप
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    सभी रोल्स (Super Admin, GO Agent, Promoter, Dukandar, Passenger) अब अलग-अलग सबडोमेन पर पूर्णतः सुरक्षित व अलग रहेंगे।
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Custom Primary Domain Input */}
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+              <label className="block text-xs font-bold text-slate-700">
+                🌐 आपका मुख्य डोमेन (Primary Domain)
+              </label>
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <input
+                  type="text"
+                  value={customDomainInput}
+                  onChange={(e) => setCustomDomainInput(e.target.value)}
+                  placeholder="safargo.in"
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 font-mono font-bold text-xs outline-none focus:ring-2 focus:ring-orange-500 bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomDomain(customDomainInput);
+                    success('डोमेन अपडेट!', `नया मुख्य डोमेन [${customDomainInput}] सुरक्षित हो गया।`);
+                  }}
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-black text-xs shadow-md transition active:scale-95 cursor-pointer"
+                >
+                  सेव करें (Save)
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                जब आप DNS में CNAME जोड़ेंगे, तो <strong>admin.{customDomainInput}</strong>, <strong>agent.{customDomainInput}</strong> आदि स्वतः सक्रिय हो जाएंगे।
+              </p>
+            </div>
+
+            {/* Visual Subdomains Grid */}
+            <div className="space-y-4">
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-600">
+                5 समर्पित सबडोमेन पोर्टल्स (Isolated Subdomains)
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  {
+                    id: 'admin' as AppSubdomain,
+                    prefix: 'admin',
+                    name: 'सुपर एडमिन कंट्रोल पैनल',
+                    desc: 'केवल अधिकृत एडमिन के लिए। एजेंट, टिकट कन्फर्मेशन, Go Instant Add Money रिव्यू व सेटिंग्स।',
+                    badge: 'Super Admin Only',
+                    badgeColor: 'bg-red-100 text-red-700 border-red-200',
+                  },
+                  {
+                    id: 'agent' as AppSubdomain,
+                    prefix: 'agent',
+                    name: 'GO Agent 3D Terminal',
+                    desc: 'फ्लैट ₹20 कमीशन, Go Instant Add Money, 3-मिनट अप्रूवल, एडवांस निकासी व लाइव ग्रीन कार्ड।',
+                    badge: 'GO Agents',
+                    badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
+                  },
+                  {
+                    id: 'promoter' as AppSubdomain,
+                    prefix: 'promoter',
+                    name: 'प्रमोटर पार्टनर प्रोग्राम',
+                    desc: '₹15,000 फिक्स्ड वेतन (5 स्लॉट), एजेंट ऑनबोर्डिंग, KYC अप्रूवल डेस्क व मर्चेंट पैकेज।',
+                    badge: 'Promoter Partners',
+                    badgeColor: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+                  },
+                  {
+                    id: 'shop' as AppSubdomain,
+                    prefix: 'shop',
+                    name: 'दुकानदार क्विक कॉमर्स पोर्टल',
+                    desc: 'दुकान सूचीकरण, 15-मिनट लोकल डिलीवरी ऑर्डर प्रबंधन व Go Wallet कमाई।',
+                    badge: 'Merchants / Dukandar',
+                    badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                  },
+                  {
+                    id: 'main' as AppSubdomain,
+                    prefix: 'www',
+                    name: 'मुख्य पब्लिक यात्री वेबसाइट',
+                    desc: 'ऑनलाइन बस बुकिंग, लाइव सीट चयन, डिलीवरी ऑर्डर ट्रैकिंग व ग्राहक सहायता।',
+                    badge: 'Public Passengers',
+                    badgeColor: 'bg-blue-100 text-blue-700 border-blue-200',
+                  },
+                ].map((item) => {
+                  const targetUrl = buildSubdomainUrl(item.id);
+                  const fullHost = `${item.prefix}.${customDomainInput}`;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-slate-300 transition space-y-3"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${item.badgeColor}`}>
+                          {item.badge}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(fullHost);
+                              setCopiedSubdomainKey(item.id);
+                              setTimeout(() => setCopiedSubdomainKey(null), 2000);
+                            }}
+                            className="text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1 font-mono font-bold cursor-pointer"
+                            title="सबडोमेन कॉपी करें"
+                          >
+                            <span>{fullHost}</span>
+                            {copiedSubdomainKey === item.id ? (
+                              <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <h4 className="font-black text-sm text-slate-900">{item.name}</h4>
+                      <p className="text-[11px] text-slate-600 leading-relaxed">{item.desc}</p>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSubdomainOverride(item.id);
+                            window.location.href = `/?subdomain=${item.id}`;
+                          }}
+                          className="flex-1 py-1.5 px-3 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs transition cursor-pointer text-center"
+                        >
+                          लोकल टेस्ट खोलें
+                        </button>
+                        <a
+                          href={targetUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="py-1.5 px-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs transition flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          <span>लाइव URL खोलें</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* DNS Records Guide */}
+            <div className="p-5 rounded-2xl bg-slate-900 text-white space-y-4">
+              <div className="flex items-center gap-2">
+                <Server className="w-5 h-5 text-amber-400" />
+                <h3 className="font-black text-sm text-white">
+                  DNS रिकॉर्ड्स सेटअप (Vercel / Cloudflare / GoDaddy / Hostinger)
+                </h3>
+              </div>
+
+              <p className="text-xs text-slate-300 leading-relaxed">
+                अपने डोमेन प्रोवाइडर में जाकर नीचे दिया गया <strong>CNAME</strong> रिकॉर्ड जोड़ें:
+              </p>
+
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2 font-mono text-xs">
+                <div className="text-amber-400 font-bold">विकल्प 1: 1-क्लिक वाइल्डकार्ड CNAME (सभी सबडोमेन के लिए सर्वोत्तम):</div>
+                <div className="p-2 bg-slate-900 rounded-lg text-slate-200">
+                  <code>Type: <strong>CNAME</strong> | Name: <strong>*</strong> | Target/Value: <strong>cname.vercel-dns.com</strong></code>
+                </div>
+              </div>
+
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2 font-mono text-xs">
+                <div className="text-slate-400 font-bold">विकल्प 2: अलग-अलग CNAME रिकॉर्ड्स:</div>
+                <div className="space-y-1 text-slate-300 text-[11px]">
+                  <div><code>CNAME <strong>admin</strong> ➔ cname.vercel-dns.com</code> (सुपर एडमिन)</div>
+                  <div><code>CNAME <strong>agent</strong> ➔ cname.vercel-dns.com</code> (GO एजेंट टर्मिनल)</div>
+                  <div><code>CNAME <strong>promoter</strong> ➔ cname.vercel-dns.com</code> (प्रमोटर डेस्क)</div>
+                  <div><code>CNAME <strong>shop</strong> ➔ cname.vercel-dns.com</code> (दुकानदार क्विक कॉमर्स)</div>
+                  <div><code>CNAME <strong>www</strong> ➔ cname.vercel-dns.com</code> (पब्लिक यात्री पोर्टल)</div>
+                </div>
+              </div>
+
+              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-300">
+                💡 <strong>Vercel सेटिंग्स:</strong> Vercel Dashboard ➔ Project ➔ Settings ➔ Domains में जाकर <code className="text-white font-bold">*.{customDomainInput}</code> या ऊपर दिए गए सबडोमेन जोड़ दें। SSL सर्टिफिकेट Vercel द्वारा स्वचालित जारी हो जाता है!
+              </div>
+            </div>
+
           </div>
         </div>
       )}

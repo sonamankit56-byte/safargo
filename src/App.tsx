@@ -40,7 +40,13 @@ import { SafarGoLogo } from './components/common/SafarGoLogo';
 import { BottomNav } from './components/common/BottomNav';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { getTabFromPath, getPathFromTab } from './lib/routes';
-import { Bus, ShieldCheck, Heart, UserPlus, LogIn, ExternalLink, Zap } from 'lucide-react';
+import { detectSubdomain } from './lib/subdomain';
+import { AdminSubdomainLayout } from './components/admin/AdminSubdomainLayout';
+import { GoAgentSubdomainGateway } from './components/agent/GoAgentSubdomainGateway';
+import { PromoterSubdomainGateway } from './components/promoter/PromoterSubdomainGateway';
+import { ShopSubdomainGateway } from './components/shop/ShopSubdomainGateway';
+import { SubdomainDirectoryModal } from './components/common/SubdomainDirectoryModal';
+import { Bus, ShieldCheck, Heart, UserPlus, LogIn, ExternalLink, Zap, Globe } from 'lucide-react';
 
 const AppContent: React.FC = () => {
   const { currentUser, role, isAdmin, isPromoter } = useAuth();
@@ -67,6 +73,7 @@ const AppContent: React.FC = () => {
   const [isGoAuthModalOpen, setIsGoAuthModalOpen] = useState(false);
   const [goAuthInitialMode, setGoAuthInitialMode] = useState<'login' | 'register'>('login');
   const [selectedTrackOrderId, setSelectedTrackOrderId] = useState<string | null>(null);
+  const [isSubdomainModalOpen, setIsSubdomainModalOpen] = useState(false);
 
   // Extract orderId from URL query string if present (e.g. /track-order?orderId=ORD-123)
   const searchParams = new URLSearchParams(location.search);
@@ -163,6 +170,27 @@ const AppContent: React.FC = () => {
     }
   }, [location.pathname, currentUser, role, isAdmin, navigate]);
 
+  // Subdomain Isolation Gateways:
+  // When accessed via admin.domain, agent.domain, promoter.domain, or shop.domain,
+  // render the dedicated isolated environments completely separated from public passenger view.
+  const activeSubdomain = detectSubdomain();
+
+  if (activeSubdomain === 'admin') {
+    return <AdminSubdomainLayout />;
+  }
+
+  if (activeSubdomain === 'agent') {
+    return <GoAgentSubdomainGateway />;
+  }
+
+  if (activeSubdomain === 'promoter') {
+    return <PromoterSubdomainGateway />;
+  }
+
+  if (activeSubdomain === 'shop') {
+    return <ShopSubdomainGateway />;
+  }
+
   const selectedReviewBooking = bookings.find((b) => b.id === selectedReviewBookingId) || null;
 
   const isGoAgentView = role === 'agent' || currentTab === 'go-agent';
@@ -179,6 +207,7 @@ const AppContent: React.FC = () => {
           setCurrentTab={setCurrentTab}
           onOpenAuth={handleOpenAuth}
           onOpenGoAuth={handleOpenGoAuth}
+          onOpenSubdomains={() => setIsSubdomainModalOpen(true)}
         />
       )}
 
@@ -522,6 +551,13 @@ const AppContent: React.FC = () => {
                       <span>माई अकाउंट खोलें</span>
                     </button>
                   )}
+                  <button
+                    onClick={() => setIsSubdomainModalOpen(true)}
+                    className="w-full py-2 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-amber-300 font-bold text-xs flex items-center justify-center gap-1.5 border border-amber-400/30 transition cursor-pointer"
+                  >
+                    <Globe className="w-3.5 h-3.5 text-amber-400" />
+                    <span>🌐 सबडोमेन डायरेक्टरी (Subdomains)</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -539,6 +575,12 @@ const AppContent: React.FC = () => {
 
       {/* Global Bottom Navigation Bar (Hidden for GO Agent: GoAgentDashboard has its dedicated 4-tab bar) */}
       {!isGoAgentView && <BottomNav currentTab={currentTab} onNavigateTab={setCurrentTab} />}
+
+      {/* Dedicated Subdomain Directory & DNS Configuration Modal */}
+      <SubdomainDirectoryModal
+        isOpen={isSubdomainModalOpen}
+        onClose={() => setIsSubdomainModalOpen(false)}
+      />
     </div>
   );
 };

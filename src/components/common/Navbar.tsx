@@ -35,7 +35,8 @@ import {
   Store,
   Tag,
   Clock,
-  Package
+  Package,
+  Globe
 } from 'lucide-react';
 import { ComingSoonModal } from './ComingSoonModal';
 import { getFeatureMode } from '../../lib/featureFlags';
@@ -45,9 +46,10 @@ interface NavbarProps {
   setCurrentTab: (tab: string) => void;
   onOpenAuth: (initialTab?: 'login' | 'register' | 'promoter_login') => void;
   onOpenGoAuth?: (mode?: 'login' | 'register') => void;
+  onOpenSubdomains?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpenAuth, onOpenGoAuth }) => {
+export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpenAuth, onOpenGoAuth, onOpenSubdomains }) => {
   const { currentUser, role, isApprovedAgent, isAdmin, isPromoter, logout, allProfiles, pendingLoginOtps } = useAuth();
   const { settings, agentWalletBalance } = useData();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -278,6 +280,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                 </span>
               )}
             </button>
+
+            {/* Dedicated Subdomain Directory Trigger */}
+            {onOpenSubdomains && (
+              <button
+                onClick={onOpenSubdomains}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-amber-300 hover:text-white font-bold text-xs border border-amber-400/30 transition cursor-pointer shadow-xs active:scale-95"
+                title="SafarGo सबडोमेन डायरेक्टरी (Admin, Agent, Promoter, Shop)"
+              >
+                <Globe className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden xl:inline">सबडोमेन</span>
+              </button>
+            )}
 
             {currentUser && role === 'agent' && (
               <>
@@ -793,6 +807,25 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                 </span>
               )}
             </button>
+
+            {/* Subdomain Directory Button in Mobile Menu */}
+            {onOpenSubdomains && (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenSubdomains();
+                }}
+                className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between bg-slate-950 border border-amber-400/40 text-amber-300 shadow-sm cursor-pointer"
+              >
+                <span className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-amber-400" />
+                  <span>🌐 SafarGo सबडोमेन डायरेक्टरी</span>
+                </span>
+                <span className="text-[10px] bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded-full font-bold">
+                  5 सबडोमेन
+                </span>
+              </button>
+            )}
 
             {qdMode !== 'hidden' && (
               <button
