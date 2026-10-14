@@ -31,6 +31,7 @@ export const TAB_TO_PATH: Record<string, string> = {
   'admin-salary': '/admin/salary',
   'admin-settings': '/admin/settings',
   'admin-logs': '/admin/logs',
+  'admin-support-desk': '/admin/support',
 };
 
 export const PATH_TO_TAB: Record<string, string> = {
@@ -70,6 +71,7 @@ export const PATH_TO_TAB: Record<string, string> = {
   '/admin/salary': 'admin-salary',
   '/admin/settings': 'admin-settings',
   '/admin/logs': 'admin-logs',
+  '/admin/support': 'admin-support-desk',
 };
 
 export function getTabFromPath(pathname: string): string {

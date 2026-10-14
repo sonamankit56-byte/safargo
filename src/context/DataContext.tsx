@@ -594,6 +594,33 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     loadLiveSupabaseData();
+
+    // Periodic Background Sync: Ensure multi-device real-time sync across agents and admin
+    const livePollInterval = setInterval(async () => {
+      try {
+        const [liveBookings, liveRecharges, liveTxs] = await Promise.all([
+          db.getBookings(),
+          db.getWalletRecharges(),
+          db.getWalletTransactions(),
+        ]);
+        if (liveBookings && liveBookings.length > 0) {
+          setBookings(liveBookings);
+          safeSetItem(STORAGE_KEY_BOOKINGS, JSON.stringify(sanitizeBookings(liveBookings)));
+        }
+        if (liveRecharges && liveRecharges.length > 0) {
+          setWalletRecharges(liveRecharges);
+          safeSetItem(STORAGE_KEY_WALLET_RECHARGES, JSON.stringify(liveRecharges));
+        }
+        if (liveTxs && liveTxs.length > 0) {
+          setWalletTransactions(liveTxs);
+          safeSetItem(STORAGE_KEY_WALLET_TX, JSON.stringify(liveTxs));
+        }
+      } catch (err) {
+        // Silent recovery on intermittent network drop
+      }
+    }, 4000);
+
+    return () => clearInterval(livePollInterval);
   }, []);
 
   // Multi-Tab Storage Sync: Instantly reflect Admin approvals & Agent requests across tabs
@@ -1147,75 +1174,74 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
   }, [salaryRecords, currentUser, currentMonthYear]);
 
-  // Calculate agent target dynamically based on eligible confirmed bookings in current calendar month
+  // Dynamically calculate and sync salary records for all agents based on confirmed bookings in current calendar month
   useEffect(() => {
-    if (!currentUser || currentUser.role !== 'agent') return;
-
-    const confirmedThisMonth = bookings.filter((b) => {
-      if (b.agent_id !== currentUser.id || b.status !== 'confirmed') return false;
-      const bDate = new Date(b.created_at);
-      const bMonthYear = `${bDate.getFullYear()}-${String(bDate.getMonth() + 1).padStart(2, '0')}`;
-      return bMonthYear === currentMonthYear;
-    }).length;
+    const agentProfiles = allProfiles.filter((p) => p.role === 'agent');
+    if (agentProfiles.length === 0) return;
 
     setSalaryRecords((prev) => {
-      const existing = prev.find(
-        (s) => s.agent_id === currentUser.id && s.month_year === currentMonthYear
-      );
+      let hasChanges = false;
+      const updatedList = [...prev];
 
-      const monthlyTarget = settings.monthly_target || 280;
-      const targetMet = confirmedThisMonth >= monthlyTarget;
-      // GO USER Business Rule:
-      // Fixed monthly salary: ₹10,000 only on reaching configured target (280 tickets).
-      // Show salary eligibility separately from commission.
-      // Below target, show salary as not earned under this rule; do not silently prorate!
-      // Commission and salary are separate ledger entries.
-      const payableSalary = targetMet ? (settings.monthly_salary || 10000) : 0;
+      agentProfiles.forEach((agent) => {
+        const confirmedThisMonth = bookings.filter((b) => {
+          if (b.agent_id !== agent.id || b.status !== 'confirmed') return false;
+          const bDate = new Date(b.created_at);
+          const bMonthYear = `${bDate.getFullYear()}-${String(bDate.getMonth() + 1).padStart(2, '0')}`;
+          return bMonthYear === currentMonthYear;
+        }).length;
 
-      if (existing) {
-        if (
-          existing.confirmed_bookings !== confirmedThisMonth ||
-          existing.payable_salary !== payableSalary ||
-          existing.target_met !== targetMet
-        ) {
-          return prev.map((s) =>
-            s.id === existing.id
-              ? {
-                  ...s,
-                  confirmed_bookings: confirmedThisMonth,
-                  target_met: targetMet,
-                  target_bookings: monthlyTarget,
-                  base_salary: settings.monthly_salary || 10000,
-                  payable_salary: payableSalary,
-                  status: targetMet ? (s.status === 'paid' ? 'paid' : 'eligible') : 'unpaid',
-                  updated_at: new Date().toISOString(),
-                }
-              : s
-          );
+        const monthlyTarget = settings.monthly_target || 280;
+        const targetMet = confirmedThisMonth >= monthlyTarget;
+        const payableSalary = targetMet ? (settings.monthly_salary || 10000) : 0;
+
+        const existingIdx = updatedList.findIndex(
+          (s) => s.agent_id === agent.id && s.month_year === currentMonthYear
+        );
+
+        if (existingIdx >= 0) {
+          const existing = updatedList[existingIdx];
+          if (
+            existing.confirmed_bookings !== confirmedThisMonth ||
+            existing.payable_salary !== payableSalary ||
+            existing.target_met !== targetMet
+          ) {
+            hasChanges = true;
+            updatedList[existingIdx] = {
+              ...existing,
+              confirmed_bookings: confirmedThisMonth,
+              target_met: targetMet,
+              target_bookings: monthlyTarget,
+              base_salary: settings.monthly_salary || 10000,
+              payable_salary: payableSalary,
+              status: targetMet ? (existing.status === 'paid' ? 'paid' : 'eligible') : 'unpaid',
+              updated_at: new Date().toISOString(),
+            };
+          }
+        } else {
+          hasChanges = true;
+          updatedList.push({
+            id: `sal-${agent.id}-${currentMonthYear}`,
+            agent_id: agent.id,
+            agent_name: agent.full_name,
+            agent_mobile: agent.mobile,
+            month_year: currentMonthYear,
+            target_bookings: monthlyTarget,
+            confirmed_bookings: confirmedThisMonth,
+            target_met: targetMet,
+            base_salary: settings.monthly_salary || 10000,
+            payable_salary: payableSalary,
+            status: targetMet ? 'eligible' : 'unpaid',
+            notes: 'GO USER Rules: 280 tickets target for ₹10,000 salary. Below target: Not earned (no silent proration). Commission tracked separately at ₹20/ticket.',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
         }
-        return prev;
-      } else {
-        // Create initial salary record for this month
-        const newRecord: SalaryRecord = {
-          id: `sal-${Date.now()}`,
-          agent_id: currentUser.id,
-          agent_name: currentUser.full_name,
-          agent_mobile: currentUser.mobile,
-          month_year: currentMonthYear,
-          target_bookings: monthlyTarget,
-          confirmed_bookings: confirmedThisMonth,
-          target_met: targetMet,
-          base_salary: settings.monthly_salary || 10000,
-          payable_salary: payableSalary,
-          status: targetMet ? 'eligible' : 'unpaid',
-          notes: 'GO USER Rules: 280 tickets target for ₹10,000 salary. Below target: Not earned (no silent proration). Commission tracked separately at ₹20/ticket.',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        return [...prev, newRecord];
-      }
+      });
+
+      return hasChanges ? updatedList : prev;
     });
-  }, [bookings, currentUser, currentMonthYear, settings.monthly_target, settings.monthly_salary, payoutRequests]);
+  }, [bookings, allProfiles, currentMonthYear, settings.monthly_target, settings.monthly_salary, payoutRequests]);
 
   // CREATE BOOKING (Agents or Automated Instant Ticket Requests)
   const createBooking = async (
@@ -1798,6 +1824,68 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           created_at: nowIso,
         };
         setCommissions((prev) => [reversalEntry!, ...prev]);
+      }
+    }
+
+    // 1. Refund ticket fare to agent wallet if paid from agent_wallet
+    if (refundAmount > 0 && target.payment_mode === 'agent_wallet') {
+      const targetAgent = allProfiles.find((p) => p.id === target.agent_id);
+      const currentBal = targetAgent?.wallet_balance || 0;
+      const newBal = currentBal + refundAmount;
+      if (currentUser?.id === target.agent_id) {
+        await updateProfile({ wallet_balance: newBal });
+      } else {
+        await updateUserProfile(target.agent_id, { wallet_balance: newBal });
+      }
+      const refundTx: WalletTransaction = {
+        id: `wtx-ref-${Date.now()}`,
+        agent_id: target.agent_id,
+        amount: refundAmount,
+        type: 'refund',
+        booking_id: bookingId,
+        booking_code: target.booking_code,
+        description: `रिफंड: टिकट रद्द होने पर राशि वापस (${target.booking_code})`,
+        balance_after: newBal,
+        created_at: nowIso,
+      };
+      setWalletTransactions((prev) => {
+        const next = [refundTx, ...prev];
+        safeSetItem(STORAGE_KEY_WALLET_TX, JSON.stringify(next));
+        return next;
+      });
+      if (isSupabaseConfigured) {
+        db.createWalletTransaction(refundTx).catch(console.error);
+      }
+    }
+
+    // 2. Reversal of commission deduction from wallet if commission was previously credited
+    if (reversalEntry) {
+      const targetAgent = allProfiles.find((p) => p.id === target.agent_id);
+      const currentBal = targetAgent?.wallet_balance || 0;
+      const commDeductedBal = Math.max(0, currentBal - Math.abs(reversalEntry.amount));
+      if (currentUser?.id === target.agent_id) {
+        await updateProfile({ wallet_balance: commDeductedBal });
+      } else {
+        await updateUserProfile(target.agent_id, { wallet_balance: commDeductedBal });
+      }
+      const commRevTx: WalletTransaction = {
+        id: `wtx-comm-rev-${Date.now()}`,
+        agent_id: target.agent_id,
+        amount: reversalEntry.amount, // negative
+        type: 'ticket_booking',
+        booking_id: bookingId,
+        booking_code: target.booking_code,
+        description: `कमीशन कटौती: टिकट रद्द होने पर कमीशन वापस लिया गया (${target.booking_code})`,
+        balance_after: commDeductedBal,
+        created_at: nowIso,
+      };
+      setWalletTransactions((prev) => {
+        const next = [commRevTx, ...prev];
+        safeSetItem(STORAGE_KEY_WALLET_TX, JSON.stringify(next));
+        return next;
+      });
+      if (isSupabaseConfigured) {
+        db.createWalletTransaction(commRevTx).catch(console.error);
       }
     }
 
