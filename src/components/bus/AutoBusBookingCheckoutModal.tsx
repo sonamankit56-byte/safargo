@@ -6,6 +6,7 @@ import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { PrintTicketModal } from '../common/PrintTicketModal';
 import { Go3DLogoBadge } from '../wallet/GoWalletHub';
+import { UberAssistCard } from '../common/UberAssistCard';
 import {
   X,
   Bus,
@@ -515,6 +516,9 @@ export const AutoBusBookingCheckoutModal: React.FC<AutoBusBookingCheckoutModalPr
                 <span>+₹19.34 (₹19 प्रति बुकिंग) ✓</span>
               </div>
             </div>
+
+            {/* 🚕 Uber First-Mile & Last-Mile Connectivity Card */}
+            <UberAssistCard booking={createdBooking} mode="both" />
 
             {/* Buttons */}
             <div className="space-y-2.5">

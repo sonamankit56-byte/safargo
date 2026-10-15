@@ -18,6 +18,7 @@ import {
   Award,
   Lock
 } from 'lucide-react';
+import { UberAssistCard } from './UberAssistCard';
 
 interface LiveTicketGreenCardProps {
   booking: Booking;
@@ -286,6 +287,9 @@ export const LiveTicketGreenCard: React.FC<LiveTicketGreenCardProps> = ({
             <img src={qrUrl} alt="Verify QR" className="w-full h-full object-contain" />
           </div>
         </div>
+
+        {/* 🚕 Uber First-Mile & Last-Mile Assist */}
+        <UberAssistCard booking={booking} mode="both" compact={true} />
 
         {/* Action Buttons */}
         <div className="print:hidden pt-2 border-t border-slate-800 flex flex-col sm:flex-row gap-2.5">

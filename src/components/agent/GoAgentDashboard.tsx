@@ -13,12 +13,14 @@ import { LiveTicketGreenCard } from '../common/LiveTicketGreenCard';
 import { PrintTicketModal } from '../common/PrintTicketModal';
 import { RedBusSeatMapModal, SelectedSeatItem } from '../bus/RedBusSeatMapModal';
 import { AutoBusBookingCheckoutModal } from '../bus/AutoBusBookingCheckoutModal';
+import { UberAgentAssistModal } from './UberAgentAssistModal';
 import { MP_NETWORK_CITIES } from '../../lib/mockData';
 import { Booking, BookingStatus, RefundStatus, BusTrip, SeatCategory } from '../../types';
 import { compressImage } from '../../lib/storageUtils';
 import {
   LayoutDashboard,
   Bus,
+  Car,
   Wallet,
   User,
   ShieldCheck,
@@ -275,6 +277,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
   const [isRechargeModalOpen, setIsRechargeModalOpen] = useState(false);
   const [isInstantAddMoneyModalOpen, setIsInstantAddMoneyModalOpen] = useState(false);
   const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
+  const [isUberModalOpen, setIsUberModalOpen] = useState(false);
   const [selectedGreenCardBooking, setSelectedGreenCardBooking] = useState<Booking | null>(null);
   const [selectedPrintBooking, setSelectedPrintBooking] = useState<Booking | null>(null);
   const [refundBooking, setRefundBooking] = useState<Booking | null>(null);
@@ -657,6 +660,16 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                   >
                     <Zap className="w-4 h-4 fill-slate-950" />
                     <span>⚡ GO Instant Add Money</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsUberModalOpen(true)}
+                    className="py-3 px-4 rounded-2xl bg-black hover:bg-slate-900 border border-slate-700 text-white font-black text-xs shadow-md transition active:scale-95 flex items-center gap-2 cursor-pointer"
+                    title="ग्रामीण यात्रियों के लिए बस स्टैंड व स्टेशन तक ऑटो/कैब असिस्ट"
+                  >
+                    <Car className="w-4 h-4 text-amber-400" />
+                    <span>🛺 Uber ऑटो / कैब सेवा</span>
                   </button>
                 </div>
               </div>
@@ -2520,6 +2533,13 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
         <PrintTicketModal
           booking={selectedPrintBooking}
           onClose={() => setSelectedPrintBooking(null)}
+        />
+      )}
+
+      {/* 🛺 Uber Local Ride Assist Modal for Agents */}
+      {isUberModalOpen && (
+        <UberAgentAssistModal
+          onClose={() => setIsUberModalOpen(false)}
         />
       )}
 
