@@ -12,6 +12,78 @@ import {
   PromotionClaim
 } from '../types';
 
+// Whitelist allowed columns for Supabase tables to prevent PGRST204 errors
+const VALID_PROFILE_COLS = new Set([
+  'id', 'role', 'full_name', 'mobile', 'email', 'city', 'district', 'address',
+  'shop_name', 'agent_status', 'approved_by', 'approved_at', 'referral_code',
+  'referred_by_code', 'referred_by_id', 'password', 'created_at', 'updated_at',
+  'wallet_balance'
+]);
+
+const VALID_BOOKING_COLS = new Set([
+  'id', 'booking_code', 'agent_id', 'agent_name', 'agent_mobile', 'idempotency_key',
+  'customer_name', 'customer_mobile', 'passenger_count', 'passenger_details',
+  'from_city', 'to_city', 'journey_date', 'departure_time_pref', 'operator_preference',
+  'seat_category', 'seat_count', 'boarding_point', 'drop_point', 'estimated_fare',
+  'total_estimated_amount', 'agent_notes', 'created_at', 'deadline_at', 'status',
+  'actual_fare', 'confirmed_seats', 'actual_operator', 'actual_boarding_point',
+  'actual_drop_point', 'ticket_pnr', 'ticket_doc_url', 'admin_notes', 'rejection_reason',
+  'cancellation_reason', 'refund_status', 'refund_amount', 'confirmed_by', 'confirmed_at',
+  'updated_at', 'payment_mode', 'payment_status', 'payment_utr', 'payment_screenshot_url'
+]);
+
+const VALID_RECHARGE_COLS = new Set([
+  'id', 'agent_id', 'agent_name', 'agent_mobile', 'amount', 'payment_method',
+  'utr_number', 'screenshot_url', 'status', 'admin_notes', 'approved_by',
+  'approved_at', 'created_at'
+]);
+
+const VALID_TX_COLS = new Set([
+  'id', 'agent_id', 'amount', 'type', 'booking_id', 'booking_code', 'recharge_id',
+  'description', 'balance_after', 'created_at'
+]);
+
+const VALID_COMMISSION_COLS = new Set([
+  'id', 'booking_id', 'booking_code', 'agent_id', 'agent_name', 'amount',
+  'status', 'reversal_ref_id', 'notes', 'entry_type', 'referred_agent_id',
+  'referred_agent_name', 'created_at'
+]);
+
+function filterObjectKeys<T extends Record<string, any>>(obj: T, allowed: Set<string>): any {
+  if (!obj || typeof obj !== 'object') return {};
+  const result: any = {};
+  for (const key of Object.keys(obj)) {
+    if (allowed.has(key) && obj[key] !== undefined) {
+      result[key] = obj[key];
+    }
+  }
+  return result;
+}
+
+// Ensure the agent profile exists in Supabase to satisfy foreign key constraints
+export async function ensureAgentProfile(agentId: string, name?: string, mobile?: string): Promise<void> {
+  if (!isSupabaseConfigured || !supabase || !agentId) return;
+  try {
+    const { data } = await supabase.from('profiles').select('id').eq('id', agentId).maybeSingle();
+    if (!data) {
+      await supabase.from('profiles').upsert({
+        id: agentId,
+        role: 'agent',
+        full_name: name || 'SafarGo Agent',
+        mobile: mobile || '9876543210',
+        city: 'Indore',
+        district: 'Indore',
+        agent_status: 'approved',
+        wallet_balance: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+    }
+  } catch (err) {
+    console.warn('[Supabase] ensureAgentProfile notice:', err);
+  }
+}
+
 export const db = {
   // Profiles
   async getProfiles(): Promise<Profile[] | null> {
@@ -32,7 +104,8 @@ export const db = {
   async createProfile(profile: Profile): Promise<Profile | null> {
     if (!isSupabaseConfigured || !supabase) return null;
     try {
-      const { data, error } = await supabase.from('profiles').insert(profile).select().single();
+      const cleanData = filterObjectKeys(profile, VALID_PROFILE_COLS);
+      const { data, error } = await supabase.from('profiles').upsert(cleanData).select().single();
       if (error) {
         console.error('Supabase createProfile error:', error);
         return null;
@@ -47,7 +120,8 @@ export const db = {
   async updateProfile(id: string, updates: Partial<Profile>): Promise<boolean> {
     if (!isSupabaseConfigured || !supabase) return false;
     try {
-      const { error } = await supabase.from('profiles').update(updates).eq('id', id);
+      const cleanUpdates = filterObjectKeys(updates, VALID_PROFILE_COLS);
+      const { error } = await supabase.from('profiles').update(cleanUpdates).eq('id', id);
       if (error) {
         console.error('Supabase updateProfile error:', error);
         return false;
@@ -81,9 +155,11 @@ export const db = {
   async createBooking(booking: Booking): Promise<Booking | null> {
     if (!isSupabaseConfigured || !supabase) return null;
     try {
+      await ensureAgentProfile(booking.agent_id, booking.agent_name, booking.agent_mobile);
+      const cleanBooking = filterObjectKeys(booking, VALID_BOOKING_COLS);
       const { data, error } = await supabase
         .from('bookings')
-        .insert(booking)
+        .insert(cleanBooking)
         .select()
         .single();
       if (error) {
@@ -100,7 +176,8 @@ export const db = {
   async updateBooking(id: string, updates: Partial<Booking>): Promise<boolean> {
     if (!isSupabaseConfigured || !supabase) return false;
     try {
-      const { error } = await supabase.from('bookings').update(updates).eq('id', id);
+      const cleanUpdates = filterObjectKeys(updates, VALID_BOOKING_COLS);
+      const { error } = await supabase.from('bookings').update(cleanUpdates).eq('id', id);
       if (error) {
         console.error('Supabase updateBooking error:', error);
         return false;
@@ -198,7 +275,9 @@ export const db = {
   async createCommission(entry: CommissionEntry): Promise<CommissionEntry | null> {
     if (!isSupabaseConfigured || !supabase) return null;
     try {
-      const { data, error } = await supabase.from('commission_ledger').insert(entry).select().single();
+      await ensureAgentProfile(entry.agent_id, entry.agent_name);
+      const cleanEntry = filterObjectKeys(entry, VALID_COMMISSION_COLS);
+      const { data, error } = await supabase.from('commission_ledger').insert(cleanEntry).select().single();
       if (error) {
         console.error('Supabase createCommission error:', error);
         return null;
@@ -365,9 +444,11 @@ export const db = {
   async createWalletRecharge(recharge: WalletRechargeRequest): Promise<WalletRechargeRequest | null> {
     if (!isSupabaseConfigured || !supabase) return null;
     try {
+      await ensureAgentProfile(recharge.agent_id, recharge.agent_name, recharge.agent_mobile);
+      const cleanRecharge = filterObjectKeys(recharge, VALID_RECHARGE_COLS);
       const { data, error } = await supabase
         .from('wallet_recharge_requests')
-        .insert(recharge)
+        .insert(cleanRecharge)
         .select()
         .single();
       if (error) {
@@ -384,9 +465,10 @@ export const db = {
   async updateWalletRecharge(id: string, updates: Partial<WalletRechargeRequest>): Promise<boolean> {
     if (!isSupabaseConfigured || !supabase) return false;
     try {
+      const cleanUpdates = filterObjectKeys(updates, VALID_RECHARGE_COLS);
       const { error } = await supabase
         .from('wallet_recharge_requests')
-        .update(updates)
+        .update(cleanUpdates)
         .eq('id', id);
       if (error) {
         console.error('Supabase updateWalletRecharge error:', error);
@@ -421,7 +503,9 @@ export const db = {
   async createWalletTransaction(tx: WalletTransaction): Promise<boolean> {
     if (!isSupabaseConfigured || !supabase) return false;
     try {
-      const { error } = await supabase.from('wallet_transactions').insert(tx);
+      await ensureAgentProfile(tx.agent_id);
+      const cleanTx = filterObjectKeys(tx, VALID_TX_COLS);
+      const { error } = await supabase.from('wallet_transactions').insert(cleanTx);
       if (error) {
         console.error('Supabase createWalletTransaction error:', error);
         return false;

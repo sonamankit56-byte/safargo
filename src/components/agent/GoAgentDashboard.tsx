@@ -662,6 +662,51 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
               </div>
             </div>
 
+            {/* 🚀 CYBER 3D "GO" ANIMATED NEW BUS BOOKING QUICK ACTION BANNER */}
+            <div
+              onClick={() => {
+                setActiveTab('bookings');
+                setBookingSubTab('auto_book');
+              }}
+              className="relative rounded-3xl bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-amber-500/20 border-2 border-amber-400 p-5 sm:p-6 shadow-[0_0_35px_rgba(245,158,11,0.3)] flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:border-amber-300 transition group transform hover:-translate-y-0.5 active:scale-98 overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-64 h-64 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
+              
+              <div className="flex items-center gap-4 text-left">
+                <div className="relative shrink-0 transform group-hover:scale-110 transition-transform duration-300 animate-pulse">
+                  <Go3DUltraLogo size="md" showBadge={false} interactive={true} />
+                  <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-500 text-slate-950 shadow-md">
+                    +₹20
+                  </span>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950">
+                      ⚡ FAST TRACK TICKET DESK
+                    </span>
+                    <span className="text-emerald-400 text-xs font-bold flex items-center gap-1">
+                      <Zap className="w-3.5 h-3.5 fill-emerald-400" />
+                      3-Min Approval • 0-Sec Go Wallet Credit
+                    </span>
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-black text-white group-hover:text-amber-300 transition">
+                    नई बस बुकिंग करें (New Bus Booking)
+                  </h3>
+                  <p className="text-xs text-slate-300">
+                    इंदौर, भोपाल, विदिशा, सिरोंज, गुना, अशोक नगर आदि के लिए लाइव सीट मैप देखें व तुरंत टिकट बुक करें।
+                  </p>
+                </div>
+              </div>
+
+              <div className="shrink-0 flex items-center gap-2">
+                <span className="py-2.5 px-5 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400 text-slate-950 font-black text-xs shadow-lg group-hover:shadow-amber-400/50 flex items-center gap-2 transition">
+                  <Bus className="w-4 h-4" />
+                  <span>अभी सीट बुक करें ➔</span>
+                </span>
+              </div>
+            </div>
+
             {/* SPECIAL HUGE GREEN TICK BADGE FOR KYC VERIFIED GO AGENT */}
             {isKycVerified ? (
               <div className="relative rounded-3xl bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 border-2 border-emerald-400 p-4 sm:p-6 shadow-[0_0_35px_rgba(16,185,129,0.35)] flex flex-col sm:flex-row items-center justify-between gap-4 animate-fadeIn">
@@ -2313,10 +2358,10 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
       </main>
 
       {/* ============================================================== */}
-      {/* 4 EXCLUSIVE BOTTOM NAVIGATION OPTIONS (NO CLUTTER!)            */}
+      {/* 5 EXCLUSIVE BOTTOM NAVIGATION OPTIONS (WITH 3D GO ANIMATION)    */}
       {/* ============================================================== */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/95 backdrop-blur-xl border-t-2 border-amber-400/60 shadow-[0_-10px_25px_rgba(0,0,0,0.5)] py-2 px-3 sm:px-6">
-        <div className="max-w-md mx-auto grid grid-cols-4 gap-1 text-center items-center">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/95 backdrop-blur-xl border-t-2 border-amber-400/60 shadow-[0_-10px_25px_rgba(0,0,0,0.5)] py-2 px-2 sm:px-6">
+        <div className="max-w-lg mx-auto grid grid-cols-5 gap-1 text-center items-center">
           
           {/* Option 1: ⚡ Dashboard */}
           <button
@@ -2332,21 +2377,46 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
             <span className="text-[10px]">डैशबोर्ड</span>
           </button>
 
-          {/* Option 2: 🎫 Bookings & Refund */}
+          {/* Option 2: 🚀 3D "GO" Animated New Bus Booking */}
           <button
             type="button"
-            onClick={() => setActiveTab('bookings')}
+            onClick={() => {
+              setActiveTab('bookings');
+              setBookingSubTab('auto_book');
+            }}
+            className={`relative flex flex-col items-center justify-center py-1 px-0.5 rounded-2xl transition cursor-pointer group active:scale-95 ${
+              activeTab === 'bookings' && bookingSubTab === 'auto_book'
+                ? 'text-amber-300 font-black bg-gradient-to-t from-amber-500/25 via-amber-400/15 to-transparent border border-amber-400/80 shadow-[0_0_20px_rgba(245,158,11,0.4)]'
+                : 'text-amber-400 hover:text-amber-300 font-extrabold hover:bg-slate-900'
+            }`}
+            title="⚡ नई GO बस बुकिंग — ₹20 कमीशन प्रति टिकट"
+          >
+            <div className="relative transform group-hover:scale-115 transition-transform duration-300 animate-pulse">
+              <Go3DUltraLogo size="sm" showBadge={false} interactive={false} />
+            </div>
+            <span className="text-[9px] sm:text-[10px] font-black text-amber-300 truncate tracking-tight">
+              नई बस बुकिंग
+            </span>
+          </button>
+
+          {/* Option 3: 🎫 Bookings & Refund */}
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('bookings');
+              setBookingSubTab('history');
+            }}
             className={`flex flex-col items-center justify-center py-1 rounded-2xl transition cursor-pointer ${
-              activeTab === 'bookings'
+              activeTab === 'bookings' && bookingSubTab === 'history'
                 ? 'text-amber-400 font-black bg-amber-400/15'
                 : 'text-slate-400 hover:text-white font-bold'
             }`}
           >
             <Bus className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px]">बुकिंग व रिफंड</span>
+            <span className="text-[10px]">माई टिकट्स</span>
           </button>
 
-          {/* Option 3: 💳 Go Wallet */}
+          {/* Option 4: 💳 Go Wallet */}
           <button
             type="button"
             onClick={() => setActiveTab('wallet')}
@@ -2360,7 +2430,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
             <span className="text-[10px]">Go Wallet</span>
           </button>
 
-          {/* Option 4: 👤 Go Account & KYC */}
+          {/* Option 5: 👤 Go Account & KYC */}
           <button
             type="button"
             onClick={() => setActiveTab('account')}

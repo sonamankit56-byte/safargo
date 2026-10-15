@@ -523,8 +523,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
               /* Guest Actions: Real Login & Register buttons */
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => onOpenAuth('login')}
-                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl border border-slate-700 transition flex items-center gap-1.5 shadow-xs"
+                  onClick={() => {
+                    window.location.href = buildSubdomainUrl('login');
+                  }}
+                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl border border-slate-700 transition flex items-center gap-1.5 shadow-xs cursor-pointer"
                 >
                   <LogIn className="w-3.5 h-3.5 text-orange-400" />
                   <span>लॉगिन करें</span>
@@ -540,7 +542,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                           desc: 'प्रमोटिंग पार्टनर प्रोग्राम व लॉगिन पोर्टल बहुत जल्द लाइव किया जा रहा है!'
                         });
                       } else {
-                        onOpenAuth('promoter_login');
+                        window.location.href = `${buildSubdomainUrl('login')}?role=promoter`;
                       }
                     }}
                     className="px-3 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-xs rounded-xl transition flex items-center gap-1.5 shadow-sm active:scale-95 border border-amber-300 cursor-pointer"
@@ -558,10 +560,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
 
                 <button
                   onClick={() => {
-                    window.location.href = buildSubdomainUrl('agent');
+                    window.location.href = `${buildSubdomainUrl('login')}?role=agent`;
                   }}
                   className="px-3.5 py-2 bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-xs rounded-xl transition flex items-center gap-1.5 shadow-md active:scale-95 cursor-pointer"
-                  title="अधिकृत SafarGo एजेंट बनें (agent.safargo.in)"
+                  title="अधिकृत SafarGo एजेंट बनें (login.safargo.in)"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   <span>फ्री एजेंट बनें</span>

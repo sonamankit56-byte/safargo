@@ -47,6 +47,7 @@ import { PromoterSubdomainGateway } from './components/promoter/PromoterSubdomai
 import { ShopSubdomainGateway } from './components/shop/ShopSubdomainGateway';
 import { CreatorSubdomainGateway } from './components/creator/CreatorSubdomainGateway';
 import { CareersSubdomainGateway } from './components/careers/CareersSubdomainGateway';
+import { LoginSubdomainGateway } from './components/auth/LoginSubdomainGateway';
 import { AdminJobsDesk } from './components/admin/AdminJobsDesk';
 import { SubdomainDirectoryModal } from './components/common/SubdomainDirectoryModal';
 import { buildSubdomainUrl } from './lib/subdomain';
@@ -214,6 +215,10 @@ const AppContent: React.FC = () => {
 
   if (activeSubdomain === 'careers') {
     return <CareersSubdomainGateway />;
+  }
+
+  if (activeSubdomain === 'login') {
+    return <LoginSubdomainGateway />;
   }
 
   const selectedReviewBooking = bookings.find((b) => b.id === selectedReviewBookingId) || null;

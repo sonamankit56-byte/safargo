@@ -13,7 +13,7 @@
  * - Session/LocalStorage persistence
  */
 
-export type AppSubdomain = 'main' | 'admin' | 'agent' | 'promoter' | 'shop' | 'creator' | 'careers';
+export type AppSubdomain = 'main' | 'admin' | 'agent' | 'promoter' | 'shop' | 'creator' | 'careers' | 'login';
 
 export interface SubdomainConfig {
   id: AppSubdomain;
@@ -89,6 +89,15 @@ export const SUBDOMAIN_CONFIGS: Record<AppSubdomain, SubdomainConfig> = {
     subdomainPrefix: 'careers',
     themeColor: 'from-blue-600 to-indigo-800',
   },
+  login: {
+    id: 'login',
+    title: 'SafarGo यूनिफाइड लॉगिन एवं ऑथेंटिकेशन गेटवे',
+    badge: 'Unified Auth Gateway',
+    description: 'GO स्पेशल एजेंट, दुकानदार व यात्री सुरक्षित प्रवेश द्वार एवं पासवर्ड रिकवरी',
+    pathFallback: '/login',
+    subdomainPrefix: 'login',
+    themeColor: 'from-amber-400 via-orange-500 to-red-600',
+  },
 };
 
 const STORAGE_KEY_CUSTOM_DOMAIN = 'safargo_custom_domain';
@@ -120,14 +129,14 @@ export function detectSubdomain(): AppSubdomain {
   // 1. Priority: URL query parameter for testing (e.g. ?subdomain=admin)
   const searchParams = new URLSearchParams(window.location.search);
   const querySub = searchParams.get('subdomain')?.toLowerCase().trim();
-  if (querySub && ['admin', 'agent', 'promoter', 'shop', 'creator', 'careers', 'main'].includes(querySub)) {
+  if (querySub && ['admin', 'agent', 'promoter', 'shop', 'creator', 'careers', 'login', 'main'].includes(querySub)) {
     return querySub as AppSubdomain;
   }
 
   // 2. LocalStorage override if set manually by developer/admin switcher
   try {
     const storedOverride = sessionStorage.getItem(STORAGE_KEY_SUBDOMAIN_OVERRIDE);
-    if (storedOverride && ['admin', 'agent', 'promoter', 'shop', 'creator', 'careers', 'main'].includes(storedOverride)) {
+    if (storedOverride && ['admin', 'agent', 'promoter', 'shop', 'creator', 'careers', 'login', 'main'].includes(storedOverride)) {
       return storedOverride as AppSubdomain;
     }
   } catch {}
@@ -138,6 +147,16 @@ export function detectSubdomain(): AppSubdomain {
   // Admin subdomains
   if (hostname.startsWith('admin.') || hostname === 'admin.localhost') {
     return 'admin';
+  }
+
+  // Login subdomains (login.safargo.in, auth.safargo.in)
+  if (
+    hostname.startsWith('login.') ||
+    hostname.startsWith('auth.') ||
+    hostname === 'login.localhost' ||
+    hostname === 'auth.localhost'
+  ) {
+    return 'login';
   }
 
   // GO Agent subdomains

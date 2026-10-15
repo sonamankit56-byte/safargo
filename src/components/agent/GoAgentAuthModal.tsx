@@ -8,7 +8,7 @@ import {
   checkIsEmailVerified,
   resendVerificationEmail,
 } from '../../lib/firebaseService';
-import { sendRegistrationOtpEmail } from '../../lib/emailService';
+import { sendRegistrationOtpEmail, sendPasswordResetOtpEmail } from '../../lib/emailService';
 import {
   X,
   Mail,
@@ -28,6 +28,7 @@ import {
   Send,
   AlertTriangle,
   Gift,
+  KeyRound,
 } from 'lucide-react';
 
 interface GoAgentAuthModalProps {
@@ -43,15 +44,23 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
   onSuccessLogin,
   initialMode = 'login',
 }) => {
-  const { login, loginWithGoogle, registerAgent, allProfiles, currentUser } = useAuth();
+  const { login, loginWithGoogle, registerAgent, resetPassword, allProfiles, currentUser } = useAuth();
   const { error, success, info } = useToast();
 
-  const [mode, setMode] = useState<'login' | 'register' | 'confirm_gmail'>(initialMode);
+  const [mode, setMode] = useState<'login' | 'register' | 'confirm_gmail' | 'forgot_password'>(initialMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Login inputs
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+
+  // Forgot password inputs
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotResetCodeSent, setForgotResetCodeSent] = useState(false);
+  const [generatedResetCode, setGeneratedResetCode] = useState('');
+  const [enteredResetOtp, setEnteredResetOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
 
   // Registration inputs
   const [fullName, setFullName] = useState('');
@@ -229,6 +238,67 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
     }
   };
 
+  // Handle Send Forgot Password Reset OTP via Resend
+  const handleSendForgotPasswordOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail.trim() || !forgotEmail.includes('@')) {
+      error('अमान्य Gmail', 'कृपया अपना पंजीकृत Gmail पता दर्ज करें।');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      setGeneratedResetCode(code);
+
+      const dispatched = await sendPasswordResetOtpEmail({
+        toEmail: forgotEmail.trim(),
+        resetCode: code,
+        userName: 'GO Special Agent',
+      });
+
+      if (dispatched) {
+        setForgotResetCodeSent(true);
+        success('OTP भेजा गया! ✉️', `6-अंकीय पासवर्ड रीसेट कोड ${forgotEmail.trim()} पर भेज दिया गया है।`);
+      } else {
+        error('ईमेल प्रेषण विफल', 'ईमेल भेजने में समस्या आई। कृपया पुनः प्रयास करें।');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle Complete Forgot Password Reset
+  const handleCompleteForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (enteredResetOtp.trim() !== generatedResetCode.trim()) {
+      error('गलत OTP कोड', 'कृपया Gmail पर भेजा गया सही 6-अंकीय कोड दर्ज करें।');
+      return;
+    }
+    if (!newPassword.trim() || newPassword.length < 4) {
+      error('कमजोर पासवर्ड', 'नया पासवर्ड न्यूनतम 4 अक्षरों का होना चाहिए।');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      error('पासवर्ड मेल नहीं खाया', 'नया पासवर्ड और कन्फर्म पासवर्ड एक समान होने चाहिए।');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const resetOk = await resetPassword(forgotEmail.trim(), newPassword.trim());
+      if (resetOk) {
+        // Automatically log in with new password
+        await login(forgotEmail.trim(), newPassword.trim());
+        success('पासवर्ड अपडेट हुआ! 🎉', 'नया पासवर्ड सेट हो गया और GO एजेंट डैशबोर्ड में लॉगिन सफल हुआ!');
+        onClose();
+        if (onSuccessLogin) onSuccessLogin();
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Handle GO Special Agent Registration Submit
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -385,7 +455,7 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
           </p>
 
           {/* Dedicated Dual Mode Switcher (NO OTHER CLUTTER!) */}
-          {mode !== 'confirm_gmail' && (
+          {mode !== 'confirm_gmail' && mode !== 'forgot_password' && (
             <div className="grid grid-cols-2 p-1 bg-slate-950/90 rounded-2xl border border-amber-400/40 w-full max-w-sm mt-4 gap-1">
               <button
                 type="button"
@@ -487,9 +557,21 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-300 mb-1 text-xs">
-                    पासवर्ड (Password) *
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-bold text-slate-300 text-xs">
+                      पासवर्ड (Password) *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForgotEmail(loginEmail.includes('@') ? loginEmail : '');
+                        setMode('forgot_password');
+                      }}
+                      className="text-[11px] text-amber-400 hover:underline cursor-pointer font-bold"
+                    >
+                      पासवर्ड भूल गए? (Forgot Password)
+                    </button>
+                  </div>
                   <div className="relative">
                     <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                     <input
@@ -521,6 +603,124 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                   className="text-amber-400 font-bold hover:underline cursor-pointer"
                 >
                   यहाँ 1 मिनट में रजिस्टर करें ➔
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================== */}
+          {/* FORGOT PASSWORD VIEW                                       */}
+          {/* ========================================================== */}
+          {mode === 'forgot_password' && (
+            <div className="space-y-4 animate-fadeIn">
+              <div className="p-3 bg-red-950/40 border border-red-500/40 rounded-2xl flex items-start gap-2.5">
+                <KeyRound className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-red-200 leading-snug">
+                  <strong>पासवर्ड रीसेट सुरक्षा सत्यापन:</strong> अपने पंजीकृत Gmail पर 6-अंकीय पासवर्ड रीसेट कोड प्राप्त करके नया पासवर्ड सेट करें।
+                </p>
+              </div>
+
+              {!forgotResetCodeSent ? (
+                <form onSubmit={handleSendForgotPasswordOtp} className="space-y-3.5">
+                  <div>
+                    <label className="block font-bold text-slate-300 mb-1 text-xs">
+                      पंजीकृत Gmail पता *
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                      <input
+                        type="email"
+                        required
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        placeholder="उदा. agent.pawan@gmail.com"
+                        className="w-full pl-10 pr-3 py-3 rounded-xl bg-slate-800/90 border border-slate-700 text-white placeholder-slate-500 text-xs focus:ring-2 focus:ring-red-400 outline-none font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full py-3.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 text-white font-black rounded-xl shadow-lg transition active:scale-98 disabled:opacity-50 text-xs flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Mail className="w-4 h-4" />
+                    <span>{isSubmitting ? 'OTP भेजा जा रहा है...' : 'पासवर्ड रीसेट OTP भेजें ➔'}</span>
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleCompleteForgotPassword} className="space-y-3.5">
+                  <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs">
+                    <span className="text-slate-400">सत्यापन कोड भेजा गया: </span>
+                    <strong className="text-amber-300 font-mono">{forgotEmail}</strong>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-300 mb-1 text-xs">
+                      Gmail पर प्राप्त 6-अंकीय OTP कोड *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      value={enteredResetOtp}
+                      onChange={(e) => setEnteredResetOtp(e.target.value.replace(/\D/g, ''))}
+                      placeholder="123456"
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-800 border border-amber-400 text-amber-300 text-center font-mono text-lg font-black tracking-widest outline-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1 text-xs">
+                        नया पासवर्ड बनाएं *
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="न्यूनतम 4 अक्षर"
+                        className="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs outline-none font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1 text-xs">
+                        पासवर्ड दोबारा पुष्टि करें *
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        placeholder="दोबारा पासवर्ड डालें"
+                        className="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs outline-none font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-slate-950 font-black rounded-xl shadow-lg transition active:scale-98 disabled:opacity-50 text-xs flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{isSubmitting ? 'पासवर्ड अपडेट हो रहा है...' : 'नया पासवर्ड सेव करें व डैशबोर्ड खोलें ➔'}</span>
+                  </button>
+                </form>
+              )}
+
+              <div className="pt-2 text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('login');
+                    setForgotResetCodeSent(false);
+                  }}
+                  className="text-xs text-slate-400 hover:text-white cursor-pointer"
+                >
+                  ← वापस लॉगिन पर लौटें
                 </button>
               </div>
             </div>

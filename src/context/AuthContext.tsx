@@ -114,47 +114,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Real Database Sync: Hydrate profiles from Supabase if configured without overwriting local KYC submissions
   useEffect(() => {
-    if (!isSupabaseConfigured) return;
-    db.getProfiles().then((liveProfiles) => {
-      if (liveProfiles && liveProfiles.length > 0) {
-        setProfiles((prev) => {
-          const mergedRemote = liveProfiles.map((remote) => {
-            const local = prev.find((p) => p.id === remote.id);
-            if (!local) return remote;
-            const hasLocalActiveKyc = local.kyc_status === 'pending' || local.kyc_status === 'verified';
-            return {
-              ...remote,
-              ...local,
-              kyc_status: hasLocalActiveKyc ? local.kyc_status : (remote.kyc_status || local.kyc_status || 'not_submitted'),
-              photo_verified: local.photo_verified ?? remote.photo_verified ?? false,
-              aadhaar_number: local.aadhaar_number || remote.aadhaar_number,
-              pan_number: local.pan_number || remote.pan_number,
-              aadhaar_front_url: local.aadhaar_front_url || remote.aadhaar_front_url,
-              aadhaar_back_url: local.aadhaar_back_url || remote.aadhaar_back_url,
-              pan_card_url: local.pan_card_url || remote.pan_card_url,
-              bank_account_holder: local.bank_account_holder || remote.bank_account_holder,
-              bank_account_number: local.bank_account_number || remote.bank_account_number,
-              bank_ifsc: local.bank_ifsc || remote.bank_ifsc,
-              bank_name: local.bank_name || remote.bank_name,
-              bank_upi_id: local.bank_upi_id || remote.bank_upi_id,
-              avatar_url: local.avatar_url || remote.avatar_url,
-              kyc_submitted_at: local.kyc_submitted_at || remote.kyc_submitted_at,
-            };
-          });
+    const syncLiveProfiles = async () => {
+      try {
+        const liveProfiles = await db.getProfiles();
+        if (liveProfiles && liveProfiles.length > 0) {
+          setProfiles((prev) => {
+            const mergedRemote = liveProfiles.map((remote) => {
+              const local = prev.find((p) => p.id === remote.id);
+              if (!local) return remote;
+              const hasLocalActiveKyc = local.kyc_status === 'pending' || local.kyc_status === 'verified';
+              return {
+                ...remote,
+                ...local,
+                // Prioritize remote wallet_balance and agent_status from live database
+                wallet_balance: remote.wallet_balance !== undefined ? remote.wallet_balance : local.wallet_balance,
+                agent_status: remote.agent_status || local.agent_status,
+                kyc_status: hasLocalActiveKyc ? local.kyc_status : (remote.kyc_status || local.kyc_status || 'not_submitted'),
+                photo_verified: local.photo_verified ?? remote.photo_verified ?? false,
+                aadhaar_number: local.aadhaar_number || remote.aadhaar_number,
+                pan_number: local.pan_number || remote.pan_number,
+                aadhaar_front_url: local.aadhaar_front_url || remote.aadhaar_front_url,
+                aadhaar_back_url: local.aadhaar_back_url || remote.aadhaar_back_url,
+                pan_card_url: local.pan_card_url || remote.pan_card_url,
+                bank_account_holder: local.bank_account_holder || remote.bank_account_holder,
+                bank_account_number: local.bank_account_number || remote.bank_account_number,
+                bank_ifsc: local.bank_ifsc || remote.bank_ifsc,
+                bank_name: local.bank_name || remote.bank_name,
+                bank_upi_id: local.bank_upi_id || remote.bank_upi_id,
+                avatar_url: local.avatar_url || remote.avatar_url,
+                kyc_submitted_at: local.kyc_submitted_at || remote.kyc_submitted_at,
+              };
+            });
 
-          // Retain any profiles created locally that are not yet in Supabase
-          const remoteIds = new Set(liveProfiles.map((r) => r.id));
-          const localOnly = prev.filter((p) => !remoteIds.has(p.id));
-          const combined = [...mergedRemote, ...localOnly];
-          try {
-            localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(combined));
-          } catch (e) {
-            console.error('Error saving hydrated profiles to localStorage:', e);
-          }
-          return combined;
-        });
+            // Retain any profiles created locally that are not yet in Supabase
+            const remoteIds = new Set(liveProfiles.map((r) => r.id));
+            const localOnly = prev.filter((p) => !remoteIds.has(p.id));
+            const combined = [...mergedRemote, ...localOnly];
+            try {
+              localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(combined));
+            } catch (e) {
+              console.error('Error saving hydrated profiles to localStorage:', e);
+            }
+            return combined;
+          });
+        }
+      } catch (err) {
+        // Silent recovery
       }
-    }).catch((err) => console.error('Error fetching Supabase profiles:', err));
+    };
+
+    syncLiveProfiles();
+    const interval = setInterval(syncLiveProfiles, 2000);
+    const handleFocusOrVisible = () => {
+      if (document.visibilityState === 'visible') {
+        syncLiveProfiles();
+      }
+    };
+    window.addEventListener('visibilitychange', handleFocusOrVisible);
+    window.addEventListener('focus', handleFocusOrVisible);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('visibilitychange', handleFocusOrVisible);
+      window.removeEventListener('focus', handleFocusOrVisible);
+    };
   }, []);
 
   const [pendingLoginOtps, setPendingLoginOtps] = useState<PendingLoginOtp[]>(() => {

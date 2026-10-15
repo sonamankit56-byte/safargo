@@ -263,7 +263,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                 <>
                   <button
                     onClick={() => {
-                      window.location.href = buildSubdomainUrl('agent');
+                      window.location.href = buildSubdomainUrl('login');
                     }}
                     className="w-full sm:w-auto px-8 py-3.5 sm:py-4 bg-orange-500 hover:bg-orange-600 text-white font-black text-sm sm:text-base rounded-2xl shadow-xl shadow-orange-500/30 transition transform hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                   >
@@ -273,7 +273,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
 
                   <button
                     onClick={() => {
-                      window.location.href = buildSubdomainUrl('agent');
+                      window.location.href = buildSubdomainUrl('login');
                     }}
                     className="w-full sm:w-auto px-6 py-3.5 sm:py-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm sm:text-base rounded-2xl border border-slate-700 transition flex items-center justify-center cursor-pointer"
                   >
@@ -379,7 +379,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                   <button
                     type="button"
                     onClick={() => {
-                      window.location.href = buildSubdomainUrl('agent');
+                      window.location.href = buildSubdomainUrl('login');
                     }}
                     className="w-full sm:w-auto py-3 px-5 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-300 hover:from-amber-300 text-slate-950 font-black text-xs shadow-lg transition active:scale-95 cursor-pointer"
                   >
@@ -389,7 +389,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenAuth, onNavigateTab, o
                   <button
                     type="button"
                     onClick={() => {
-                      window.location.href = buildSubdomainUrl('agent');
+                      window.location.href = buildSubdomainUrl('login');
                     }}
                     className="w-full sm:w-auto py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition cursor-pointer"
                   >

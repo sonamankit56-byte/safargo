@@ -644,12 +644,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadLiveSupabaseData();
 
     // Periodic Background Sync: Ensure multi-device real-time sync across agents and admin
-    const livePollInterval = setInterval(async () => {
+    const syncAllLiveCloudData = async () => {
       try {
-        const [liveBookings, liveRecharges, liveTxs] = await Promise.all([
+        const [liveBookings, liveRecharges, liveTxs, liveComms, livePayouts] = await Promise.all([
           db.getBookings(),
           db.getWalletRecharges(),
           db.getWalletTransactions(),
+          db.getCommissions(),
+          db.getPayoutRequests(),
         ]);
         if (liveBookings && liveBookings.length > 0) {
           setBookings(liveBookings);
@@ -663,12 +665,34 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setWalletTransactions(liveTxs);
           safeSetItem(STORAGE_KEY_WALLET_TX, JSON.stringify(liveTxs));
         }
+        if (liveComms && liveComms.length > 0) {
+          setCommissions(liveComms);
+          safeSetItem(STORAGE_KEY_COMMISSIONS, JSON.stringify(liveComms));
+        }
+        if (livePayouts && livePayouts.length > 0) {
+          setPayoutRequests(livePayouts);
+          safeSetItem(STORAGE_KEY_PAYOUTS, JSON.stringify(livePayouts));
+        }
       } catch (err) {
         // Silent recovery on intermittent network drop
       }
-    }, 2000);
+    };
 
-    return () => clearInterval(livePollInterval);
+    const livePollInterval = setInterval(syncAllLiveCloudData, 1500);
+
+    const handleFocusSync = () => {
+      if (document.visibilityState === 'visible') {
+        syncAllLiveCloudData();
+      }
+    };
+    window.addEventListener('visibilitychange', handleFocusSync);
+    window.addEventListener('focus', handleFocusSync);
+
+    return () => {
+      clearInterval(livePollInterval);
+      window.removeEventListener('visibilitychange', handleFocusSync);
+      window.removeEventListener('focus', handleFocusSync);
+    };
   }, []);
 
   // Multi-Tab & Real-Time Sync: Instantly reflect Admin approvals & Agent requests across tabs and windows
