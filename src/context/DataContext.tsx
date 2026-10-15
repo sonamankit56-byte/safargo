@@ -69,6 +69,7 @@ import {
   fetchFirestoreWalletRecharges,
   fetchFirestoreBookings,
 } from '../lib/firebaseService';
+import { broadcastCloudEvent, subscribeToCloudEvents, CloudSyncEvent } from '../lib/cloudSyncService';
 
 interface DataContextType {
   // Bookings
@@ -290,6 +291,89 @@ const STORAGE_KEY_PARTNER_SHOPS = 'safargo_partner_shops_v1';
 const STORAGE_KEY_CALL_LOGS = 'safargo_call_logs_v1';
 const STORAGE_KEY_QUICK_DELIVERIES = 'safargo_quick_deliveries_v1';
 const STORAGE_KEY_PROMO_CODES = 'safargo_promo_codes_v1';
+
+// High-Reliability Status Precedence Merge Helpers
+// Ensures that a 'confirmed' or 'approved' state is NEVER downgraded back to 'booking_request' or 'pending'
+export const mergeBookingsWithPrecedence = (localList: Booking[], incomingList: Booking[]): Booking[] => {
+  const map = new Map<string, Booking>();
+  localList.forEach((b) => map.set(b.id, b));
+
+  const statusRank: Record<string, number> = {
+    confirmed: 10,
+    cancelled: 9,
+    rejected: 8,
+    cancellation_requested: 5,
+    awaiting_operator_confirmation: 3,
+    booking_request: 2,
+    expired: 1,
+  };
+
+  incomingList.forEach((inc) => {
+    const existing = map.get(inc.id);
+    if (!existing) {
+      map.set(inc.id, inc);
+    } else {
+      const exRank = statusRank[existing.status] || 0;
+      const incRank = statusRank[inc.status] || 0;
+      const winningStatus = (incRank > exRank ? inc.status : existing.status) as BookingStatus;
+
+      map.set(inc.id, {
+        ...existing,
+        ...inc,
+        status: winningStatus,
+        ticket_pnr: inc.ticket_pnr || existing.ticket_pnr,
+        actual_fare: inc.actual_fare ?? existing.actual_fare,
+        confirmed_seats: inc.confirmed_seats || existing.confirmed_seats,
+        actual_operator: inc.actual_operator || existing.actual_operator,
+        confirmed_by: inc.confirmed_by || existing.confirmed_by,
+        confirmed_at: inc.confirmed_at || existing.confirmed_at,
+        admin_notes: inc.admin_notes || existing.admin_notes,
+      });
+    }
+  });
+
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+};
+
+export const mergeRechargesWithPrecedence = (
+  localList: WalletRechargeRequest[],
+  incomingList: WalletRechargeRequest[]
+): WalletRechargeRequest[] => {
+  const map = new Map<string, WalletRechargeRequest>();
+  localList.forEach((r) => map.set(r.id, r));
+
+  const statusRank: Record<string, number> = {
+    approved: 10,
+    rejected: 8,
+    pending: 2,
+  };
+
+  incomingList.forEach((inc) => {
+    const existing = map.get(inc.id);
+    if (!existing) {
+      map.set(inc.id, inc);
+    } else {
+      const exRank = statusRank[existing.status] || 0;
+      const incRank = statusRank[inc.status] || 0;
+      const winningStatus = (incRank > exRank ? inc.status : existing.status) as any;
+
+      map.set(inc.id, {
+        ...existing,
+        ...inc,
+        status: winningStatus,
+        admin_notes: inc.admin_notes || existing.admin_notes,
+        approved_by: inc.approved_by || existing.approved_by,
+        approved_at: inc.approved_at || existing.approved_at,
+      });
+    }
+  });
+
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+};
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
@@ -654,12 +738,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           db.getPayoutRequests(),
         ]);
         if (liveBookings && liveBookings.length > 0) {
-          setBookings(liveBookings);
-          safeSetItem(STORAGE_KEY_BOOKINGS, JSON.stringify(sanitizeBookings(liveBookings)));
+          setBookings((prev) => {
+            const next = mergeBookingsWithPrecedence(prev, liveBookings);
+            safeSetItem(STORAGE_KEY_BOOKINGS, JSON.stringify(sanitizeBookings(next)));
+            return next;
+          });
         }
         if (liveRecharges && liveRecharges.length > 0) {
-          setWalletRecharges(liveRecharges);
-          safeSetItem(STORAGE_KEY_WALLET_RECHARGES, JSON.stringify(liveRecharges));
+          setWalletRecharges((prev) => {
+            const next = mergeRechargesWithPrecedence(prev, liveRecharges);
+            safeSetItem(STORAGE_KEY_WALLET_RECHARGES, JSON.stringify(sanitizeWalletRecharges(next)));
+            return next;
+          });
         }
         if (liveTxs && liveTxs.length > 0) {
           setWalletTransactions(liveTxs);
@@ -695,13 +785,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Multi-Tab & Real-Time Sync: Instantly reflect Admin approvals & Agent requests across tabs and windows
+  // High-Reliability Multi-Tab & Cross-Device Real-Time Cloud Sync
   useEffect(() => {
+    // 1. Cross-Tab storage event listener
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY_WALLET_RECHARGES && e.newValue) {
         try {
           const parsed = JSON.parse(e.newValue);
-          if (Array.isArray(parsed)) setWalletRecharges(parsed);
+          if (Array.isArray(parsed)) {
+            setWalletRecharges((prev) => mergeRechargesWithPrecedence(prev, parsed));
+          }
         } catch (err) {
           console.error('Wallet recharges storage sync error:', err);
         }
@@ -717,7 +810,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (e.key === STORAGE_KEY_BOOKINGS && e.newValue) {
         try {
           const parsed = JSON.parse(e.newValue);
-          if (Array.isArray(parsed)) setBookings(parsed);
+          if (Array.isArray(parsed)) {
+            setBookings((prev) => mergeBookingsWithPrecedence(prev, parsed));
+          }
         } catch (err) {
           console.error('Bookings storage sync error:', err);
         }
@@ -725,39 +820,92 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     window.addEventListener('storage', handleStorageChange);
 
-    // Instant Zero-Latency BroadcastChannel listener
-    let bc: BroadcastChannel | null = null;
-    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-      try {
-        bc = new BroadcastChannel('safargo_live_sync');
-        bc.onmessage = (event) => {
-          if (event.data?.type === 'BOOKING_CONFIRMED') {
-            try {
-              const saved = localStorage.getItem(STORAGE_KEY_BOOKINGS);
-              if (saved) {
-                const parsed = JSON.parse(saved);
-                if (Array.isArray(parsed)) setBookings(parsed);
-              }
-              const savedTx = localStorage.getItem(STORAGE_KEY_WALLET_TX);
-              if (savedTx) {
-                const parsedTx = JSON.parse(savedTx);
-                if (Array.isArray(parsedTx)) setWalletTransactions(parsedTx);
-              }
-            } catch {}
-          }
-        };
-      } catch {}
-    }
+    // 2. Cross-Device & Multi-Tab Cloud Sync Subscription
+    const unsubscribeCloud = subscribeToCloudEvents((event: CloudSyncEvent) => {
+      if (event.type === 'BOOKING_CREATED') {
+        setBookings((prev) => {
+          if (prev.some((b) => b.id === event.booking?.id)) return prev;
+          const next = [event.booking, ...prev];
+          safeSetItem(STORAGE_KEY_BOOKINGS, JSON.stringify(sanitizeBookings(next)));
+          return next;
+        });
+      } else if (event.type === 'BOOKING_CONFIRMED') {
+        setBookings((prev) => {
+          const updated = prev.map((b) => {
+            if (b.id === event.bookingId) {
+              return {
+                ...b,
+                ...event.booking,
+                status: 'confirmed' as BookingStatus,
+                ticket_pnr: event.pnr || event.booking?.ticket_pnr || b.ticket_pnr,
+                confirmed_at: event.booking?.confirmed_at || new Date().toISOString(),
+              };
+            }
+            return b;
+          });
+          safeSetItem(STORAGE_KEY_BOOKINGS, JSON.stringify(sanitizeBookings(updated)));
+          return updated;
+        });
+      } else if (event.type === 'BOOKING_REJECTED') {
+        setBookings((prev) => {
+          const updated = prev.map((b) =>
+            b.id === event.bookingId
+              ? { ...b, status: 'rejected' as BookingStatus, rejection_reason: event.reason }
+              : b
+          );
+          safeSetItem(STORAGE_KEY_BOOKINGS, JSON.stringify(sanitizeBookings(updated)));
+          return updated;
+        });
+      } else if (event.type === 'RECHARGE_REQUESTED') {
+        setWalletRecharges((prev) => {
+          if (prev.some((r) => r.id === event.recharge?.id)) return prev;
+          const next = [event.recharge, ...prev];
+          safeSetItem(STORAGE_KEY_WALLET_RECHARGES, JSON.stringify(sanitizeWalletRecharges(next)));
+          return next;
+        });
+      } else if (event.type === 'RECHARGE_APPROVED') {
+        setWalletRecharges((prev) => {
+          const updated = prev.map((r) =>
+            r.id === event.rechargeId
+              ? {
+                  ...r,
+                  ...event.recharge,
+                  status: 'approved' as const,
+                  approved_at: event.recharge?.approved_at || new Date().toISOString(),
+                }
+              : r
+          );
+          safeSetItem(STORAGE_KEY_WALLET_RECHARGES, JSON.stringify(sanitizeWalletRecharges(updated)));
+          return updated;
+        });
+
+        if (currentUser && event.agentId && currentUser.id === event.agentId && event.amount) {
+          updateProfile({
+            wallet_balance: (currentUser.wallet_balance || 0) + Number(event.amount),
+          });
+        }
+      } else if (event.type === 'RECHARGE_REJECTED') {
+        setWalletRecharges((prev) => {
+          const updated = prev.map((r) =>
+            r.id === event.rechargeId
+              ? {
+                  ...r,
+                  status: 'rejected' as const,
+                  rejection_reason: event.reason,
+                }
+              : r
+          );
+          safeSetItem(STORAGE_KEY_WALLET_RECHARGES, JSON.stringify(sanitizeWalletRecharges(updated)));
+          return updated;
+        });
+      }
+    });
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      if (bc) {
-        try {
-          bc.close();
-        } catch {}
-      }
+      unsubscribeCloud();
     };
-  }, []);
+  }, [currentUser]);
 
   // Firebase Firestore Live Sync for Wallet Recharges & Bookings (runs on mount and every 6s)
   useEffect(() => {
@@ -1535,6 +1683,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     saveBookingToFirestore(newBooking).catch(console.error);
 
+    broadcastCloudEvent({
+      type: 'BOOKING_CREATED',
+      booking: newBooking,
+      timestamp: Date.now(),
+    });
+
     if (isSupabaseConfigured) {
       db.createBooking(newBooking).catch((err) => console.error('Supabase live booking insert:', err));
     }
@@ -1600,29 +1754,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const commRate = Math.max(20, Number(settings?.commission_rate) || 20); // Flat ₹20 Commission
     const nowIso = new Date().toISOString();
 
-    // 1. Update Booking
-    setBookings((prev) =>
-      prev.map((b) =>
-        b.id === bookingId
-          ? {
-              ...b,
-              status: 'confirmed',
-              actual_fare: verificationData.actual_fare,
-              confirmed_seats: verificationData.confirmed_seats,
-              actual_operator: verificationData.actual_operator,
-              actual_boarding_point: verificationData.actual_boarding_point,
-              actual_drop_point: verificationData.actual_drop_point,
-              ticket_pnr: verificationData.ticket_pnr,
-              ticket_doc_url: verificationData.ticket_doc_url,
-              admin_notes: verificationData.admin_notes,
-              boarding_sathi_status: b.boarding_sathi_opted ? 'boarded_safely' : b.boarding_sathi_status,
-              confirmed_by: currentUser?.id,
-              confirmed_at: nowIso,
-              updated_at: nowIso,
-            }
-          : b
-      )
-    );
+    // 1. Construct Updated Confirmed Booking
+    const updatedBooking: Booking = {
+      ...target,
+      status: 'confirmed',
+      actual_fare: verificationData.actual_fare,
+      confirmed_seats: verificationData.confirmed_seats,
+      actual_operator: verificationData.actual_operator,
+      actual_boarding_point: verificationData.actual_boarding_point,
+      actual_drop_point: verificationData.actual_drop_point,
+      ticket_pnr: verificationData.ticket_pnr,
+      ticket_doc_url: verificationData.ticket_doc_url,
+      admin_notes: verificationData.admin_notes,
+      boarding_sathi_status: target.boarding_sathi_opted ? 'boarded_safely' : target.boarding_sathi_status,
+      confirmed_by: currentUser?.id,
+      confirmed_at: nowIso,
+      updated_at: nowIso,
+    };
+
+    setBookings((prev) => {
+      const next = prev.map((b) => (b.id === bookingId ? updatedBooking : b));
+      safeSetItem(STORAGE_KEY_BOOKINGS, JSON.stringify(sanitizeBookings(next)));
+      return next;
+    });
+
+    saveBookingToFirestore(updatedBooking).catch(console.error);
 
     // 2. Insert Commission Ledger Entry (₹19.34)
     const newCommissionEntry: CommissionEntry = {
@@ -1800,20 +1956,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       `PNR: ${verificationData.ticket_pnr}. ₹${commRate.toFixed(2)} commission credited to agent ${target.agent_name}.`
     );
 
-    // Instant Zero-Latency Cross-Tab Sync via BroadcastChannel
-    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-      try {
-        const bc = new BroadcastChannel('safargo_live_sync');
-        bc.postMessage({
-          type: 'BOOKING_CONFIRMED',
-          bookingId,
-          pnr: verificationData.ticket_pnr,
-          agentId: target.agent_id,
-          timestamp: Date.now(),
-        });
-        bc.close();
-      } catch {}
-    }
+    // Instant Zero-Latency Cross-Tab & Cross-Device Cloud Sync
+    broadcastCloudEvent({
+      type: 'BOOKING_CONFIRMED',
+      bookingId,
+      booking: updatedBooking,
+      pnr: verificationData.ticket_pnr,
+      agentId: target.agent_id,
+      timestamp: Date.now(),
+    });
 
     return true;
   };
@@ -1829,18 +1980,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!target) return false;
 
     const nowIso = new Date().toISOString();
-    setBookings((prev) =>
-      prev.map((b) =>
-        b.id === bookingId
-          ? {
-              ...b,
-              status: 'rejected',
-              rejection_reason: reason,
-              updated_at: nowIso,
-            }
-          : b
-      )
-    );
+    const rejectedBooking: Booking = {
+      ...target,
+      status: 'rejected',
+      rejection_reason: reason,
+      updated_at: nowIso,
+    };
+
+    setBookings((prev) => {
+      const next = prev.map((b) => (b.id === bookingId ? rejectedBooking : b));
+      safeSetItem(STORAGE_KEY_BOOKINGS, JSON.stringify(sanitizeBookings(next)));
+      return next;
+    });
+
+    saveBookingToFirestore(rejectedBooking).catch(console.error);
+
+    broadcastCloudEvent({
+      type: 'BOOKING_REJECTED',
+      bookingId,
+      reason,
+      timestamp: Date.now(),
+    });
 
     if (isSupabaseConfigured) {
       db.updateBooking(bookingId, {
@@ -2603,7 +2763,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       created_at: new Date().toISOString(),
     };
 
-    setWalletRecharges((prev) => [newRecharge, ...prev]);
+    setWalletRecharges((prev) => {
+      const next = [newRecharge, ...prev];
+      safeSetItem(STORAGE_KEY_WALLET_RECHARGES, JSON.stringify(sanitizeWalletRecharges(next)));
+      return next;
+    });
+
+    broadcastCloudEvent({
+      type: 'RECHARGE_REQUESTED',
+      recharge: newRecharge,
+      timestamp: Date.now(),
+    });
 
     // Non-blocking background sync to Firebase Storage & Firestore
     if (screenshotUrl && screenshotUrl.startsWith('data:image/')) {
@@ -2611,7 +2781,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .then((remoteUrl) => {
           if (remoteUrl) {
             const updated = { ...newRecharge, screenshot_url: remoteUrl };
-            setWalletRecharges((prev) => prev.map((r) => (r.id === rechargeId ? updated : r)));
+            setWalletRecharges((prev) => {
+              const next = prev.map((r) => (r.id === rechargeId ? updated : r));
+              safeSetItem(STORAGE_KEY_WALLET_RECHARGES, JSON.stringify(sanitizeWalletRecharges(next)));
+              return next;
+            });
             saveWalletRechargeToFirestore(updated).catch(console.error);
           } else {
             saveWalletRechargeToFirestore(newRecharge).catch(console.error);
@@ -2726,8 +2900,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return next;
     });
 
-    // Background Firebase/Supabase save
     saveWalletRechargeToFirestore(newRecharge).catch(console.error);
+
+    broadcastCloudEvent({
+      type: 'RECHARGE_REQUESTED',
+      recharge: newRecharge,
+      timestamp: Date.now(),
+    });
+
     if (isSupabaseConfigured) {
       db.createWalletRecharge(newRecharge).catch(console.error);
     }
@@ -2812,6 +2992,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     saveWalletRechargeToFirestore(rejectedRecharge).catch(console.error);
+
+    broadcastCloudEvent({
+      type: 'RECHARGE_REJECTED',
+      rechargeId,
+      reason,
+      timestamp: Date.now(),
+    });
+
     if (isSupabaseConfigured) {
       db.updateWalletRecharge(rechargeId, {
         status: 'rejected',
@@ -2864,6 +3052,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (p) => p.id === recharge.agent_id || (recharge.agent_mobile && p.mobile === recharge.agent_mobile)
     );
     const targetAgentId = targetProfile ? targetProfile.id : recharge.agent_id;
+
+    broadcastCloudEvent({
+      type: 'RECHARGE_APPROVED',
+      rechargeId,
+      recharge: approvedRecharge,
+      agentId: targetAgentId,
+      amount: Number(recharge.amount || 0),
+      timestamp: Date.now(),
+    });
     const currentBal = computeWalletBalanceForAgent(
       targetAgentId,
       recharge.agent_mobile,
@@ -3082,6 +3279,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     saveWalletRechargeToFirestore(rejectedRecharge).catch(console.error);
+
+    broadcastCloudEvent({
+      type: 'RECHARGE_REJECTED',
+      rechargeId,
+      reason,
+      timestamp: Date.now(),
+    });
 
     if (isSupabaseConfigured) {
       db.updateWalletRecharge(rechargeId, {

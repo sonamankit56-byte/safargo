@@ -46,12 +46,16 @@ export const LoginSubdomainGateway: React.FC = () => {
   } = useAuth();
   const { error, success, info } = useToast();
 
-  // Role selector tab: default 'agent'
-  const [selectedRole, setSelectedRole] = useState<'agent' | 'shopkeeper' | 'promoter' | 'customer' | 'admin'>(() => {
+  // Role selector tab: default 'agent' (Admin has its own dedicated admin.safargo.in subdomain)
+  const [selectedRole, setSelectedRole] = useState<'agent' | 'shopkeeper' | 'promoter' | 'customer'>(() => {
     try {
       const p = new URLSearchParams(window.location.search);
       const r = p.get('role')?.toLowerCase().trim();
-      if (r && ['agent', 'shopkeeper', 'promoter', 'customer', 'admin'].includes(r)) {
+      if (r === 'admin') {
+        window.location.href = buildSubdomainUrl('admin');
+        return 'agent';
+      }
+      if (r && ['agent', 'shopkeeper', 'promoter', 'customer'].includes(r)) {
         return r as any;
       }
     } catch {}
@@ -397,19 +401,17 @@ export const LoginSubdomainGateway: React.FC = () => {
                 {selectedRole === 'shopkeeper' && 'सफ़ारगो दुकानदार मर्चेंट लॉगिन'}
                 {selectedRole === 'promoter' && 'सफ़ारगो प्रमोटर पार्टनर लॉगिन'}
                 {selectedRole === 'customer' && 'यात्री एवं ग्राहक लॉगिन'}
-                {selectedRole === 'admin' && 'सुपर एडमिन कंट्रोल डेस्क'}
               </h1>
               <p className="text-xs text-slate-400">
                 {selectedRole === 'agent' && 'फ्लैट ₹20/टिकट कमीशन, 3-मिनट अप्रूवल व 0-सेकंड Go Instant Add Money'}
                 {selectedRole === 'shopkeeper' && 'दुकान सूचीकरण, 15-मिनट डिलीवरी व Go Wallet कमाई'}
                 {selectedRole === 'promoter' && '₹15,000 फिक्स्ड मासिक वेतन व 5 स्लॉट पार्टनर प्रोग्राम'}
                 {selectedRole === 'customer' && 'बस टिकट बुकिंग, लाइव ट्रैकिंग व सुरक्षित रिफंड'}
-                {selectedRole === 'admin' && 'केवल अधिकृत सुपर एडमिन ऑपरेशन्स डेस्क'}
               </p>
             </div>
 
-            {/* Role Switcher Pills */}
-            <div className="grid grid-cols-5 p-1 bg-slate-950 rounded-2xl border border-slate-800 text-[10px] font-bold text-center gap-1">
+            {/* Role Switcher Pills (GO Agent, Shopkeeper, Promoter, Passenger - Admin is on admin.safargo.in) */}
+            <div className="grid grid-cols-4 p-1 bg-slate-950 rounded-2xl border border-slate-800 text-[10px] font-bold text-center gap-1">
               <button
                 type="button"
                 onClick={() => {
@@ -473,26 +475,10 @@ export const LoginSubdomainGateway: React.FC = () => {
                 <User className="w-3.5 h-3.5" />
                 <span>यात्री</span>
               </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedRole('admin');
-                  setMode('login');
-                }}
-                className={`py-2 rounded-xl transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
-                  selectedRole === 'admin'
-                    ? 'bg-red-600 text-white font-black shadow-md'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>एडमिन</span>
-              </button>
             </div>
 
             {/* Mode Switcher inside role (Login vs Register vs Forgot Password) */}
-            {mode !== 'verify_email' && selectedRole !== 'admin' && selectedRole !== 'promoter' && (
+            {mode !== 'verify_email' && selectedRole !== 'promoter' && (
               <div className="grid grid-cols-2 p-1 bg-slate-950/80 rounded-xl border border-slate-800 text-xs font-bold gap-1">
                 <button
                   type="button"
