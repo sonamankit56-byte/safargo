@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { StatusBadge } from '../common/StatusBadge';
@@ -22,7 +22,10 @@ import {
   ShieldCheck,
   Wallet,
   Zap,
-  Briefcase
+  Briefcase,
+  Volume2,
+  VolumeX,
+  Radio
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -33,6 +36,8 @@ interface AdminDashboardProps {
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOpenBooking }) => {
   const { allProfiles, approveAgent, approveAgentKyc, pendingLoginOtps } = useAuth();
   const { bookings, commissions, salaryRecords, settings, promotionClaims, walletRecharges, approveWalletRecharge, rejectWalletRecharge, adminReverseInstantRecharge, confirmBooking } = useData();
+
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   const now = new Date();
   const todayStr = now.toISOString().split('T')[0];
@@ -138,9 +143,101 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
     );
   }, [bookings]);
 
+  // Audio chime synthesizer for real-time incoming booking alert
+  const playAdminChime = useCallback(() => {
+    if (!soundEnabled) return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(587.33, now); // D5
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.18); // A5
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.6);
+    } catch {}
+  }, [soundEnabled]);
+
+  const prevUrgentCountRef = useRef<number>(urgentBookings.length);
+  useEffect(() => {
+    if (urgentBookings.length > prevUrgentCountRef.current) {
+      playAdminChime();
+    }
+    prevUrgentCountRef.current = urgentBookings.length;
+  }, [urgentBookings.length, playAdminChime]);
+
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-8">
       
+      {/* 🔴 Live Booking Incoming Ticker & Fast 1-Click Dispatch Bar */}
+      {urgentBookings.length > 0 && (
+        <div className="bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white rounded-3xl p-5 shadow-2xl border-2 border-red-400 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-pulse">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0">
+              <Radio className="w-6 h-6 text-white animate-spin" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="bg-white text-red-700 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full tracking-wider shadow">
+                  🔴 LIVE DISPATCH ACTIVE
+                </span>
+                <span className="text-xs font-mono font-bold text-amber-200">
+                  {urgentBookings.length} टिकट अनुरोध ऑपरेटर चेकिंग हेतु सक्रिय
+                </span>
+              </div>
+              <h2 className="text-base font-black mt-0.5">
+                नवीनतम: {urgentBookings[0].customer_name} ({urgentBookings[0].from_city} ➔ {urgentBookings[0].to_city}) • ₹{urgentBookings[0].total_estimated_amount}
+              </h2>
+              <p className="text-xs text-rose-100">
+                15 मिनट का लाइव SLA चालू है। 1-क्लिक से तत्काल PNR जारी करें ताकि एजेंट और यात्री को तुरंत टिकट मिल सके।
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
+              title={soundEnabled ? 'साउंड म्यूट करें' : 'साउंड चालू करें'}
+            >
+              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 opacity-60" />}
+            </button>
+            <button
+              onClick={async () => {
+                const b = urgentBookings[0];
+                const autoPnr = `SFG-${Math.floor(100000 + Math.random() * 900000)}`;
+                await confirmBooking(b.id, {
+                  actual_fare: b.actual_fare || b.total_estimated_amount,
+                  confirmed_seats: b.confirmed_seats || b.seat_category || 'Confirmed Seat',
+                  actual_operator: b.operator_preference || 'Verified Bus Operator',
+                  actual_boarding_point: b.boarding_point || `${b.from_city} Stand`,
+                  actual_drop_point: b.drop_point || `${b.to_city} Stand`,
+                  ticket_pnr: autoPnr,
+                  admin_notes: '1-Click Fast Approval by Admin',
+                });
+              }}
+              className="px-4 py-2.5 rounded-xl bg-white text-red-700 hover:bg-rose-50 font-black text-xs shadow-lg transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>⚡ तुरंत पहला टिकट जारी करें (1-Click PNR)</span>
+            </button>
+            <button
+              onClick={() => onOpenBooking(urgentBookings[0].id)}
+              className="px-3.5 py-2.5 rounded-xl bg-red-950/60 hover:bg-red-950 text-white font-bold text-xs transition cursor-pointer"
+            >
+              समीक्षा करें
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 border border-slate-800">
         <div className="space-y-1">
@@ -638,14 +735,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3 self-end sm:self-center">
+                <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                   <CountdownTimer deadlineAt={b.deadline_at} status={b.status} />
                   <button
+                    onClick={async () => {
+                      const autoPnr = `SFG-${Math.floor(100000 + Math.random() * 900000)}`;
+                      await confirmBooking(b.id, {
+                        actual_fare: b.actual_fare || b.total_estimated_amount,
+                        confirmed_seats: b.confirmed_seats || b.seat_category || 'Confirmed Seat',
+                        actual_operator: b.operator_preference || 'Verified Bus Operator',
+                        actual_boarding_point: b.boarding_point || `${b.from_city} Stand`,
+                        actual_drop_point: b.drop_point || `${b.to_city} Stand`,
+                        ticket_pnr: autoPnr,
+                        admin_notes: '1-Click Quick Confirm from Admin Operations Center',
+                      });
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md transition flex items-center gap-1 cursor-pointer active:scale-95"
+                    title="तुरंत PNR जनरेट करके टिकट कन्फर्म करें"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>⚡ 1-क्लिक कन्फर्म</span>
+                  </button>
+                  <button
                     onClick={() => onOpenBooking(b.id)}
-                    className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-orange-600 text-white font-bold text-xs flex items-center gap-1.5 transition shadow"
+                    className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-orange-600 text-white font-bold text-xs flex items-center gap-1.5 transition shadow"
                   >
                     <Eye className="w-3.5 h-3.5" />
-                    सत्यापित करें (Verify)
+                    <span>सत्यापित करें</span>
                   </button>
                 </div>
               </div>

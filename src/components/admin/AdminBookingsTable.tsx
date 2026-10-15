@@ -23,7 +23,7 @@ interface AdminBookingsTableProps {
 }
 
 export const AdminBookingsTable: React.FC<AdminBookingsTableProps> = ({ onOpenBooking }) => {
-  const { bookings } = useData();
+  const { bookings, confirmBooking } = useData();
   const { allProfiles } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -236,13 +236,36 @@ export const AdminBookingsTable: React.FC<AdminBookingsTableProps> = ({ onOpenBo
                     </td>
 
                     <td className="p-4 text-right">
-                      <button
-                        onClick={() => onOpenBooking(b.id)}
-                        className="px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-orange-600 text-white font-bold transition flex items-center gap-1.5 ml-auto text-xs"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        Review / Action
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        {(b.status === 'booking_request' || b.status === 'awaiting_operator_confirmation') && (
+                          <button
+                            onClick={async () => {
+                              const autoPnr = `SFG-${Math.floor(100000 + Math.random() * 900000)}`;
+                              await confirmBooking(b.id, {
+                                actual_fare: b.actual_fare || b.total_estimated_amount,
+                                confirmed_seats: b.confirmed_seats || b.seat_category || 'Confirmed Seat',
+                                actual_operator: b.operator_preference || 'Verified Bus Operator',
+                                actual_boarding_point: b.boarding_point || `${b.from_city} Stand`,
+                                actual_drop_point: b.drop_point || `${b.to_city} Stand`,
+                                ticket_pnr: autoPnr,
+                                admin_notes: '1-Click Quick Confirm from Admin Bookings Table',
+                              });
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition flex items-center gap-1 text-xs cursor-pointer active:scale-95 shadow-sm"
+                            title="तुरंत PNR बनाकर टिकट जारी करें"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>⚡ 1-क्लिक</span>
+                          </button>
+                        )}
+                        <button
+                          onClick={() => onOpenBooking(b.id)}
+                          className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-orange-600 text-white font-bold transition flex items-center gap-1.5 text-xs cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Review</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

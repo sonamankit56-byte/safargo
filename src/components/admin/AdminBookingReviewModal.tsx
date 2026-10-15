@@ -24,7 +24,9 @@ import {
   Wallet,
   QrCode,
   Image as ImageIcon,
-  Check
+  Check,
+  Bus,
+  Sparkles
 } from 'lucide-react';
 
 interface AdminBookingReviewModalProps {
@@ -47,6 +49,44 @@ export const AdminBookingReviewModal: React.FC<AdminBookingReviewModalProps> = (
   const [ticketPnr, setTicketPnr] = useState<string>(booking?.ticket_pnr || '');
   const [ticketDocUrl, setTicketDocUrl] = useState<string>(booking?.ticket_doc_url || '');
   const [adminNotes, setAdminNotes] = useState<string>(booking?.admin_notes || '');
+
+  // RedBus interactive seat map visualizer state
+  const [showSeatMap, setShowSeatMap] = useState<boolean>(true);
+  const [activeDeck, setActiveDeck] = useState<'lower' | 'upper'>('lower');
+
+  const toggleSeat = (seatId: string) => {
+    const current = confirmedSeats
+      ? confirmedSeats.split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+    if (current.includes(seatId)) {
+      const updated = current.filter((s) => s !== seatId);
+      setConfirmedSeats(updated.join(', '));
+    } else {
+      current.push(seatId);
+      setConfirmedSeats(current.join(', '));
+    }
+  };
+
+  const handleGeneratePnr = () => {
+    const pnr = `SFG-${Math.floor(100000 + Math.random() * 900000)}`;
+    setTicketPnr(pnr);
+    success('PNR जनरेट किया गया', `रैंडम PNR ${pnr} सेट हो गया`);
+  };
+
+  const handleAutoAssignSeats = () => {
+    const count = booking?.passenger_count || 1;
+    const isSleeper = booking?.seat_category?.toLowerCase().includes('sleeper');
+    const seats: string[] = [];
+    for (let i = 1; i <= count; i++) {
+      if (isSleeper) {
+        seats.push(`U${i}`);
+      } else {
+        seats.push(`L${i}`);
+      }
+    }
+    setConfirmedSeats(seats.join(', '));
+    success('सीटें स्वतः असाइन', `${seats.join(', ')} सेट हो गईं`);
+  };
 
   // Payment receipt preview & UTR copy state
   const [viewingPaymentReceipt, setViewingPaymentReceipt] = useState<string | null>(null);
@@ -501,33 +541,54 @@ SafarGo Support: +${settings.support_whatsapp}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">
-                      Confirmed Seats (सीट नंबर) <span className="text-rose-500">*</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-semibold text-slate-700 text-xs">
+                        Confirmed Seats (सीट नंबर) <span className="text-rose-500">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleAutoAssignSeats}
+                        className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 hover:underline flex items-center gap-1 cursor-pointer"
+                        title="यात्री संख्या के अनुसार सीटें स्वतः असाइन करें"
+                      >
+                        <Sparkles className="w-3 h-3 text-emerald-600" />
+                        <span>⚡ ऑटो सीट</span>
+                      </button>
+                    </div>
                     <input
                       type="text"
                       value={confirmedSeats}
                       onChange={(e) => setConfirmedSeats(e.target.value)}
-                      placeholder="e.g. 14-U, 15-U (Upper Berth)"
-                      className="w-full p-2 rounded-xl border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-orange-500 font-semibold"
+                      placeholder="e.g. L1, L2 or U1 (Upper Berth)"
+                      className="w-full p-2 rounded-xl border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-orange-500 font-semibold text-xs"
                     />
                   </div>
 
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">
-                      Ticket PNR / Reference <span className="text-rose-500">*</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-semibold text-slate-700 text-xs">
+                        Ticket PNR / Reference <span className="text-rose-500">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleGeneratePnr}
+                        className="text-[11px] font-bold text-orange-600 hover:text-orange-700 hover:underline flex items-center gap-1 cursor-pointer"
+                        title="नया SafarGo PNR तुरंत जनरेट करें"
+                      >
+                        <span>🎲 रैंडम PNR</span>
+                      </button>
+                    </div>
                     <input
                       type="text"
                       value={ticketPnr}
                       onChange={(e) => setTicketPnr(e.target.value)}
-                      placeholder="e.g. HT-987410"
-                      className="w-full p-2 rounded-xl border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-orange-500 font-mono font-bold"
+                      placeholder="e.g. SFG-849201"
+                      className="w-full p-2 rounded-xl border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-orange-500 font-mono font-bold text-xs"
                     />
                   </div>
 
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">
+                    <label className="block font-semibold text-slate-700 mb-1 text-xs">
                       Actual Confirmed Fare (₹) <span className="text-rose-500">*</span>
                     </label>
                     <input
@@ -535,12 +596,12 @@ SafarGo Support: +${settings.support_whatsapp}
                       min={1}
                       value={actualFare}
                       onChange={(e) => setActualFare(Number(e.target.value))}
-                      className="w-full p-2 rounded-xl border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-orange-500 font-bold"
+                      className="w-full p-2 rounded-xl border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-orange-500 font-bold text-xs"
                     />
                   </div>
 
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">
+                    <label className="block font-semibold text-slate-700 mb-1 text-xs">
                       Actual Bus Operator Name
                     </label>
                     <input
@@ -548,12 +609,12 @@ SafarGo Support: +${settings.support_whatsapp}
                       value={actualOperator}
                       onChange={(e) => setActualOperator(e.target.value)}
                       placeholder="e.g. Hans Travels Pvt Ltd"
-                      className="w-full p-2 rounded-xl border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-orange-500"
+                      className="w-full p-2 rounded-xl border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-orange-500 text-xs"
                     />
                   </div>
 
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">
+                    <label className="block font-semibold text-slate-700 mb-1 text-xs">
                       Actual Boarding Point & Time
                     </label>
                     <input
@@ -561,12 +622,12 @@ SafarGo Support: +${settings.support_whatsapp}
                       value={actualBoarding}
                       onChange={(e) => setActualBoarding(e.target.value)}
                       placeholder="e.g. Alambagh Stand (21:30)"
-                      className="w-full p-2 rounded-xl border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-orange-500"
+                      className="w-full p-2 rounded-xl border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-orange-500 text-xs"
                     />
                   </div>
 
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">
+                    <label className="block font-semibold text-slate-700 mb-1 text-xs">
                       Actual Drop Point & Time
                     </label>
                     <input
@@ -574,9 +635,126 @@ SafarGo Support: +${settings.support_whatsapp}
                       value={actualDrop}
                       onChange={(e) => setActualDrop(e.target.value)}
                       placeholder="e.g. Kashmere Gate (06:00)"
-                      className="w-full p-2 rounded-xl border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-orange-500"
+                      className="w-full p-2 rounded-xl border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-orange-500 text-xs"
                     />
                   </div>
+                </div>
+
+                {/* 💺 RedBus Visual Seat Map & Layout Picker */}
+                <div className="bg-white p-4 rounded-xl border border-blue-200 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Bus className="w-4 h-4 text-orange-600" />
+                      <span className="font-bold text-xs text-slate-900">
+                        RedBus स्टाइल विजुअल सीट सेलेक्टर (Visual Bus Deck)
+                      </span>
+                      <span className="text-[10px] bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full font-bold">
+                        {confirmedSeats ? confirmedSeats.split(',').filter(Boolean).length : 0} सीट(ें) चयनित
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setActiveDeck('lower')}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                          activeDeck === 'lower'
+                            ? 'bg-slate-900 text-white'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        निचला डेक (Lower)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveDeck('upper')}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                          activeDeck === 'upper'
+                            ? 'bg-slate-900 text-white'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        ऊपरी स्लीपर डेक (Upper)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowSeatMap(!showSeatMap)}
+                        className="ml-2 text-xs text-slate-400 hover:text-slate-600 underline font-semibold cursor-pointer"
+                      >
+                        {showSeatMap ? 'छिपाएं' : 'दिखाएं'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {showSeatMap && (
+                    <div className="pt-2 border-t border-slate-100">
+                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 max-w-xl mx-auto">
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 mb-2 font-mono">
+                          <span>🚪 आगे का गेट / ड्राइवर</span>
+                          <span className="font-bold text-slate-700">
+                            {activeDeck === 'lower' ? 'LOWER DECK (SEATER & BERTH)' : 'UPPER DECK (SLEEPER BERTHS)'}
+                          </span>
+                          <span>पीछे 🚌</span>
+                        </div>
+
+                        {activeDeck === 'lower' ? (
+                          <div className="grid grid-cols-6 gap-2">
+                            {['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8', 'L9', 'L10', 'L11', 'L12'].map((seat) => {
+                              const isSelected = confirmedSeats.includes(seat);
+                              return (
+                                <button
+                                  key={seat}
+                                  type="button"
+                                  onClick={() => toggleSeat(seat)}
+                                  className={`p-2.5 rounded-lg text-xs font-bold border transition flex flex-col items-center justify-center cursor-pointer ${
+                                    isSelected
+                                      ? 'bg-orange-600 text-white border-orange-700 shadow-sm'
+                                      : 'bg-white text-slate-800 border-slate-300 hover:border-orange-400 hover:bg-orange-50'
+                                  }`}
+                                >
+                                  <span>{seat}</span>
+                                  <span className="text-[9px] opacity-75 font-normal">Seater</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-4 gap-2">
+                            {['U1', 'U2', 'U3', 'U4', 'U5', 'U6', 'U7', 'U8'].map((seat) => {
+                              const isSelected = confirmedSeats.includes(seat);
+                              return (
+                                <button
+                                  key={seat}
+                                  type="button"
+                                  onClick={() => toggleSeat(seat)}
+                                  className={`p-3 rounded-lg text-xs font-bold border transition flex flex-col items-center justify-center cursor-pointer ${
+                                    isSelected
+                                      ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
+                                      : 'bg-white text-slate-800 border-slate-300 hover:border-emerald-400 hover:bg-emerald-50'
+                                  }`}
+                                >
+                                  <span>{seat}</span>
+                                  <span className="text-[9px] opacity-75 font-normal">Sleeper</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-center gap-4 text-[10px] text-slate-500 mt-2 pt-2 border-t border-slate-200">
+                          <span className="flex items-center gap-1">
+                            <span className="w-3 h-3 rounded bg-white border border-slate-300 inline-block" />
+                            उपलब्ध
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span className="w-3 h-3 rounded bg-orange-600 inline-block" />
+                            चयनित (Selected)
+                          </span>
+                          <span className="text-slate-400 italic">सीट पर क्लिक करके जोड़ें या हटाएं</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
