@@ -214,9 +214,10 @@ const AppContent: React.FC = () => {
   }
 
   if (
-    activeSubdomain === 'login' ||
-    location.pathname === '/login' ||
-    location.pathname === '/register'
+    !currentUser &&
+    (activeSubdomain === 'login' ||
+      location.pathname === '/login' ||
+      location.pathname === '/register')
   ) {
     return <LoginSubdomainGateway />;
   }
