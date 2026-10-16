@@ -15,8 +15,10 @@ import {
   FileText,
   MapPin,
   RefreshCw,
-  Download
+  Download,
+  MessageSquare,
 } from 'lucide-react';
+import { getWhatsAppTicketMessage } from '../../lib/whatsappService';
 
 interface AdminBookingsTableProps {
   onOpenBooking: (bookingId: string) => void;
@@ -237,6 +239,31 @@ export const AdminBookingsTable: React.FC<AdminBookingsTableProps> = ({ onOpenBo
 
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {(b.ticket_pnr || b.status === 'confirmed') && (
+                          <a
+                            href={getWhatsAppTicketMessage({
+                              customer_name: b.customer_name,
+                              customer_mobile: b.customer_mobile,
+                              booking_code: b.booking_code,
+                              ticket_pnr: b.ticket_pnr,
+                              from_city: b.from_city,
+                              to_city: b.to_city,
+                              journey_date: b.journey_date,
+                              confirmed_seats: b.confirmed_seats,
+                              actual_fare: b.actual_fare,
+                              total_estimated_amount: b.total_estimated_amount,
+                              actual_operator: b.actual_operator,
+                              actual_boarding_point: b.actual_boarding_point,
+                              actual_drop_point: b.actual_drop_point,
+                            }).url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition"
+                            title="यात्री को WhatsApp टिकट भेजें"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                          </a>
+                        )}
                         {(b.status === 'booking_request' || b.status === 'awaiting_operator_confirmation') && (
                           <button
                             onClick={async () => {

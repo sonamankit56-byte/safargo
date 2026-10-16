@@ -17,6 +17,7 @@ import {
   Lock,
   Award
 } from 'lucide-react';
+import { sendWhatsAppOtp, verifyWhatsAppOtp } from '../../lib/whatsappService';
 
 interface GoAgentWithdrawalModalProps {
   onClose: () => void;
@@ -40,6 +41,13 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
   const [withdrawalType, setWithdrawalType] = useState<'salary' | 'wallet'>(initialMode);
   const [payoutMethod, setPayoutMethod] = useState<'upi' | 'bank'>('upi');
   const [walletAmount, setWalletAmount] = useState<string>('500');
+
+  // WhatsApp 2FA OTP States
+  const [otpSent, setOtpSent] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [enteredOtp, setEnteredOtp] = useState('');
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [otpUrl, setOtpUrl] = useState('');
 
   // UPI Fields
   const [upiId, setUpiId] = useState('');
@@ -105,9 +113,54 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
 
   const effectiveAmount = withdrawalType === 'salary' ? FIXED_MONTHLY_SALARY : parsedWalletAmount;
 
+  const handleSendWithdrawalOtp = async () => {
+    if (!currentUser?.mobile) {
+      error('मोबाइल अनुपलब्ध', 'आपके खाते में कोई पंजीकृत मोबाइल नंबर नहीं है।');
+      return;
+    }
+    setIsSendingOtp(true);
+    try {
+      const res = await sendWhatsAppOtp({
+        mobile: currentUser.mobile,
+        purpose: 'withdrawal',
+        agentName: currentUser.full_name,
+        amount: effectiveAmount,
+        email: currentUser.email,
+      });
+      if (res.success) {
+        setOtpSent(true);
+        setOtpUrl(res.directWhatsAppUrl);
+        success('WhatsApp OTP भेजा गया! 📲', `6-अंकीय कोड +91 ${currentUser.mobile} के WhatsApp पर भेजा गया है।`);
+      } else {
+        error('प्रेषण विफल', res.message);
+      }
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyWithdrawalOtp = () => {
+    if (!enteredOtp || enteredOtp.trim().length !== 6) {
+      error('अमान्य OTP', 'कृपया 6-अंकीय कोड दर्ज करें।');
+      return;
+    }
+    const res = verifyWhatsAppOtp(currentUser?.mobile || '', enteredOtp.trim(), 'withdrawal');
+    if (res.verified) {
+      setIsOtpVerified(true);
+      success('OTP सत्यापित! ✓', 'सुरक्षा 2FA सत्यापन पूर्ण। अब निकासी सबमिट करें।');
+    } else {
+      error('सत्यापन विफल', res.message);
+    }
+  };
+
   const handleWithdrawalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
+
+    if (!isOtpVerified) {
+      error('WhatsApp OTP आवश्यक', 'कृपया निकासी सबमिट करने से पहले WhatsApp पर भेजा गया OTP सत्यापित करें।');
+      return;
+    }
 
     if (!isWithdrawalAllowed) {
       error(
@@ -585,6 +638,77 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
                 </span>
               </div>
             )}
+
+            {/* 📲 WhatsApp OTP 2FA Security Box */}
+            <div className="p-3.5 rounded-2xl bg-slate-950 border border-emerald-500/40 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-emerald-400 flex items-center gap-1.5">
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>सुरक्षा 2FA: WhatsApp OTP सत्यापन अनिवार्य</span>
+                </span>
+                {isOtpVerified && (
+                  <span className="text-[10px] bg-emerald-500 text-slate-950 px-2 py-0.5 rounded-full font-black flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    वेरीफाइड ✓
+                  </span>
+                )}
+              </div>
+
+              {!isOtpVerified ? (
+                <div className="space-y-2">
+                  <p className="text-[11px] text-slate-400">
+                    निकासी सुरक्षित करने हेतु आपके पंजीकृत नंबर (+91 {currentUser?.mobile}) पर 6-अंकीय OTP भेजा जाएगा।
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={enteredOtp}
+                      onChange={(e) => setEnteredOtp(e.target.value.replace(/\D/g, ''))}
+                      placeholder="6-अंकीय WhatsApp OTP दर्ज करें"
+                      className="flex-1 p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono font-bold text-center tracking-widest outline-none focus:border-emerald-400 text-sm"
+                    />
+                    {!otpSent ? (
+                      <button
+                        type="button"
+                        onClick={handleSendWithdrawalOtp}
+                        disabled={isSendingOtp}
+                        className="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition cursor-pointer shrink-0"
+                      >
+                        {isSendingOtp ? 'भेज रहे हैं...' : '📲 OTP भेजें'}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleVerifyWithdrawalOtp}
+                        className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs transition cursor-pointer shrink-0 active:scale-95"
+                      >
+                        सत्यापित करें
+                      </button>
+                    )}
+                  </div>
+
+                  {otpSent && otpUrl && (
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+                      <span>OTP नहीं मिला?</span>
+                      <a
+                        href={otpUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-emerald-400 hover:underline font-bold flex items-center gap-1"
+                      >
+                        <span>WhatsApp चैट में OTP देखें ➔</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-2.5 rounded-xl bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>WhatsApp OTP सत्यापन सफल। अब आप सुरक्षित निकासी सबमिट कर सकते हैं।</span>
+                </div>
+              )}
+            </div>
 
             {/* Action Buttons */}
             <div className="flex items-center gap-2 pt-2">

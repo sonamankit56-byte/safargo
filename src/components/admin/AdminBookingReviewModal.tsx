@@ -124,8 +124,11 @@ Ticket/PNR: ${ticketPnr || booking.ticket_pnr || 'Issued at boarding'}
 SafarGo Support: +${settings.support_whatsapp}
 "अब हर सफर होगा आसान"`;
 
-  const cleanCustomerPhone = booking.customer_mobile.replace(/\D/g, '');
+  const cleanCustomerPhone = booking.customer_mobile.replace(/\D/g, '').slice(-10);
   const customerWhatsappUrl = `https://wa.me/91${cleanCustomerPhone}?text=${encodeURIComponent(whatsappConfirmationMessage)}`;
+
+  const cleanAgentPhone = booking.agent_mobile ? booking.agent_mobile.replace(/\D/g, '').slice(-10) : '';
+  const agentWhatsappUrl = cleanAgentPhone ? `https://wa.me/91${cleanAgentPhone}?text=${encodeURIComponent(whatsappConfirmationMessage)}` : '';
 
   const handleCopyWhatsapp = () => {
     navigator.clipboard.writeText(whatsappConfirmationMessage);
@@ -293,13 +296,24 @@ SafarGo Support: +${settings.support_whatsapp}
                   className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-md transition text-center"
                 >
                   <MessageSquare className="w-4 h-4 fill-white" />
-                  Open WhatsApp to Customer (+91 {booking.customer_mobile})
+                  <span>यात्री WhatsApp (+91 {booking.customer_mobile})</span>
                 </a>
+                {agentWhatsappUrl && (
+                  <a
+                    href={agentWhatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 py-3 px-4 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-md transition text-center"
+                  >
+                    <MessageSquare className="w-4 h-4 fill-white" />
+                    <span>एजेंट WhatsApp (+91 {booking.agent_mobile})</span>
+                  </a>
+                )}
                 <button
                   onClick={handleCopyWhatsapp}
                   className="py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition"
                 >
-                  {copiedWhatsapp ? 'Copied!' : 'Copy Message'}
+                  {copiedWhatsapp ? 'Copied!' : 'Copy'}
                 </button>
               </div>
             </div>

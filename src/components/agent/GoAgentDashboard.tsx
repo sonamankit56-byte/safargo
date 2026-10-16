@@ -17,6 +17,7 @@ import { UberAgentAssistModal } from './UberAgentAssistModal';
 import { MP_NETWORK_CITIES } from '../../lib/mockData';
 import { Booking, BookingStatus, RefundStatus, BusTrip, SeatCategory } from '../../types';
 import { compressImage } from '../../lib/storageUtils';
+import { getWhatsAppTicketMessage } from '../../lib/whatsappService';
 import {
   LayoutDashboard,
   Bus,
@@ -62,6 +63,7 @@ import {
   Gift,
   Camera,
   Save,
+  MessageSquare,
 } from 'lucide-react';
 
 interface GoAgentDashboardProps {
@@ -1503,8 +1505,33 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                                 className="flex-1 min-w-[110px] py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                               >
                                 <Printer className="w-3.5 h-3.5 text-amber-400" />
-                                <span>ई-टिकट प्रिंट / डाउनलोड</span>
+                                <span>ई-टिकट प्रिंट</span>
                               </button>
+
+                              <a
+                                href={getWhatsAppTicketMessage({
+                                  customer_name: b.customer_name,
+                                  customer_mobile: b.customer_mobile,
+                                  booking_code: b.booking_code,
+                                  ticket_pnr: b.ticket_pnr,
+                                  from_city: b.from_city,
+                                  to_city: b.to_city,
+                                  journey_date: b.journey_date,
+                                  confirmed_seats: b.confirmed_seats,
+                                  actual_fare: getBookingFare(b),
+                                  total_estimated_amount: b.total_estimated_amount,
+                                  actual_operator: b.actual_operator,
+                                  actual_boarding_point: b.actual_boarding_point,
+                                  actual_drop_point: b.actual_drop_point,
+                                }).url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="py-2 px-3 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-500/30 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
+                                title="ग्राहक को WhatsApp पर टिकट भेजें"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+                                <span>WhatsApp टिकट</span>
+                              </a>
                             </>
                           ) : (
                             <div className="flex-1 py-2 px-3 rounded-xl bg-slate-900 border border-amber-500/30 text-amber-300 text-xs font-semibold flex items-center justify-between">
