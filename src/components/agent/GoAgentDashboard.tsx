@@ -3,21 +3,19 @@ import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { Go3DUltraLogo } from '../common/Go3DUltraLogo';
-import { WalletRechargeModal } from './WalletRechargeModal';
-import { GoInstantAddMoneyModal } from './GoInstantAddMoneyModal';
 import { GoAgentWithdrawalModal } from './GoAgentWithdrawalModal';
-import { GoAgentSupportDesk } from './GoAgentSupportDesk';
-import { GoAccountHistoryDesk } from './GoAccountHistoryDesk';
-import { ReferAndEarn } from './ReferAndEarn';
+import { GoInstantAddMoneyModal } from './GoInstantAddMoneyModal';
 import { LiveTicketGreenCard } from '../common/LiveTicketGreenCard';
 import { PrintTicketModal } from '../common/PrintTicketModal';
 import { RedBusSeatMapModal, SelectedSeatItem } from '../bus/RedBusSeatMapModal';
 import { AutoBusBookingCheckoutModal } from '../bus/AutoBusBookingCheckoutModal';
 import { UberAgentAssistModal } from './UberAgentAssistModal';
+import { buildUberRideUrl, getUberBoardingAssistUrl, getUberDropAssistUrl } from '../../lib/uberService';
 import { MP_NETWORK_CITIES } from '../../lib/mockData';
-import { Booking, BookingStatus, RefundStatus, BusTrip, SeatCategory } from '../../types';
+import { Booking, BookingStatus, BusTrip, SeatCategory } from '../../types';
 import { compressImage } from '../../lib/storageUtils';
 import { getWhatsAppTicketMessage } from '../../lib/whatsappService';
+import { buildSubdomainUrl } from '../../lib/subdomain';
 import {
   LayoutDashboard,
   Bus,
@@ -26,7 +24,6 @@ import {
   User,
   ShieldCheck,
   TrendingUp,
-  TrendingDown,
   Clock,
   CheckCircle2,
   AlertCircle,
@@ -38,7 +35,6 @@ import {
   Printer,
   ChevronRight,
   Sparkles,
-  CreditCard,
   Building,
   MapPin,
   Phone,
@@ -47,23 +43,19 @@ import {
   Upload,
   LogOut,
   Zap,
-  ArrowUpRight,
   ArrowRight,
-  ArrowDownLeft,
   X,
   FileText,
-  BadgeAlert,
   Send,
   Calendar,
   Repeat,
-  Coffee,
-  Wifi,
-  Crown,
   Lock,
   Gift,
   Camera,
   Save,
   MessageSquare,
+  HelpCircle,
+  ExternalLink,
 } from 'lucide-react';
 
 interface GoAgentDashboardProps {
@@ -71,15 +63,15 @@ interface GoAgentDashboardProps {
   onOpenBookingModal?: () => void;
 }
 
-// Dedicated 3-Minute Live Countdown Timer for GO Agent Bookings
-const TicketCountdownTimer: React.FC<{ createdAt: string; deadlineAt?: string }> = ({
+// Dedicated 5-Minute Live Countdown Timer for GO Agent Bookings
+const BookingApprovalTimer: React.FC<{ createdAt: string; deadlineAt?: string }> = ({
   createdAt,
   deadlineAt,
 }) => {
   const [secondsLeft, setSecondsLeft] = useState<number>(() => {
     const target = deadlineAt
       ? new Date(deadlineAt).getTime()
-      : new Date(createdAt).getTime() + 3 * 60 * 1000;
+      : new Date(createdAt).getTime() + 5 * 60 * 1000;
     return Math.max(0, Math.floor((target - Date.now()) / 1000));
   });
 
@@ -87,7 +79,7 @@ const TicketCountdownTimer: React.FC<{ createdAt: string; deadlineAt?: string }>
     const updateCountdown = () => {
       const target = deadlineAt
         ? new Date(deadlineAt).getTime()
-        : new Date(createdAt).getTime() + 3 * 60 * 1000;
+        : new Date(createdAt).getTime() + 5 * 60 * 1000;
       const diff = Math.max(0, Math.floor((target - Date.now()) / 1000));
       setSecondsLeft(diff);
     };
@@ -103,25 +95,25 @@ const TicketCountdownTimer: React.FC<{ createdAt: string; deadlineAt?: string }>
 
   if (secondsLeft <= 0) {
     return (
-      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-orange-950/80 border border-orange-500/40 text-orange-300 text-[10px] font-mono font-bold animate-pulse">
-        <Clock className="w-3 h-3 text-orange-400" />
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-orange-950/90 border border-orange-500/50 text-orange-300 text-xs font-mono font-bold animate-pulse">
+        <Clock className="w-3.5 h-3.5 text-orange-400" />
         <span>स्वीकृति प्रक्रियाधीन (High Priority Desk)</span>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-950/90 border border-amber-400/60 text-amber-300 text-[11px] font-mono font-black shadow-inner">
-      <Clock className="w-3.5 h-3.5 text-amber-400 animate-spin" />
-      <span className="font-sans text-[10px] font-bold text-slate-300">3m अप्रूवल:</span>
-      <span className="text-xs font-black text-amber-300 tracking-wider bg-slate-950/90 px-1.5 py-0.5 rounded border border-amber-400/40">
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-950/90 border border-amber-400/80 text-amber-300 font-mono font-black shadow-inner">
+      <Clock className="w-4 h-4 text-amber-400 animate-spin" />
+      <span className="font-sans text-xs font-bold text-slate-300">5-मिनट अप्रूवल टाइमर:</span>
+      <span className="text-sm font-black text-amber-300 tracking-wider bg-slate-950 px-2 py-0.5 rounded border border-amber-400/50">
         {formatted}
       </span>
     </div>
   );
 };
 
-// Safe Booking Data Extraction Helpers (prevents undefined.toLocaleString crashes)
+// Safe Booking Data Extraction Helpers
 const getBookingFare = (b: Booking | null | undefined): number => {
   if (!b) return 0;
   return Number(b.actual_fare ?? b.total_estimated_amount ?? b.estimated_fare ?? (b as any).total_fare ?? 0);
@@ -140,17 +132,104 @@ const getBookingSeats = (b: Booking): string => {
 const getBookingRoute = (b: Booking) => {
   const from = b.from_city || (b as any).source || 'Sironj';
   const to = b.to_city || (b as any).destination || 'Bhopal';
-  const operator = b.actual_operator || b.operator_preference || (b as any).bus_operator || 'SafarGo Regular';
+  const operator = b.actual_operator || b.operator_preference || (b as any).bus_operator || 'SafarGo Express';
   return { from, to, operator };
 };
 
 export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
   onNavigateHome,
-  onOpenBookingModal,
 }) => {
   const { currentUser, role, logout, submitAgentKyc, updateProfile } = useAuth();
+  const {
+    agentBookings,
+    agentWalletBalance,
+    createBooking,
+    busTrips,
+    agentSupportTickets,
+    createSupportTicket,
+    agentPayoutRequests,
+  } = useData();
+  const { success, error, info } = useToast();
 
-  // Strict Security Guard: Prevent unauthenticated users or non-agents from viewing or leaking state
+  // Exactly 4 Bottom Navigation Options:
+  // 1: 'dashboard', 2: 'booking', 3: 'history', 4: 'account'
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'booking' | 'history' | 'account'>('dashboard');
+
+  // Booking Tab: Active Pending Booking Id (for 5-min timer & auto-confirmation polling)
+  const [activePendingBookingId, setActivePendingBookingId] = useState<string | null>(() => {
+    try {
+      const saved = localStorage.getItem(`safargo_pending_booking_${currentUser?.id}`);
+      return saved || null;
+    } catch {
+      return null;
+    }
+  });
+
+  // History Tab: Filter ('all' | 'pending' | 'confirmed' | 'cancelled') & Search
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'pending' | 'confirmed' | 'cancelled'>('all');
+  const [historySearchTerm, setHistorySearchTerm] = useState('');
+
+  // Modals
+  const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
+  const [isInstantAddMoneyModalOpen, setIsInstantAddMoneyModalOpen] = useState(false);
+  const [isUberModalOpen, setIsUberModalOpen] = useState(false);
+  const [uberDefaultDestination, setUberDefaultDestination] = useState('');
+  const [selectedGreenCardBooking, setSelectedGreenCardBooking] = useState<Booking | null>(null);
+  const [selectedPrintBooking, setSelectedPrintBooking] = useState<Booking | null>(null);
+  const [selectedTripForSeatMap, setSelectedTripForSeatMap] = useState<BusTrip | null>(null);
+  const [autoCheckoutData, setAutoCheckoutData] = useState<{
+    trip: BusTrip;
+    selectedSeats: SelectedSeatItem[];
+    totalFare: number;
+    seatCategory: SeatCategory;
+    boardingPoint: string;
+    dropPoint: string;
+  } | null>(null);
+
+  // New Ticket Booking Form State
+  const [bookingSource, setBookingSource] = useState('Sironj');
+  const [bookingDestination, setBookingDestination] = useState('Bhopal');
+  const [bookingDate, setBookingDate] = useState(() => {
+    const d = new Date();
+    return d.toISOString().split('T')[0];
+  });
+  const [passengerName, setPassengerName] = useState('');
+  const [passengerAge, setPassengerAge] = useState('28');
+  const [passengerGender, setPassengerGender] = useState<'M' | 'F' | 'O'>('M');
+  const [passengerMobile, setPassengerMobile] = useState('');
+  const [selectedSeatCount, setSelectedSeatCount] = useState<number>(1);
+  const [selectedBusOperator, setSelectedBusOperator] = useState('SafarGo Superfast Express (AC)');
+  const [baseFarePerSeat, setBaseFarePerSeat] = useState<number>(450);
+  const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
+
+  // Profile Edit State
+  const [profileName, setProfileName] = useState(currentUser?.full_name || '');
+  const [profileShopName, setProfileShopName] = useState(currentUser?.shop_name || '');
+  const [profileAddress, setProfileAddress] = useState(currentUser?.address || '');
+  const [profileCity, setProfileCity] = useState(currentUser?.city || '');
+  const [profileDistrict, setProfileDistrict] = useState(currentUser?.district || '');
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState(currentUser?.avatar_url || '');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // KYC Submission Form State (for not_submitted / rejected agents)
+  const [kycAadhaar, setKycAadhaar] = useState('');
+  const [kycPan, setKycPan] = useState('');
+  const [kycBankHolder, setKycBankHolder] = useState(currentUser?.full_name || '');
+  const [kycBankName, setKycBankName] = useState('');
+  const [kycBankAcc, setKycBankAcc] = useState('');
+  const [kycBankIfsc, setKycBankIfsc] = useState('');
+  const [kycUpiId, setKycUpiId] = useState('');
+  const [kycAadhaarFrontUrl, setKycAadhaarFrontUrl] = useState('');
+  const [kycPanCardUrl, setKycPanCardUrl] = useState('');
+  const [isSubmittingKyc, setIsSubmittingKyc] = useState(false);
+
+  // Support Ticket Form State
+  const [supportSubject, setSupportSubject] = useState('');
+  const [supportDescription, setSupportDescription] = useState('');
+  const [isSubmittingSupportTicket, setIsSubmittingSupportTicket] = useState(false);
+  const [isSupportFormOpen, setIsSupportFormOpen] = useState(false);
+
+  // Safe Guard: Check Role
   if (!currentUser || role !== 'agent') {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6 text-center space-y-4 font-sans">
@@ -158,7 +237,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
         <div className="space-y-2 max-w-md">
           <h2 className="text-xl font-black text-amber-400">लॉगिन आवश्यक है (Agent Login Required)</h2>
           <p className="text-xs text-slate-400">
-            GO Agent 3D Terminal का उपयोग करने हेतु कृपया अपने अधिकृत एजेंट क्रेडेंशियल्स से लॉगिन करें।
+            GO Agent टर्मिनल का उपयोग करने हेतु कृपया अपने अधिकृत एजेंट क्रेडेंशियल्स से लॉगिन करें।
           </p>
         </div>
         <button
@@ -173,35 +252,8 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
       </div>
     );
   }
-  const {
-    agentBookings,
-    agentWalletBalance,
-    agentWalletRecharges,
-    agentWalletTransactions,
-    requestCancellation,
-    busTrips,
-  } = useData();
-  const { success, error, info } = useToast();
 
-  // Exactly 4 Bottom Navigation Options:
-  // 1: 'dashboard', 2: 'bookings', 3: 'wallet', 4: 'account'
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'wallet' | 'account'>('dashboard');
-
-  // Sub-Tab in Bookings & Refund Desk: 'auto_book' (GO Edition Booking) vs 'history' (My Bookings & Refund)
-  const [bookingSubTab, setBookingSubTab] = useState<'auto_book' | 'history'>('auto_book');
-
-  // Sub-Tab in Go Account Desk: 'profile' (Profile & Photo) vs 'tickets' (24h SLA) vs 'history' (Add Money 3m) vs 'refer' (Refer & Earn ₹100) vs 'kyc' (KYC Desk)
-  const [accountSubTab, setAccountSubTab] = useState<'profile' | 'tickets' | 'history' | 'refer' | 'kyc'>('profile');
-
-  // Go Agent Profile State (Editable: Name, Address, Shop Name, City, District, Avatar; Locked: Mobile, Email)
-  const [profileName, setProfileName] = useState(currentUser?.full_name || '');
-  const [profileShopName, setProfileShopName] = useState(currentUser?.shop_name || '');
-  const [profileAddress, setProfileAddress] = useState(currentUser?.address || '');
-  const [profileCity, setProfileCity] = useState(currentUser?.city || '');
-  const [profileDistrict, setProfileDistrict] = useState(currentUser?.district || '');
-  const [profileAvatarUrl, setProfileAvatarUrl] = useState(currentUser?.avatar_url || '');
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
-
+  // Load profile values on currentUser change
   useEffect(() => {
     if (currentUser) {
       setProfileName(currentUser.full_name || '');
@@ -213,13 +265,100 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
     }
   }, [currentUser]);
 
+  // BACK BUTTON TRAP: Prevent exiting website when back is pressed
+  useEffect(() => {
+    window.history.pushState({ app: 'safargo_agent_terminal' }, '', window.location.href);
+
+    const handlePopState = (e: PopStateEvent) => {
+      // Re-push state so user stays inside the app
+      window.history.pushState({ app: 'safargo_agent_terminal' }, '', window.location.href);
+
+      if (activePendingBookingId) {
+        info('बुकिंग प्रक्रियाधीन है', 'आपकी टिकट अप्रूवल प्रक्रियाधीन है, कृपया बैक न जाएं।');
+      } else {
+        // If on another tab, navigate back to dashboard
+        setActiveTab('dashboard');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [activePendingBookingId]);
+
+  // AUTO-POLLING FOR PENDING BOOKING: Detects admin approval in real-time
+  const myGoBookings = useMemo(() => {
+    return (agentBookings || []).filter(
+      (b) => b.agent_id === currentUser?.id || (currentUser?.mobile && b.agent_mobile === currentUser.mobile)
+    );
+  }, [agentBookings, currentUser]);
+
+  const activePendingBooking = useMemo(() => {
+    if (!activePendingBookingId) return null;
+    return myGoBookings.find((b) => b.id === activePendingBookingId) || null;
+  }, [activePendingBookingId, myGoBookings]);
+
+  useEffect(() => {
+    if (activePendingBooking) {
+      if (activePendingBooking.status === 'confirmed') {
+        success('🎉 टिकट कन्फर्म हो गई!', `PNR: ${activePendingBooking.ticket_pnr || 'OK'} जारी हो चुका है। ₹20 कमीशन Go Wallet में जमा!`);
+        try {
+          localStorage.removeItem(`safargo_pending_booking_${currentUser?.id}`);
+        } catch {}
+      }
+    }
+  }, [activePendingBooking?.status]);
+
+  // Metric Stats
+  const confirmedBookings = myGoBookings.filter((b) => b.status === 'confirmed');
+  const confirmedCount = confirmedBookings.length;
+  const totalCommissionEarned = confirmedCount * 20;
+
+  // Support Tickets Stats
+  const pendingSupportCount = (agentSupportTickets || []).filter(
+    (t) => t.status === 'pending' || t.status === 'open'
+  ).length;
+  const resolvedSupportCount = (agentSupportTickets || []).filter(
+    (t) => t.status === 'resolved' || t.status === 'closed'
+  ).length;
+
+  // Pending Payout Request check
+  const activePendingPayout = (agentPayoutRequests || []).find(
+    (p) => p.status === 'pending' || p.status === 'processing'
+  );
+
+  // Filtered History
+  const filteredHistoryBookings = useMemo(() => {
+    return myGoBookings.filter((b) => {
+      // Status Filter
+      if (historyFilter === 'pending') {
+        if (b.status === 'confirmed' || b.status === 'cancelled' || b.status === 'refund_processed') return false;
+      } else if (historyFilter === 'confirmed') {
+        if (b.status !== 'confirmed') return false;
+      } else if (historyFilter === 'cancelled') {
+        if (b.status !== 'cancelled' && b.status !== 'cancellation_requested' && b.status !== 'refund_processed') return false;
+      }
+
+      // Search Filter
+      if (historySearchTerm.trim()) {
+        const q = historySearchTerm.toLowerCase();
+        const route = `${b.from_city || ''} ${b.to_city || ''}`.toLowerCase();
+        const name = (b.customer_name || '').toLowerCase();
+        const mobile = (b.customer_mobile || '').toLowerCase();
+        const pnr = (b.ticket_pnr || b.booking_code || '').toLowerCase();
+        return route.includes(q) || name.includes(q) || mobile.includes(q) || pnr.includes(q);
+      }
+      return true;
+    });
+  }, [myGoBookings, historyFilter, historySearchTerm]);
+
+  // Handle Profile Photo Upload
   const handleProfilePicUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
       const compressed = await compressImage(file, 400, 400, 0.8);
       setProfileAvatarUrl(compressed);
-      success('फोटो तैयार', 'प्रोफाइल फोटो चुन ली गई है। कृपया "प्रोफाइल सेव करें" बटन दबाएं।');
+      success('फोटो तैयार', 'प्रोफाइल फोटो चुन ली गई है। "प्रोफाइल सेव करें" पर क्लिक करें।');
     } catch {
       const reader = new FileReader();
       reader.onload = () => {
@@ -229,9 +368,9 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
     }
   };
 
+  // Handle Save Profile
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser) return;
     if (!profileName.trim()) {
       error('नाम अनिवार्य', 'कृपया अपना पूरा नाम दर्ज करें।');
       return;
@@ -247,267 +386,24 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
         avatar_url: profileAvatarUrl || undefined,
       });
       if (ok) {
-        success('प्रोफाइल सेव हो गई!', 'आपकी GO Agent प्रोफाइल विवरण सफलतापूर्वक अपडेट कर दी गई है।');
-      } else {
-        error('त्रुटि', 'प्रोफाइल सेव करने में समस्या आई।');
+        success('प्रोफाइल सेव हो गई!', 'आपकी GO Agent प्रोफाइल सफलतापूर्वक अपडेट हो गई।');
       }
-    } catch (err: any) {
-      error('अपडेट विफल', err?.message || 'प्रोफाइल सेव नहीं हो सकी।');
     } finally {
       setIsSavingProfile(false);
-    }
-  };
-
-  // Auto Bus Booking Engine State (GO Bus Special Bus System)
-  const [searchSource, setSearchSource] = useState('Bhopal');
-  const [searchDestination, setSearchDestination] = useState('Indore');
-  const [searchDate, setSearchDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [filterBusType, setFilterBusType] = useState<'all' | 'ac' | 'sleeper' | 'seater'>('all');
-
-  // Seat selection and Checkout Modals
-  const [selectedTripForSeatMap, setSelectedTripForSeatMap] = useState<BusTrip | null>(null);
-  const [autoCheckoutData, setAutoCheckoutData] = useState<{
-    trip: BusTrip;
-    selectedSeats: SelectedSeatItem[];
-    totalFare: number;
-    seatCategory: SeatCategory;
-    boardingPoint: string;
-    dropPoint: string;
-  } | null>(null);
-
-  // Modals
-  const [isRechargeModalOpen, setIsRechargeModalOpen] = useState(false);
-  const [isInstantAddMoneyModalOpen, setIsInstantAddMoneyModalOpen] = useState(false);
-  const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
-  const [isUberModalOpen, setIsUberModalOpen] = useState(false);
-  const [selectedGreenCardBooking, setSelectedGreenCardBooking] = useState<Booking | null>(null);
-  const [selectedPrintBooking, setSelectedPrintBooking] = useState<Booking | null>(null);
-  const [refundBooking, setRefundBooking] = useState<Booking | null>(null);
-  const [refundReason, setRefundReason] = useState('');
-  const [isSubmittingRefund, setIsSubmittingRefund] = useState(false);
-
-  // Bookings filter and search
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'confirmed' | 'pending' | 'refunded'>('all');
-
-  // KYC Form State in Go Account
-  const [aadhaarNumber, setAadhaarNumber] = useState(currentUser?.aadhaar_number || '');
-  const [panNumber, setPanNumber] = useState(currentUser?.pan_number || '');
-  const [bankHolder, setBankHolder] = useState(currentUser?.bank_account_holder || currentUser?.full_name || '');
-  const [bankAccount, setBankAccount] = useState(currentUser?.bank_account_number || '');
-  const [confirmBankAccount, setConfirmBankAccount] = useState(currentUser?.bank_account_number || '');
-  const [bankIfsc, setBankIfsc] = useState(currentUser?.bank_ifsc || '');
-  const [bankName, setBankName] = useState(currentUser?.bank_name || '');
-  const [aadhaarFrontUrl, setAadhaarFrontUrl] = useState(currentUser?.aadhaar_front_url || '');
-  const [panCardUrl, setPanCardUrl] = useState(currentUser?.pan_card_url || '');
-  const [isSubmittingKyc, setIsSubmittingKyc] = useState(false);
-
-  // Filter Bookings to Strictly Show ONLY this GO Agent's real bookings (No old dummy data from other users!)
-  const myGoBookings = useMemo(() => {
-    if (!currentUser) return [];
-    return agentBookings.filter(
-      (b) =>
-        b.agent_id === currentUser.id ||
-        (currentUser.mobile && b.agent_mobile === currentUser.mobile)
-    );
-  }, [agentBookings, currentUser]);
-
-  const isKycVerified = currentUser?.kyc_status === 'verified' || currentUser?.agent_status === 'approved';
-
-  // GO USER Business Rules: Flat ₹20 Commission OR ₹10,000 Fixed Salary at 280 tickets
-  const FLAT_GO_COMMISSION = 20;
-  const TARGET_SALARY_TICKETS = 280;
-  const FIXED_MONTHLY_SALARY = 10000;
-
-  // Track salary claims count from localStorage
-  const salaryClaimsCount = (() => {
-    try {
-      const saved = localStorage.getItem(`safargo_salary_claims_${currentUser?.id}`);
-      return saved ? JSON.parse(saved) : 0;
-    } catch {
-      return 0;
-    }
-  })();
-
-  const confirmedBookings = myGoBookings.filter((b) => b.status === 'confirmed');
-  const totalConfirmedCount = confirmedBookings.length;
-  const confirmedCount = confirmedBookings.length;
-  // Active tickets in current salary cycle after deducting 280 for each salary claimed
-  const currentCycleTickets = Math.max(0, totalConfirmedCount - salaryClaimsCount * TARGET_SALARY_TICKETS);
-
-  const remainingSalaryTickets = Math.max(0, TARGET_SALARY_TICKETS - currentCycleTickets);
-  const isSalaryEligible = currentCycleTickets >= TARGET_SALARY_TICKETS;
-  const earnedSalary = isSalaryEligible ? FIXED_MONTHLY_SALARY : 0;
-  // User Rule: Flat ₹10,000 fixed salary upon achieving 280 target with NO extra commission on top!
-  // If target is not met, earnings = only per-ticket commission (₹20 per confirmed ticket)
-  const totalCommissionEarned = currentCycleTickets * FLAT_GO_COMMISSION;
-  const totalProjectedEarnings = isSalaryEligible ? FIXED_MONTHLY_SALARY : totalCommissionEarned;
-  const salaryProgressPercent = Math.min(100, Math.round((currentCycleTickets / TARGET_SALARY_TICKETS) * 100));
-
-  const [withdrawalModalMode, setWithdrawalModalMode] = useState<'salary' | 'wallet'>('salary');
-
-  // Audio chime synthesizer for real-time ticket confirmation notification
-  const playApprovalChime = useCallback(() => {
-    try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
-      const now = ctx.currentTime;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(523.25, now); // C5
-      osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.18); // G5
-      gain.gain.setValueAtTime(0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.5);
-    } catch {}
-  }, []);
-
-  // Real-Time Approval Detection: Watch for newly confirmed tickets by admin and generate Live Green Card instantly!
-  const knownConfirmedRef = useRef<Set<string>>(
-    new Set(myGoBookings.filter((b) => b.status === 'confirmed').map((b) => b.id))
-  );
-
-  useEffect(() => {
-    const known = knownConfirmedRef.current;
-    const newlyConfirmed = myGoBookings.find(
-      (b) => b.status === 'confirmed' && !known.has(b.id)
-    );
-
-    if (newlyConfirmed) {
-      known.add(newlyConfirmed.id);
-      playApprovalChime();
-      success(
-        '🎉 टिकट एडमिन द्वारा स्वीकृत व कन्फर्म!',
-        `PNR: ${newlyConfirmed.ticket_pnr || 'SFG-CONFIRMED'} • लाइव ग्रीन कार्ड स्वतः स्क्रीन पर सक्रिय हो गया है (+₹20 कमीशन Go Wallet में क्रेडिट)!`
-      );
-      // Instantly generate and display the Live Ticket Green Card in real time!
-      setSelectedGreenCardBooking(newlyConfirmed);
-    }
-  }, [myGoBookings, playApprovalChime, success]);
-
-  // Swap Source and Destination
-  const handleSwapCities = () => {
-    const temp = searchSource;
-    setSearchSource(searchDestination);
-    setSearchDestination(temp);
-  };
-
-  // Matching Trips for GO Bus Special Bus System
-  const matchingTrips = useMemo(() => {
-    const filtered = busTrips.filter((trip) => {
-      const matchSrc = trip.source.toLowerCase().includes(searchSource.toLowerCase().trim());
-      const matchDest = trip.destination.toLowerCase().includes(searchDestination.toLowerCase().trim());
-
-      if (!matchSrc || !matchDest) return false;
-
-      if (filterBusType === 'ac') return trip.bus_type?.toLowerCase().includes('ac') || trip.is_ac;
-      if (filterBusType === 'sleeper') return trip.has_sleeper || trip.sleeper_fare;
-      if (filterBusType === 'seater') return trip.has_seater || trip.seater_fare;
-
-      return true;
-    });
-
-    // If exact route matched, return it; otherwise show popular MP network buses
-    return filtered.length > 0 ? filtered : busTrips;
-  }, [busTrips, searchSource, searchDestination, filterBusType]);
-
-  // Filtered Bookings for History
-  const filteredBookings = useMemo(() => {
-    return myGoBookings.filter((b) => {
-      const q = searchQuery.toLowerCase().trim();
-      const matchSearch =
-        !q ||
-        b.booking_code.toLowerCase().includes(q) ||
-        (b.ticket_pnr && b.ticket_pnr.toLowerCase().includes(q)) ||
-        b.customer_name.toLowerCase().includes(q) ||
-        b.customer_mobile.includes(q) ||
-        b.bus_operator.toLowerCase().includes(q);
-
-      if (!matchSearch) return false;
-
-      if (statusFilter === 'confirmed') return b.status === 'confirmed';
-      if (statusFilter === 'pending')
-        return b.status === 'booking_request' || b.status === 'awaiting_operator_confirmation';
-      if (statusFilter === 'refunded')
-        return (
-          b.status === 'cancelled' ||
-          b.status === 'cancellation_requested' ||
-          b.refund_status === 'approved' ||
-          b.refund_status === 'completed'
-        );
-
-      return true;
-    });
-  }, [myGoBookings, searchQuery, statusFilter]);
-
-  // Handle Refund Submit
-  const handleRefundSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!refundBooking) return;
-    if (!refundReason.trim()) {
-      error('कारण अनिवार्य', 'कृपया रिफंड या कैंसिलेशन का कारण बताएं।');
-      return;
-    }
-
-    setIsSubmittingRefund(true);
-    try {
-      const ok = await requestCancellation(refundBooking.id, refundReason.trim());
-      if (ok) {
-        success('रिफंड अनुरोध दर्ज!', 'एडमिन अनुमोदन के बाद राशि आपके Go Wallet में क्रेडिट हो जाएगी।');
-        setRefundBooking(null);
-        setRefundReason('');
-      }
-    } finally {
-      setIsSubmittingRefund(false);
-    }
-  };
-
-  // Handle File Upload for KYC
-  const handleKycFileUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-    type: 'aadhaar' | 'pan'
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const compressed = await compressImage(file, 800, 800, 0.7);
-      if (type === 'aadhaar') setAadhaarFrontUrl(compressed);
-      else setPanCardUrl(compressed);
-      success('दस्तावेज़ अपलोड हुआ', 'दस्तावेज़ सफलतापूर्वक जोड़ दिया गया है।');
-    } catch {
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (type === 'aadhaar') setAadhaarFrontUrl(reader.result as string);
-        else setPanCardUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
     }
   };
 
   // Handle KYC Submit
   const handleKycSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanAadhaar = aadhaarNumber.replace(/\D/g, '');
-    if (cleanAadhaar.length !== 12) {
-      error('अमान्य आधार', 'कृपया सही 12-अंकीय आधार कार्ड नंबर दर्ज करें।');
+    const cleanAadhaar = kycAadhaar.replace(/\s+/g, '');
+    if (cleanAadhaar.length !== 12 || !/^\d{12}$/.test(cleanAadhaar)) {
+      error('अमान्य आधार नंबर', 'कृपया 12-अंकीय मान्य आधार कार्ड नंबर दर्ज करें।');
       return;
     }
-    const cleanPan = panNumber.trim().toUpperCase();
-    if (cleanPan.length !== 10) {
-      error('अमान्य पैन', 'कृपया सही 10-अंकीय पैन कार्ड नंबर दर्ज करें।');
-      return;
-    }
-    if (bankAccount !== confirmBankAccount) {
-      error('खाता संख्या बेमेल', 'बैंक खाता संख्या और पुनः दर्ज संख्या मेल नहीं खाती।');
-      return;
-    }
-    if (!bankIfsc.trim() || !bankName.trim()) {
-      error('विवरण अधूरा', 'कृपया IFSC कोड और बैंक का नाम भरें।');
+    const cleanPan = kycPan.trim().toUpperCase();
+    if (cleanPan.length !== 10 || !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(cleanPan)) {
+      error('अमान्य पैन कार्ड', 'कृपया 10-अंकीय वैध पैन नंबर दर्ज करें (उदा. ABCDE1234F)।');
       return;
     }
 
@@ -516,682 +412,675 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
       const ok = await submitAgentKyc({
         aadhaar_number: cleanAadhaar,
         pan_number: cleanPan,
-        bank_account_holder: bankHolder.trim(),
-        bank_account_number: bankAccount.trim(),
-        bank_ifsc: bankIfsc.trim().toUpperCase(),
-        bank_name: bankName.trim(),
-        aadhaar_front_url: aadhaarFrontUrl || undefined,
-        pan_card_url: panCardUrl || undefined,
+        bank_account_holder: kycBankHolder.trim() || currentUser.full_name,
+        bank_name: kycBankName.trim() || 'State Bank of India',
+        bank_account_number: kycBankAcc.trim() || '1234567890',
+        bank_ifsc: kycBankIfsc.trim().toUpperCase() || 'SBIN0001234',
+        bank_upi_id: kycUpiId.trim() || undefined,
+        aadhaar_front_url: kycAadhaarFrontUrl || undefined,
+        pan_card_url: kycPanCardUrl || undefined,
       });
-
       if (ok) {
-        success('Go KYC अनुरोध सबमिट!', 'आपका KYC सत्यापन अनुरोध एडमिन डेस्क को भेज दिया गया है।');
+        success('KYC सबमिट हुआ!', 'आपके दस्तावेज जांच हेतु भेज दिए गए हैं। 24 घंटे के भीतर सत्यापन पूर्ण होगा।');
       }
     } finally {
       setIsSubmittingKyc(false);
     }
   };
 
+  // Handle Create Booking Submit
+  const handleBookingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passengerName.trim()) {
+      error('यात्री का नाम', 'कृपया यात्री का पूरा नाम दर्ज करें।');
+      return;
+    }
+    const cleanMobile = passengerMobile.replace(/\D/g, '');
+    if (cleanMobile.length !== 10) {
+      error('मोबाइल नंबर', 'कृपया यात्री का 10-अंकीय मोबाइल नंबर दर्ज करें।');
+      return;
+    }
+
+    setIsSubmittingBooking(true);
+    try {
+      const calculatedTotalFare = baseFarePerSeat * selectedSeatCount;
+      const created = await createBooking({
+        agent_id: currentUser.id,
+        agent_name: currentUser.full_name,
+        agent_mobile: currentUser.mobile,
+        customer_name: passengerName.trim(),
+        customer_mobile: cleanMobile,
+        customer_email: currentUser.email || 'ticket@safargo.in',
+        passenger_name: passengerName.trim(),
+        passenger_mobile: cleanMobile,
+        passenger_age: parseInt(passengerAge) || 28,
+        passenger_gender: passengerGender,
+        from_city: bookingSource,
+        to_city: bookingDestination,
+        journey_date: bookingDate,
+        total_fare: calculatedTotalFare,
+        actual_fare: calculatedTotalFare,
+        seat_count: selectedSeatCount,
+        confirmed_seats: `${selectedSeatCount} Seat(s)`,
+        operator_preference: selectedBusOperator,
+        actual_operator: selectedBusOperator,
+        payment_status: 'paid',
+        payment_method: 'agent_wallet',
+        source_channel: 'go_agent_direct',
+        agent_commission: 20,
+        agent_notes: `⚡ GO Agent Fast Track Booking: ${bookingSource} to ${bookingDestination}`,
+      });
+
+      if (created) {
+        setActivePendingBookingId(created.id);
+        try {
+          localStorage.setItem(`safargo_pending_booking_${currentUser.id}`, created.id);
+        } catch {}
+        success('बुकिंग सबमिट हुई! 🎫', '5-मिनट एडमिन अप्रूवल विंडो सक्रिय हो गई है। कृपया प्रतीक्षा करें।');
+      }
+    } finally {
+      setIsSubmittingBooking(false);
+    }
+  };
+
+  // Handle Create Support Ticket
+  const handleSupportTicketSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supportSubject.trim() || !supportDescription.trim()) {
+      error('विवरण आवश्यक', 'कृपया विषय एवं समस्या का विवरण दर्ज करें।');
+      return;
+    }
+    setIsSubmittingSupportTicket(true);
+    try {
+      const ok = await createSupportTicket({
+        category: 'ticket_booking_issue',
+        priority: 'high',
+        subject: supportSubject.trim(),
+        description: supportDescription.trim(),
+      });
+      if (ok) {
+        setSupportSubject('');
+        setSupportDescription('');
+        setIsSupportFormOpen(false);
+        success('सपोर्ट टिकट दर्ज!', '24 घंटे के अंदर आपकी समस्या का समाधान सुनिश्चित किया जाएगा।');
+      }
+    } finally {
+      setIsSubmittingSupportTicket(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950 pb-24">
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-24 select-none">
       
       {/* ============================================================== */}
-      {/* TOP HEADER: NO THREE DOTS! ULTRA PROFESSIONAL & 3D CLEAN        */}
+      {/* TOP HEADER: CLEAN ULTRA TERMINAL                               */}
       {/* ============================================================== */}
-      <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-xl border-b border-amber-400/40 px-3 sm:px-6 py-2.5 sm:py-3.5 shadow-2xl">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
+      <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-xl border-b border-amber-400/40 px-3 sm:px-6 py-2.5 sm:py-3 shadow-2xl">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
           
-          {/* Left: 3D GO Logo */}
+          {/* Left: 3D GO Terminal Logo & Agent Badges */}
           <div className="flex items-center gap-2 sm:gap-3">
             <Go3DUltraLogo size="sm" showBadge={false} />
-            <div className="hidden md:block border-l border-slate-700 pl-3">
+            <div className="border-l border-slate-700 pl-2.5 sm:pl-3">
               <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-amber-400" />
-                GO EDITION TERMINAL
+                <Award className="w-3 h-3 text-amber-400" />
+                <span>GO AGENT TERMINAL</span>
               </span>
-              <span className="text-xs font-black text-slate-200 block truncate max-w-[160px]">
-                {currentUser?.shop_name || 'GO Special Agent Desk'}
-              </span>
+              <p className="text-xs sm:text-sm font-black text-white truncate max-w-[130px] sm:max-w-xs">
+                {currentUser?.shop_name || currentUser?.full_name || 'एजेंट टर्मिनल'}
+              </p>
             </div>
           </div>
 
-          {/* Center: Live Commission Badge (Flat ₹20) */}
-          <div className="flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-emerald-500/20 border border-amber-400/50 rounded-2xl px-2.5 sm:px-3 py-1 sm:py-1.5 shadow-inner">
-            <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-amber-400 text-slate-950 font-black text-[10px] sm:text-[11px] flex items-center justify-center shadow">
-              ₹20
-            </div>
-            <div className="leading-tight text-left">
-              <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-amber-300 block">
-                कमीशन
-              </span>
-              <span className="text-[11px] sm:text-xs font-extrabold text-white whitespace-nowrap">
-                फ्लैट ₹20
-              </span>
-            </div>
-          </div>
-
-          {/* Right: Go Wallet Balance Quick Pill & Quick Logout */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Right: Go Wallet Balance Quick Pill & Logout */}
+          <div className="flex items-center gap-2">
+            
+            {/* Quick Wallet Pill */}
             <button
               type="button"
-              onClick={() => setIsInstantAddMoneyModalOpen(true)}
-              className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs px-2.5 sm:px-3.5 py-1.5 rounded-xl shadow-md transition flex items-center gap-1 sm:gap-1.5 cursor-pointer active:scale-95"
-              title="⚡ GO Instant Add Money — तुरंत बैलेंस लोड करें"
+              onClick={() => setIsWithdrawalModalOpen(true)}
+              className="py-1.5 px-3 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-slate-900 to-amber-500/20 border border-emerald-400/60 hover:border-emerald-300 transition flex items-center gap-2 cursor-pointer shadow-md group"
+              title="Go Wallet बैलेंस व निकासी"
             >
-              <Zap className="w-3.5 h-3.5 shrink-0 fill-slate-950" />
-              <span className="font-mono">₹{(agentWalletBalance || 0).toLocaleString('en-IN')}</span>
-              <span className="text-[9px] bg-slate-950/30 text-white px-1 py-0.2 rounded font-bold">+</span>
+              <Wallet className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+              <div className="text-left">
+                <span className="text-[9px] font-bold text-slate-400 block leading-none">Go Wallet</span>
+                <span className="text-xs font-black text-emerald-400 font-mono">
+                  ₹{(agentWalletBalance || 0).toLocaleString('en-IN')}
+                </span>
+              </div>
             </button>
 
+            {/* Logout */}
             <button
               type="button"
               onClick={() => {
                 logout();
-                if (onNavigateHome) {
-                  onNavigateHome();
-                } else {
-                  window.location.href = '/';
-                }
+                if (onNavigateHome) onNavigateHome();
+                else window.location.href = '/';
               }}
-              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-rose-900/80 text-slate-300 hover:text-rose-100 border border-slate-700/80 text-xs font-bold transition flex items-center gap-1 cursor-pointer active:scale-95 shadow-sm"
-              title="सुरक्षित लॉगआउट करें (Sign Out)"
+              className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/80 border border-slate-700 hover:border-rose-500/60 text-slate-300 hover:text-rose-300 transition text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+              title="लॉगआउट करें"
             >
-              <LogOut className="w-3.5 h-3.5 text-rose-400" />
+              <LogOut className="w-4 h-4 text-rose-400" />
               <span className="hidden sm:inline">लॉगआउट</span>
             </button>
+
           </div>
+
         </div>
       </header>
 
       {/* ============================================================== */}
-      {/* MAIN CONTENT AREA BY TAB                                       */}
+      {/* MAIN CONTAINER: 4 EXCLUSIVE CORE TABS                          */}
       {/* ============================================================== */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6 pb-28 sm:pb-32">
-        
+      <main className="max-w-5xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6">
+
         {/* ============================================================ */}
-        {/* 1. TAB: ⚡ 3D DASHBOARD                                      */}
+        {/* TAB 1: ⚡ DASHBOARD (डैशबोर्ड)                                 */}
         {/* ============================================================ */}
         {activeTab === 'dashboard' && (
           <div className="space-y-6 animate-fadeIn">
             
-            {/* 3D Holographic Hero Card */}
-            <div className="relative rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950/80 to-slate-900 border-2 border-amber-400/60 p-6 sm:p-8 shadow-[0_20px_50px_rgba(245,158,11,0.15)] overflow-hidden">
-              <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-
-              <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            {/* 1. TOP SOLITARY GO WALLET CARD */}
+            <div className="relative rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border-2 border-amber-400 p-6 sm:p-8 shadow-[0_20px_50px_rgba(245,158,11,0.2)] overflow-hidden">
+              <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+              
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                
+                {/* Balance & Earnings Information */}
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 shadow-sm flex items-center gap-1">
-                      <Award className="w-3 h-3 text-slate-950" />
-                      GO Certified Special Agent
+                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 flex items-center gap-1 shadow-sm">
+                      <Wallet className="w-3 h-3" />
+                      GO WALLET
                     </span>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3" />
-                      100% Real Gmail Verified
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-500/40 flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" />
+                      प्रत्येक कन्फर्म टिकट पर फ्लैट ₹20 नकद कमाई
                     </span>
                   </div>
 
-                  <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                    नमस्ते, <span className="bg-gradient-to-r from-amber-300 via-orange-400 to-yellow-200 bg-clip-text text-transparent">{currentUser?.full_name || 'GO एजेंट'}</span>!
-                  </h1>
+                  <div>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                      कुल उपलब्ध Go Wallet बैलेंस
+                    </span>
+                    <div className="text-3xl sm:text-4xl font-black text-emerald-400 font-mono tracking-tight flex items-baseline gap-2">
+                      <span>₹{(agentWalletBalance || 0).toLocaleString('en-IN')}</span>
+                      <span className="text-xs font-sans text-slate-400 font-normal">
+                        ({confirmedCount} टिकट × ₹20 = ₹{totalCommissionEarned.toLocaleString('en-IN')} अर्जित)
+                      </span>
+                    </div>
+                  </div>
 
-                  <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
-                    SafarGo 3D स्पेशल एजेंट टर्मिनल में आपका स्वागत है। आपके खाते में प्रत्येक कन्फर्म बुकिंग पर <strong>फ्लैट ₹20 नकद कमीशन</strong> सीधे Go Wallet में जमा होता है।
+                  <p className="text-xs text-slate-300 max-w-lg leading-relaxed">
+                    आपकी समस्त टिकट बुकिंग की कमाई सीधे Go Wallet में जमा होती है। <strong>हर रविवार साप्ताहिक सेटलमेंट</strong> के तहत आप इसे बिना किसी कटौती के सीधे अपने बैंक या UPI में निकाल सकते हैं।
                   </p>
                 </div>
 
                 {/* Instant Actions */}
-                <div className="flex flex-wrap items-center gap-3 shrink-0">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
                   <button
                     type="button"
-                    onClick={() => {
-                      setActiveTab('bookings');
-                      setBookingSubTab('auto_book');
-                    }}
-                    className="py-3 px-5 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-xs shadow-xl transition active:scale-95 flex items-center gap-2 cursor-pointer"
+                    onClick={() => setIsWithdrawalModalOpen(true)}
+                    className="py-3 px-5 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-xs shadow-xl transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <Bus className="w-4 h-4" />
-                    <span>⚡ GO Edition Bus Booking (Auto)</span>
+                    <Wallet className="w-4 h-4" />
+                    <span>
+                      {activePendingPayout
+                        ? '⏳ निकासी प्रक्रियाधीन देखें'
+                        : 'साप्ताहिक निकासी अनुरोध (Every Sunday)'}
+                    </span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setIsInstantAddMoneyModalOpen(true)}
-                    className="py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-slate-950 font-black text-xs shadow-md transition active:scale-95 flex items-center gap-2 cursor-pointer"
+                    className="py-3 px-4 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-emerald-500/50 text-emerald-400 font-black text-xs shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <Zap className="w-4 h-4 fill-slate-950" />
-                    <span>⚡ GO Instant Add Money</span>
+                    <Zap className="w-4 h-4 fill-emerald-400" />
+                    <span>वॉलेट में पैसे जोड़ें</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setIsUberModalOpen(true)}
-                    className="py-3 px-4 rounded-2xl bg-black hover:bg-slate-900 border border-slate-700 text-white font-black text-xs shadow-md transition active:scale-95 flex items-center gap-2 cursor-pointer"
-                    title="ग्रामीण यात्रियों के लिए बस स्टैंड व स्टेशन तक ऑटो/कैब असिस्ट"
+                    onClick={() => {
+                      setUberDefaultDestination('Bhopal ISBT Stand');
+                      setIsUberModalOpen(true);
+                    }}
+                    className="py-3 px-4 rounded-2xl bg-black hover:bg-slate-900 border border-slate-700 text-white font-black text-xs shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                    title="यात्रियों के लिए बस स्टैंड व स्टेशन तक Uber ऑटो/कैब सेवा"
                   >
                     <Car className="w-4 h-4 text-amber-400" />
-                    <span>🛺 Uber ऑटो / कैब सेवा</span>
+                    <span>🛺 Uber ऑटो / कैब</span>
                   </button>
                 </div>
-              </div>
-            </div>
 
-            {/* 🚀 CYBER 3D "GO" ANIMATED NEW BUS BOOKING QUICK ACTION BANNER */}
-            <div
-              onClick={() => {
-                setActiveTab('bookings');
-                setBookingSubTab('auto_book');
-              }}
-              className="relative rounded-3xl bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-amber-500/20 border-2 border-amber-400 p-5 sm:p-6 shadow-[0_0_35px_rgba(245,158,11,0.3)] flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:border-amber-300 transition group transform hover:-translate-y-0.5 active:scale-98 overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 w-64 h-64 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
-              
-              <div className="flex items-center gap-4 text-left">
-                <div className="relative shrink-0 transform group-hover:scale-110 transition-transform duration-300 animate-pulse">
-                  <Go3DUltraLogo size="md" showBadge={false} interactive={true} />
-                  <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-500 text-slate-950 shadow-md">
-                    +₹20
-                  </span>
-                </div>
-                
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950">
-                      ⚡ FAST TRACK TICKET DESK
-                    </span>
-                    <span className="text-emerald-400 text-xs font-bold flex items-center gap-1">
-                      <Zap className="w-3.5 h-3.5 fill-emerald-400" />
-                      3-Min Approval • 0-Sec Go Wallet Credit
+              </div>
+
+              {/* Pending Payout Persistent Banner */}
+              {activePendingPayout && (
+                <div className="mt-5 p-3.5 rounded-2xl bg-amber-950/80 border border-amber-400/80 text-amber-200 text-xs flex items-center justify-between gap-3 animate-pulse">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>
+                      <strong>निकासी प्रक्रियाधीन:</strong> ₹{activePendingPayout.amount} का सेटलमेंट अनुरोध एडमिन के पास समीक्षाधीन है। रविवार को भुगतान होगा।
                     </span>
                   </div>
-                  <h3 className="text-lg sm:text-xl font-black text-white group-hover:text-amber-300 transition">
-                    नई बस बुकिंग करें (New Bus Booking)
-                  </h3>
-                  <p className="text-xs text-slate-300">
-                    इंदौर, भोपाल, विदिशा, सिरोंज, गुना, अशोक नगर आदि के लिए लाइव सीट मैप देखें व तुरंत टिकट बुक करें।
-                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsWithdrawalModalOpen(true)}
+                    className="px-3 py-1 bg-amber-400 text-slate-950 font-bold rounded-lg text-[10px] shrink-0"
+                  >
+                    विवरण देखें
+                  </button>
                 </div>
-              </div>
-
-              <div className="shrink-0 flex items-center gap-2">
-                <span className="py-2.5 px-5 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400 text-slate-950 font-black text-xs shadow-lg group-hover:shadow-amber-400/50 flex items-center gap-2 transition">
-                  <Bus className="w-4 h-4" />
-                  <span>अभी सीट बुक करें ➔</span>
-                </span>
-              </div>
+              )}
             </div>
 
-            {/* SPECIAL HUGE GREEN TICK BADGE FOR KYC VERIFIED GO AGENT */}
-            {isKycVerified ? (
-              <div className="relative rounded-3xl bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 border-2 border-emerald-400 p-4 sm:p-6 shadow-[0_0_35px_rgba(16,185,129,0.35)] flex flex-col sm:flex-row items-center justify-between gap-4 animate-fadeIn">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-emerald-400 via-teal-300 to-emerald-500 text-slate-950 flex items-center justify-center font-black shadow-[0_0_25px_#10b981] shrink-0 animate-pulse">
-                    <CheckCircle2 className="w-10 h-10 sm:w-12 sm:h-12 stroke-[3] text-slate-950" />
-                  </div>
-                  <div className="space-y-1 text-left">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-base sm:text-lg font-black text-white tracking-wide">
-                        100% KYC सत्यापित अधिकृत GO एजेंट
-                      </span>
-                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-400 text-slate-950 font-black text-[10px] uppercase shadow-xs">
-                        OFFICIAL VERIFIED BADGE
-                      </span>
-                    </div>
-                    <p className="text-xs text-emerald-300 font-medium">
-                      सत्यापन नंबर: <strong className="font-mono text-white">{currentUser?.aadhaar_number ? `Aadhaar XXXX-XXXX-${currentUser.aadhaar_number.slice(-4)}` : `GO-VERIFIED-${currentUser?.id?.slice(-6).toUpperCase()}`}</strong> • पैन: {currentUser?.pan_number ? `${currentUser.pan_number.slice(0, 5)}XXXX${currentUser.pan_number.slice(-1)}` : 'सत्यापित'} • मध्य प्रदेश शासन व अधिकृत बस नेटवर्क
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="px-3.5 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-black text-xs flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
-                    🟢 लाइव सक्रिय स्टेटस
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-2xl bg-amber-500/10 border border-amber-500/40 p-3.5 flex items-center justify-between gap-3 text-xs text-amber-300">
-                <div className="flex items-center gap-2.5">
-                  <Clock className="w-5 h-5 text-amber-400 animate-spin shrink-0" />
-                  <span>
-                    <strong>KYC सत्यापन आवश्यक:</strong> स्पेशल बड़ा ग्रीन टिक बैज व पूर्ण पेआउट्स अनलॉक करने हेतु KYC फॉर्म भरें।
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('account');
-                    setAccountSubTab('kyc');
-                  }}
-                  className="px-3.5 py-1.5 rounded-xl bg-amber-400 text-slate-950 font-black text-xs hover:bg-amber-300 transition shrink-0 cursor-pointer"
-                >
-                  KYC जमा करें
-                </button>
-              </div>
-            )}
-
-            {/* 4 Metric Stats Cards in 3D Fintech Style */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              
-              {/* Card 1: Go Wallet Balance */}
-              <div className="p-5 rounded-3xl bg-slate-900/90 border border-emerald-500/40 shadow-xl space-y-2 relative overflow-hidden group hover:border-emerald-400 transition">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-slate-400">Go Wallet बैलेंस</span>
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-                    <Wallet className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono">
-                  ₹{(agentWalletBalance || 0).toLocaleString('en-IN')}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsInstantAddMoneyModalOpen(true)}
-                  className="text-[10px] font-bold text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
-                >
-                  <span>⚡ तुरंत पैसे जोड़ें (Instant Add)</span>
-                  <ChevronRight className="w-3 h-3" />
-                </button>
+            {/* 2. STATS QUICK TILES */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">कुल GO टिकटें</span>
+                <div className="text-2xl font-black text-white font-mono">{myGoBookings.length}</div>
+                <span className="text-[10px] text-emerald-400">{confirmedCount} कन्फर्म</span>
               </div>
 
-              {/* Card 2: Total Commission Earned (₹20 per booking) */}
-              <div className="p-5 rounded-3xl bg-slate-900/90 border border-amber-500/40 shadow-xl space-y-2 relative overflow-hidden group hover:border-amber-400 transition">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-slate-400">कुल कमीशन अर्जित</span>
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="text-2xl sm:text-3xl font-black text-amber-400 font-mono">
-                  ₹{totalCommissionEarned.toLocaleString('en-IN')}
-                </div>
-                <p className="text-[10px] text-slate-400">
-                  {confirmedCount} कन्फर्म बुकिंग्स × ₹20
-                </p>
+              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">कमीशन कमाई</span>
+                <div className="text-2xl font-black text-amber-400 font-mono">₹{totalCommissionEarned}</div>
+                <span className="text-[10px] text-slate-400">फ्लैट ₹20 / सीट</span>
               </div>
 
-              {/* Card 3: Total Bookings */}
-              <div className="p-5 rounded-3xl bg-slate-900/90 border border-cyan-500/40 shadow-xl space-y-2 relative overflow-hidden group hover:border-cyan-400 transition">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-slate-400">मेरी GO बस टिकटें</span>
-                  <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
-                    <Bus className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="text-2xl sm:text-3xl font-black text-cyan-300 font-mono">
-                  {myGoBookings.length}
-                </div>
-                <p className="text-[10px] text-slate-400">
-                  {confirmedCount} कन्फर्म | {myGoBookings.length - confirmedCount} प्रोसेस में
-                </p>
-              </div>
-
-              {/* Card 4: KYC & Account Status */}
-              <div className="p-5 rounded-3xl bg-slate-900/90 border border-indigo-500/40 shadow-xl space-y-2 relative overflow-hidden group hover:border-indigo-400 transition">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-slate-400">GO KYC स्थिति</span>
-                  <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
-                    <ShieldCheck className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="text-base sm:text-lg font-black text-white">
+              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">KYC सत्यापन</span>
+                <div className="text-sm font-black text-white pt-1">
                   {currentUser?.kyc_status === 'verified' ? (
                     <span className="text-emerald-400 flex items-center gap-1">
-                      <CheckCircle2 className="w-4 h-4" /> 100% सत्यापित
+                      <CheckCircle2 className="w-3.5 h-3.5" /> 100% सत्यापित
                     </span>
                   ) : currentUser?.kyc_status === 'pending' ? (
                     <span className="text-amber-400 flex items-center gap-1">
-                      <Clock className="w-4 h-4" /> समीक्षाधीन
+                      <Clock className="w-3.5 h-3.5" /> 24h प्रक्रियाधीन
                     </span>
                   ) : (
                     <span className="text-slate-400 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4 text-amber-500" /> सत्यापन लंबित
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-400" /> बाकी है
                     </span>
                   )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('account')}
-                  className="text-[10px] font-bold text-indigo-400 hover:underline flex items-center gap-1"
-                >
-                  <span>KYC विवरण देखें / अपडेट करें</span>
-                  <ChevronRight className="w-3 h-3" />
-                </button>
+                <span className="text-[10px] text-slate-400">ऑफिशियल बैज</span>
               </div>
 
+              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">सपोर्ट डेस्क SLA</span>
+                <div className="text-sm font-black text-cyan-400 pt-1 flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5" /> 24h समाधान
+                </div>
+                <span className="text-[10px] text-slate-400">{pendingSupportCount} लंबित टिकट</span>
+              </div>
             </div>
 
-            {/* GO USER Salary Eligibility & Commission Breakdown Card */}
-            <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 border-2 border-blue-500/40 shadow-2xl space-y-4">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-500 text-slate-950 font-black text-sm flex items-center justify-center shrink-0 shadow-lg">
-                    ₹10k
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-600 text-white">
-                        GO USER वेतन नियम (Salary Rule)
-                      </span>
-                      {isSalaryEligible ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" />
-                          🎉 लक्ष्य पूर्ण! ₹10,000 फिक्स्ड वेतन अर्जित
-                        </span>
-                      ) : (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {remainingSalaryTickets} टिकट बाकी ₹10,000 फिक्स्ड वेतन के लिए
-                        </span>
-                      )}
-                    </div>
-
-                    <h3 className="text-base sm:text-lg font-black text-white">
-                      280 कन्फर्म टिकट = फिक्स्ड ₹10,000 मासिक वेतन (कोई अतिरिक्त कमीशन नहीं)
+            {/* 3. TICKET DESK & 24-HOUR RESOLUTION GUARANTEE (In-Wallet System) */}
+            <div className="p-5 sm:p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                    <h3 className="text-base font-black text-white flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4 text-amber-400" />
+                      <span>एजेंट सहायता व सपोर्ट डेस्क</span>
                     </h3>
-
-                    <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
-                      <strong>सख्त नियम:</strong> 280 टिकट पूरे होने पर फिक्स्ड ₹10,000 का मासिक वेतन मिलता है (इसके ऊपर कोई अलग कमीशन नहीं जुड़ता)। 280 से कम टिकट होने पर केवल प्रति टिकट ₹20 कमीशन मिलता है। निकासी करने पर लक्ष्य से 280 टिकट माइनस हो जाएंगे।
-                    </p>
                   </div>
+                  <p className="text-xs text-slate-400">
+                    <strong>24 घंटे में समाधान गारंटी (24-Hour SLA Guarantee)</strong> • बस ऑपरेटर, टिकट रिफंड या वॉलेट से संबंधित किसी भी समस्या का त्वरित समाधान।
+                  </p>
                 </div>
 
-                <div className="bg-slate-950/80 border border-blue-500/30 rounded-2xl p-4 text-right shrink-0">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">कुल अनुमानित कमाई</span>
-                  <span className="text-2xl font-black text-amber-400 font-mono">
-                    ₹{totalProjectedEarnings.toLocaleString('en-IN')}
-                  </span>
-                  <span className="text-[10px] text-slate-400 block mt-0.5">
-                    {isSalaryEligible
-                      ? 'फिक्स्ड मासिक वेतन (280 लक्ष्य पूर्ण)'
-                      : `₹${totalCommissionEarned.toLocaleString('en-IN')} कमीशन (${currentCycleTickets} × ₹20)`}
-                  </span>
-                </div>
-              </div>
-
-              {/* Progress bar towards 280 tickets */}
-              <div className="pt-2 border-t border-slate-800 space-y-2">
-                <div className="flex justify-between text-xs font-bold text-slate-300">
-                  <span>प्रगति: {currentCycleTickets} / {TARGET_SALARY_TICKETS} टिकट ({salaryProgressPercent}%)</span>
-                  <span>
-                    {isSalaryEligible ? 'सैलरी पात्रता: पूर्ण (Eligible)' : `लक्ष्य शेष: ${remainingSalaryTickets} टिकट`}
-                  </span>
-                </div>
-                <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-700">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 shadow-md ${
-                      isSalaryEligible
-                        ? 'bg-gradient-to-r from-emerald-400 to-teal-400'
-                        : 'bg-gradient-to-r from-amber-400 via-orange-500 to-blue-500'
-                    }`}
-                    style={{ width: `${salaryProgressPercent}%` }}
-                  />
-                </div>
-
-                {/* Salary Withdrawal Button */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-                  <span className="text-[11px] text-slate-400">
-                    {salaryClaimsCount > 0
-                      ? `पूर्व में निकाली गई सैलरी: ${salaryClaimsCount} बार (₹${(salaryClaimsCount * 10000).toLocaleString('en-IN')})`
-                      : 'रविवार को वेतन निकासी उपलब्ध होती है'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setWithdrawalModalMode('salary');
-                      setIsWithdrawalModalOpen(true);
-                    }}
-                    className={`px-4 py-2.5 rounded-xl font-black text-xs transition flex items-center gap-2 shadow-lg cursor-pointer ${
-                      isSalaryEligible
-                        ? 'bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 text-slate-950 animate-pulse'
-                        : 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700'
-                    }`}
-                  >
-                    {isSalaryEligible ? (
-                      <>
-                        <span>🎉 ₹10,000 वेतन विथड्रॉल करें (Sunday Payout)</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="w-3.5 h-3.5 text-amber-400" />
-                        <span>₹10,000 वेतन निकासी ({currentCycleTickets}/280 टिकट)</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Subtle Animation Toast Banner: You earned ₹20 commission */}
-            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-transparent border border-amber-500/30 flex items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-amber-400/20 text-amber-300 flex items-center justify-center font-black animate-pulse">
-                  ⚡
-                </div>
-                <span className="text-amber-200 font-bold">
-                  "You earned ₹20 commission" — हर कन्फर्म बुकिंग पर फ्लैट ₹20 नकद कमीशन स्वतः क्रेडिट होता है!
-                </span>
-              </div>
-              <span className="px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 text-[10px] font-mono font-bold shrink-0">
-                100% Guaranteed
-              </span>
-            </div>
-
-            {/* System Live Updates Section ("system update hoga") */}
-            <div className="p-5 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-3">
-              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                  <h3 className="text-xs sm:text-sm font-black text-white">
-                    सिस्टम लाइव अपडेट्स (Live System Updates & Ticker)
-                  </h3>
-                </div>
-                <span className="text-[10px] font-mono text-slate-400">99.9% Uptime</span>
-              </div>
+                  <a
+                    href="https://help.safargo.in"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center gap-1.5 transition"
+                  >
+                    <span>help.safargo.in</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                <div className="p-3 bg-slate-950/60 rounded-2xl border border-slate-800/80 space-y-1">
-                  <span className="text-[10px] font-black text-amber-400 uppercase">⚡ ऑपरेटर स्पीड</span>
-                  <p className="text-slate-300 font-medium">
-                    मध्य प्रदेश के 25+ शहरों में औसत 8 मिनट के अंदर ऑपरेटर PNR कन्फर्मेशन जारी।
-                  </p>
-                </div>
-                <div className="p-3 bg-slate-950/60 rounded-2xl border border-slate-800/80 space-y-1">
-                  <span className="text-[10px] font-black text-emerald-400 uppercase">💰 कमीशन इंजन</span>
-                  <p className="text-slate-300 font-medium">
-                    फ्लैट ₹20 कमीशन बिना किसी कटौती के प्रत्येक सीट कन्फर्मेशन पर स्वतः क्रेडिट।
-                  </p>
-                </div>
-                <div className="p-3 bg-slate-950/60 rounded-2xl border border-slate-800/80 space-y-1">
-                  <span className="text-[10px] font-black text-cyan-400 uppercase">🛡️ Go Wallet सुरक्षा</span>
-                  <p className="text-slate-300 font-medium">
-                    10-मिनट पेमेंट टाइमर व UTR बैंक वेरिफिकेशन लाइव सक्रिय है।
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Recent Bookings Quick Table */}
-            <div className="p-5 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs sm:text-sm font-black text-white">
-                  हाल की बुकिंग्स (Recent Bookings)
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('bookings');
-                    setBookingSubTab('history');
-                  }}
-                  className="text-xs font-bold text-amber-400 hover:underline flex items-center gap-1"
-                >
-                  <span>सभी देखें ({myGoBookings.length})</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {myGoBookings.length === 0 ? (
-                <div className="p-8 text-center text-slate-500 space-y-2">
-                  <Bus className="w-10 h-10 mx-auto text-slate-600 opacity-60" />
-                  <p className="text-xs">आपके GO खाते में अभी कोई पुरानी टिकट नहीं है।</p>
                   <button
                     type="button"
-                    onClick={() => {
-                      setActiveTab('bookings');
-                      setBookingSubTab('auto_book');
-                    }}
-                    className="py-2.5 px-4 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-slate-950 font-black rounded-xl text-xs inline-block cursor-pointer"
+                    onClick={() => setIsSupportFormOpen(!isSupportFormOpen)}
+                    className="py-2 px-3.5 rounded-xl bg-amber-400 text-slate-950 font-black text-xs hover:bg-amber-300 transition flex items-center gap-1.5 cursor-pointer"
                   >
-                    ⚡ GO Edition बस टिकट बुक करें (कमाएं फ्लैट ₹20) ➔
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>नया टिकट बनाएं</span>
                   </button>
                 </div>
-              ) : (
-                <div className="space-y-2.5">
-                  {myGoBookings.slice(0, 4).map((b) => (
-                    <div
-                      key={b.id}
-                      className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-slate-700 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0">
-                          <Bus className="w-5 h-5 text-amber-400" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <strong className="text-white font-mono">{b.booking_code}</strong>
-                            {b.status === 'confirmed' ? (
-                              <span className="text-[10px] font-black text-emerald-400 bg-emerald-950/80 px-2 py-0.2 rounded-full border border-emerald-500/30">
-                                कन्फर्म PNR: {b.ticket_pnr || 'OK'}
-                              </span>
-                            ) : b.status === 'cancellation_requested' || b.refund_status === 'requested' ? (
-                              <span className="text-[10px] font-bold text-rose-400 bg-rose-950/80 px-2 py-0.2 rounded-full border border-rose-500/30">
-                                रिफंड प्रतीक्षारत ⏳
-                              </span>
-                            ) : (
-                              <TicketCountdownTimer createdAt={b.created_at} deadlineAt={b.deadline_at} />
-                            )}
-                          </div>
-                          <p className="text-[11px] text-slate-400">
-                            {b.customer_name} • {getBookingRoute(b).from} ➔ {getBookingRoute(b).to} • {b.journey_date}
-                          </p>
-                        </div>
-                      </div>
+              </div>
 
-                      <div className="flex items-center justify-between sm:justify-end gap-3">
-                        <div className="text-right">
-                          <span className="text-sm font-black text-white font-mono block">
-                            ₹{getBookingFare(b).toLocaleString('en-IN')}
-                          </span>
-                          <span className="text-[10px] font-bold text-amber-400">
-                            +₹20.00 कमीशन
-                          </span>
+              {/* Status Counters */}
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <div className="p-3 bg-slate-950/70 rounded-2xl border border-amber-500/30 flex items-center justify-between">
+                  <span className="text-xs text-slate-300 font-bold">प्रतीक्षारत टिकट (Pending)</span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-xs font-mono">
+                    {pendingSupportCount}
+                  </span>
+                </div>
+                <div className="p-3 bg-slate-950/70 rounded-2xl border border-emerald-500/30 flex items-center justify-between">
+                  <span className="text-xs text-slate-300 font-bold">समाधान किए गए (Solved)</span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-400 text-slate-950 font-black text-xs font-mono">
+                    {resolvedSupportCount}
+                  </span>
+                </div>
+              </div>
+
+              {/* Create Ticket Modal / Inline Form */}
+              {isSupportFormOpen && (
+                <form onSubmit={handleSupportTicketSubmit} className="p-4 bg-slate-950 rounded-2xl border border-amber-400/50 space-y-3 animate-fadeIn">
+                  <h4 className="text-xs font-black text-amber-400 uppercase tracking-wider">
+                    नया हेल्प टिकट दर्ज करें (24-Hour Guaranteed Desk)
+                  </h4>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                      समस्या का विषय (Subject) *
+                    </label>
+                    <input
+                      type="text"
+                      value={supportSubject}
+                      onChange={(e) => setSupportSubject(e.target.value)}
+                      placeholder="उदा. टिकट बुकिंग अप्रूवल या रिफंड समस्या"
+                      className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                      समस्या का संपूर्ण विवरण (Description) *
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={supportDescription}
+                      onChange={(e) => setSupportDescription(e.target.value)}
+                      placeholder="विस्तार से अपनी समस्या बताएं..."
+                      className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                      required
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsSupportFormOpen(false)}
+                      className="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-400 text-xs font-bold"
+                    >
+                      रद्द करें
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmittingSupportTicket}
+                      className="px-4 py-1.5 rounded-xl bg-amber-400 text-slate-950 text-xs font-black hover:bg-amber-300 disabled:opacity-50"
+                    >
+                      {isSubmittingSupportTicket ? 'सबमिट हो रहा है...' : 'सबमिट करें'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Recent Support Tickets List */}
+              {(agentSupportTickets || []).length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-slate-800">
+                  <span className="text-[11px] font-bold text-slate-400 block">हाल के सपोर्ट टिकट</span>
+                  {(agentSupportTickets || []).slice(0, 3).map((t) => (
+                    <div
+                      key={t.id}
+                      className="p-3 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center justify-between text-xs"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <strong className="text-white">{t.subject}</strong>
+                          <span className="font-mono text-[10px] text-slate-500">#{t.ticket_code || t.id.slice(-6)}</span>
                         </div>
-                        {b.status === 'confirmed' ? (
-                          <button
-                            type="button"
-                            onClick={() => setSelectedGreenCardBooking(b)}
-                            className="py-1.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95"
-                            title="🟢 लाइव ग्रीन कार्ड देखें"
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping inline-block" />
-                            <span>ग्रीन कार्ड</span>
-                          </button>
-                        ) : (
-                          <div className="py-1 px-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] font-bold flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-amber-400 animate-spin" />
-                            <span>सत्यापन जारी (टिकट लॉक)</span>
-                          </div>
-                        )}
+                        <p className="text-[11px] text-slate-400 truncate max-w-sm">{t.description}</p>
                       </div>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                        t.status === 'resolved' || t.status === 'closed'
+                          ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/40'
+                          : 'bg-amber-950 text-amber-300 border border-amber-500/40'
+                      }`}>
+                        {t.status === 'resolved' || t.status === 'closed' ? 'हल हुआ ✓' : 'प्रक्रियाधीन ⏳'}
+                      </span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
+            {/* Quick Action to New Booking */}
+            <div
+              onClick={() => setActiveTab('booking')}
+              className="p-5 rounded-3xl bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-amber-500/20 border-2 border-amber-400/80 flex items-center justify-between gap-4 cursor-pointer hover:border-amber-300 transition group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-black shrink-0 shadow-lg group-hover:scale-105 transition-transform">
+                  <Bus className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="text-base font-black text-white group-hover:text-amber-300 transition">
+                    नई बस टिकट बुक करें (New Bus Booking)
+                  </h4>
+                  <p className="text-xs text-slate-300">
+                    मध्य प्रदेश के सभी मुख्य रूटों पर 5 मिनट में टिकट अप्रूवल व तुरंत ₹20 कमीशन
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="w-5 h-5 text-amber-400 group-hover:translate-x-1 transition-transform" />
+            </div>
+
           </div>
         )}
 
         {/* ============================================================ */}
-        {/* 2. TAB: 🎫 BOOKING & REFUND (GO EDITION BUS SYSTEM)          */}
+        {/* TAB 2: 🎫 BOOKING (नई बस बुकिंग — 5-MIN TIMER & BACK TRAP)   */}
         {/* ============================================================ */}
-        {activeTab === 'bookings' && (
+        {activeTab === 'booking' && (
           <div className="space-y-6 animate-fadeIn">
             
-            {/* Header with Title & Flat ₹20 Commission Badge */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-2 border-amber-400/80 shadow-xl">
-              <div className="space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 flex items-center gap-1">
-                    <Crown className="w-3 h-3 text-slate-950" />
-                    GO Edition Booking
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-950 text-emerald-400 border border-emerald-500/40">
-                    🎁 फ्लैट ₹20 नकद कमीशन
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-950 text-amber-300 border border-amber-500/40 flex items-center gap-1">
-                    ⚡ 3-मिनट एडमिन अप्रूवल गारंटी
+            {/* If there is an Active Pending Booking: Show 5-Min Timer Screen */}
+            {activePendingBooking && activePendingBooking.status !== 'confirmed' && activePendingBooking.status !== 'cancelled' ? (
+              <div className="p-6 sm:p-8 rounded-3xl bg-slate-900 border-2 border-amber-400 shadow-[0_20px_50px_rgba(245,158,11,0.2)] text-center space-y-6 animate-fadeIn">
+                
+                {/* 5-Min Live Timer Banner */}
+                <div className="space-y-3">
+                  <div className="inline-block">
+                    <BookingApprovalTimer
+                      createdAt={activePendingBooking.created_at}
+                      deadlineAt={activePendingBooking.deadline_at}
+                    />
+                  </div>
+                  <h3 className="text-2xl font-black text-white">
+                    बुकिंग एडमिन स्वीकृति प्रक्रियाधीन है
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-300 max-w-md mx-auto">
+                    कृपया इस पेज पर बने रहें और बैक बटन न दबाएं। एडमिन द्वारा अप्रूव होते ही यह पेज स्वतः रिफ्रेश होकर आपकी कन्फर्म टिकट प्रदर्शित करेगा।
+                  </p>
+                </div>
+
+                {/* Ticket Details Card */}
+                <div className="p-5 bg-slate-950 rounded-2xl border border-slate-800 text-left space-y-3 max-w-lg mx-auto">
+                  <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <span className="text-xs text-slate-400">बुकिंग कोड:</span>
+                    <span className="font-mono font-black text-amber-400">{activePendingBooking.booking_code}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-400">रूट:</span>
+                    <span className="font-bold text-white">
+                      {getBookingRoute(activePendingBooking).from} ➔ {getBookingRoute(activePendingBooking).to}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-400">यात्री:</span>
+                    <span className="font-bold text-white">{activePendingBooking.customer_name}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-400">सीट संख्या:</span>
+                    <span className="font-bold text-emerald-400">{getBookingSeats(activePendingBooking)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-400">कुल किराया:</span>
+                    <span className="font-mono font-black text-white">
+                      ₹{getBookingFare(activePendingBooking).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-slate-800">
+                    <span className="text-xs text-slate-400">एजेंट कमीशन:</span>
+                    <span className="text-xs font-black text-amber-400">+₹20.00 Go Wallet में</span>
+                  </div>
+                </div>
+
+                {/* Safety Back-Trap Warning */}
+                <div className="p-3 bg-amber-500/10 rounded-2xl border border-amber-500/30 text-xs text-amber-300 max-w-lg mx-auto flex items-center justify-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>
+                    सुरक्षा गार्ड सक्रिय: ब्राउज़र का बैक बटन दबाने पर भी आप इसी स्क्रीन पर सुरक्षित रहेंगे।
                   </span>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-black text-white">
-                  GO Bus Special Bus System (3-Min Fast Track)
-                </h2>
-                <p className="text-xs text-slate-300">
-                  सीट चुनें, Go Wallet से 1-क्लिक भुगतान करें — 3 मिनट में एडमिन अप्रूवल एवं प्रति टिकट तुरंत ₹20 कमीशन पाएं!
-                </p>
+
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActivePendingBookingId(null);
+                      try {
+                        localStorage.removeItem(`safargo_pending_booking_${currentUser?.id}`);
+                      } catch {}
+                    }}
+                    className="text-xs text-slate-500 hover:text-slate-300 underline"
+                  >
+                    नया फॉर्म खोलें
+                  </button>
+                </div>
               </div>
+            ) : activePendingBooking && activePendingBooking.status === 'confirmed' ? (
+              /* Confirmed Ticket Green Screen */
+              <div className="p-6 sm:p-8 rounded-3xl bg-slate-900 border-2 border-emerald-400 shadow-[0_20px_50px_rgba(16,185,129,0.25)] text-center space-y-6 animate-fadeIn">
+                <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 text-emerald-400 mx-auto flex items-center justify-center animate-bounce">
+                  <CheckCircle2 className="w-10 h-10" />
+                </div>
 
-              {/* Sub-Tab Navigation Switcher */}
-              <div className="flex bg-slate-950 p-1 rounded-2xl border border-amber-400/50 gap-1 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setBookingSubTab('auto_book')}
-                  className={`py-2 px-3.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
-                    bookingSubTab === 'auto_book'
-                      ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-slate-950 shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Bus className="w-3.5 h-3.5" />
-                  <span>स्वचालित बस बुकिंग</span>
-                </button>
+                <div className="space-y-1">
+                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-400 text-slate-950">
+                    कन्फर्म (CONFIRMED)
+                  </span>
+                  <h3 className="text-2xl font-black text-white pt-2">
+                    🎉 बस टिकट सफलतापूर्वक कन्फर्म हो गई!
+                  </h3>
+                  <p className="text-xs text-emerald-300 font-bold">
+                    PNR नंबर: <span className="font-mono text-base text-white">{activePendingBooking.ticket_pnr || 'CONFIRMED'}</span> • ₹20 कमीशन Go Wallet में क्रेडिट हुआ!
+                  </p>
+                </div>
 
-                <button
-                  type="button"
-                  onClick={() => setBookingSubTab('history')}
-                  className={`py-2 px-3.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
-                    bookingSubTab === 'history'
-                      ? 'bg-slate-800 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>माई टिकट व रिफंड ({myGoBookings.length})</span>
-                </button>
+                {/* Ticket Details */}
+                <div className="p-5 bg-slate-950 rounded-2xl border border-emerald-500/40 text-left space-y-2.5 max-w-lg mx-auto text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">रूट:</span>
+                    <span className="font-bold text-white text-sm">
+                      {getBookingRoute(activePendingBooking).from} ➔ {getBookingRoute(activePendingBooking).to}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">यात्री का नाम:</span>
+                    <span className="font-bold text-white">{activePendingBooking.customer_name}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">सीट संख्या:</span>
+                    <span className="font-bold text-emerald-400 font-mono text-sm">
+                      {getBookingSeats(activePendingBooking)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">ऑपरेटर:</span>
+                    <span className="text-slate-300">{getBookingRoute(activePendingBooking).operator}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-slate-800">
+                    <span className="text-slate-400">कुल भुगतान:</span>
+                    <span className="font-mono font-black text-white text-base">
+                      ₹{getBookingFare(activePendingBooking).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* WhatsApp Share Button */}
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const msg = getWhatsAppTicketMessage(activePendingBooking);
+                      window.open(`https://wa.me/91${activePendingBooking.customer_mobile}?text=${encodeURIComponent(msg)}`, '_blank');
+                    }}
+                    className="w-full py-3.5 px-6 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-xl transition flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Send className="w-4 h-4" />
+                    <span>WhatsApp पर टिकट भेजें</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUberDefaultDestination(`${getBookingRoute(activePendingBooking).to} Bus Stand`);
+                      setIsUberModalOpen(true);
+                    }}
+                    className="w-full py-3.5 px-5 rounded-2xl bg-black hover:bg-slate-900 border border-slate-700 text-white font-black text-xs shadow-xl transition flex items-center justify-center gap-2 cursor-pointer"
+                    title="यात्री के लिए Uber ऑटो / कैब लिंक"
+                  >
+                    <Car className="w-4 h-4 text-amber-400" />
+                    <span>🛺 Uber राइड सहायता</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActivePendingBookingId(null);
+                      try {
+                        localStorage.removeItem(`safargo_pending_booking_${currentUser?.id}`);
+                      } catch {}
+                    }}
+                    className="w-full py-3.5 px-6 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black text-xs transition cursor-pointer"
+                  >
+                    नई टिकट बुक करें ➔
+                  </button>
+                </div>
               </div>
-            </div>
-
-            {/* -------------------------------------------------------- */}
-            {/* 2A. SUB-TAB: GO EDITION AUTOMATIC BUS BOOKING ENGINE     */}
-            {/* -------------------------------------------------------- */}
-            {bookingSubTab === 'auto_book' && (
-              <div className="space-y-6 animate-fadeIn">
+            ) : (
+              /* NEW BUS BOOKING FORM */
+              <div className="p-5 sm:p-7 rounded-3xl bg-slate-900 border border-slate-800 space-y-6">
                 
-                {/* Search Bar Widget */}
-                <div className="p-5 sm:p-6 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-4 shadow-xl">
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-                    
-                    {/* From City */}
-                    <div className="sm:col-span-4">
-                      <label className="block text-[11px] font-bold text-slate-400 mb-1">
-                        कहाँ से (From City) *
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-4">
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+                      <Bus className="w-5 h-5 text-amber-400" />
+                      <span>नई बस टिकट बुक करें (New Bus Booking)</span>
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      सीट चुनें और कन्फर्म करें • प्रत्येक टिकट पर फ्लैट ₹20 नकद कमीशन Go Wallet में जुड़ेगा
+                    </p>
+                  </div>
+                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-950 text-emerald-400 border border-emerald-500/40 shrink-0">
+                    ⚡ 5-Min Fast Track
+                  </span>
+                </div>
+
+                <form onSubmit={handleBookingSubmit} className="space-y-4 text-xs">
+                  
+                  {/* Origin & Destination */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-slate-400 font-bold mb-1">
+                        कहाँ से (Source City) *
                       </label>
                       <select
-                        value={searchSource}
-                        onChange={(e) => setSearchSource(e.target.value)}
-                        className="w-full p-3 rounded-2xl bg-slate-950 border border-slate-700 text-white font-bold text-xs focus:ring-2 focus:ring-amber-400 outline-none"
+                        value={bookingSource}
+                        onChange={(e) => setBookingSource(e.target.value)}
+                        className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-xs focus:border-amber-400 outline-none"
                       >
                         {MP_NETWORK_CITIES.map((c) => (
                           <option key={`src-${c}`} value={c}>{c}</option>
@@ -1199,1215 +1088,674 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                       </select>
                     </div>
 
-                    {/* Swap Button */}
-                    <div className="sm:col-span-1 flex justify-center pb-2">
-                      <button
-                        type="button"
-                        onClick={handleSwapCities}
-                        className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 transition"
-                        title="बदलें"
-                      >
-                        <Repeat className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    {/* To City */}
-                    <div className="sm:col-span-4">
-                      <label className="block text-[11px] font-bold text-slate-400 mb-1">
-                        कहाँ तक (To City) *
+                    <div>
+                      <label className="block text-slate-400 font-bold mb-1">
+                        कहाँ तक (Destination City) *
                       </label>
                       <select
-                        value={searchDestination}
-                        onChange={(e) => setSearchDestination(e.target.value)}
-                        className="w-full p-3 rounded-2xl bg-slate-950 border border-slate-700 text-white font-bold text-xs focus:ring-2 focus:ring-amber-400 outline-none"
+                        value={bookingDestination}
+                        onChange={(e) => setBookingDestination(e.target.value)}
+                        className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-xs focus:border-amber-400 outline-none"
                       >
                         {MP_NETWORK_CITIES.map((c) => (
                           <option key={`dest-${c}`} value={c}>{c}</option>
                         ))}
                       </select>
                     </div>
+                  </div>
 
-                    {/* Date */}
-                    <div className="sm:col-span-3">
-                      <label className="block text-[11px] font-bold text-slate-400 mb-1">
-                        यात्रा की तारीख (Date) *
+                  {/* Date & Bus Operator */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-slate-400 font-bold mb-1">
+                        यात्रा की तारीख (Journey Date) *
                       </label>
                       <input
                         type="date"
-                        value={searchDate}
-                        onChange={(e) => setSearchDate(e.target.value)}
-                        className="w-full p-3 rounded-2xl bg-slate-950 border border-slate-700 text-white font-bold text-xs focus:ring-2 focus:ring-amber-400 outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Filter Pills */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800 text-xs">
-                    <div className="flex items-center gap-1.5 overflow-x-auto py-1">
-                      <span className="text-[11px] text-slate-400 font-bold mr-1">फिल्टर:</span>
-                      {(['all', 'ac', 'sleeper', 'seater'] as const).map((t) => (
-                        <button
-                          key={t}
-                          type="button"
-                          onClick={() => setFilterBusType(t)}
-                          className={`px-3 py-1.5 rounded-xl font-bold transition text-xs ${
-                            filterBusType === t
-                              ? 'bg-amber-400 text-slate-950'
-                              : 'bg-slate-800 text-slate-400 hover:text-white'
-                          }`}
-                        >
-                          {t === 'all' ? 'सभी बसें' : t === 'ac' ? 'AC बस' : t === 'sleeper' ? 'स्लीपर' : 'सीटर'}
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="text-[11px] font-bold text-slate-400">
-                      उपलब्ध बसें: <strong className="text-amber-400">{matchingTrips.length}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Live Bus Cards Listing */}
-                <div className="space-y-4">
-                  {matchingTrips.map((trip) => {
-                    const minFare = trip.seater_fare || trip.sleeper_fare || 550;
-                    return (
-                      <div
-                        key={trip.id}
-                        className="p-5 sm:p-6 rounded-3xl bg-slate-900/95 border border-slate-800 hover:border-amber-400/60 transition-all shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-5 relative group"
-                      >
-                        {/* Bus Operator & Features */}
-                        <div className="space-y-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
-                              {trip.bus_type || 'AC Seater / Sleeper 2+1'}
-                            </span>
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-950 shadow-xs flex items-center gap-1">
-                              <Crown className="w-3 h-3 text-slate-950" />
-                              🎁 फ्लैट ₹20 नकद कमीशन
-                            </span>
-                          </div>
-
-                          <h3 className="text-base sm:text-lg font-black text-white">
-                            {trip.operator_name || 'SafarGo Premium Express'}
-                          </h3>
-
-                          {/* Timings */}
-                          <div className="flex items-center gap-4 text-xs text-slate-300 font-mono">
-                            <div>
-                              <strong className="text-sm font-black text-white block">
-                                {trip.departure_time || '07:30 AM'}
-                              </strong>
-                              <span className="text-[10px] text-slate-400 font-sans">{trip.source}</span>
-                            </div>
-
-                            <div className="flex flex-col items-center">
-                              <span className="text-[10px] text-slate-400 font-sans">4h 30m</span>
-                              <div className="w-16 h-0.5 bg-slate-700 relative my-0.5">
-                                <div className="w-2 h-2 rounded-full bg-amber-400 absolute -top-[3px] right-0" />
-                              </div>
-                            </div>
-
-                            <div>
-                              <strong className="text-sm font-black text-white block">
-                                {trip.arrival_time || '12:00 PM'}
-                              </strong>
-                              <span className="text-[10px] text-slate-400 font-sans">{trip.destination}</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3 text-[11px] text-slate-400 pt-1">
-                            <span className="flex items-center gap-1">
-                              <Wifi className="w-3.5 h-3.5 text-cyan-400" /> Free WiFi
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Coffee className="w-3.5 h-3.5 text-amber-400" /> वाटर बोतल
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> सत्यापित ऑपरेटर
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Fares & Booking CTA */}
-                        <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-4 border-t md:border-t-0 md:border-l border-slate-800 pt-4 md:pt-0 md:pl-6 shrink-0">
-                          <div className="text-left md:text-right">
-                            <span className="text-[10px] text-slate-400 block">किराया प्रति सीट</span>
-                            <div className="text-2xl font-black font-mono text-emerald-400">
-                              ₹{minFare.toLocaleString('en-IN')}
-                            </div>
-                            <span className="text-[10px] font-bold text-amber-400">
-                              कमीशन: +₹20.00
-                            </span>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => setSelectedTripForSeatMap(trip)}
-                            className="py-3 px-5 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-xs shadow-lg transition active:scale-95 flex items-center gap-2 cursor-pointer"
-                          >
-                            <Bus className="w-4 h-4" />
-                            <span>सीट चुनें व टिकट बुक करें ➔</span>
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-              </div>
-            )}
-
-            {/* -------------------------------------------------------- */}
-            {/* 2B. SUB-TAB: MY BOOKINGS & 1-CLICK REFUND DESK           */}
-            {/* -------------------------------------------------------- */}
-            {bookingSubTab === 'history' && (
-              <div className="space-y-6 animate-fadeIn">
-                
-                {/* Search Box & Filters */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="sm:col-span-2 relative">
-                    <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="PNR, बुकिंग कोड, मोबाइल नंबर या ऑपरेटर खोजें..."
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 text-xs focus:ring-2 focus:ring-amber-400 outline-none"
-                    />
-                  </div>
-
-                  <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 gap-1 text-xs">
-                    {(['all', 'confirmed', 'pending', 'refunded'] as const).map((st) => (
-                      <button
-                        key={st}
-                        type="button"
-                        onClick={() => setStatusFilter(st)}
-                        className={`flex-1 py-1.5 rounded-lg font-bold transition capitalize ${
-                          statusFilter === st
-                            ? 'bg-amber-400 text-slate-950 shadow-sm'
-                            : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        {st === 'all'
-                          ? 'सभी'
-                          : st === 'confirmed'
-                          ? 'कन्फर्म'
-                          : st === 'pending'
-                          ? 'पेंडिंग'
-                          : 'रिफंड'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Bookings List */}
-                {filteredBookings.length === 0 ? (
-                  <div className="p-12 text-center text-slate-500 bg-slate-900/60 rounded-3xl border border-slate-800 space-y-3">
-                    <Bus className="w-12 h-12 mx-auto text-slate-600 opacity-50" />
-                    <h4 className="text-sm font-bold text-slate-300">कोई पुरानी बुकिंग नहीं है</h4>
-                    <p className="text-xs max-w-sm mx-auto text-slate-400">
-                      आपके GO स्पेशल एजेंट खाते में अभी तक कोई पुरानी बुकिंग नहीं है। GO Edition बस बुकिंग टर्मिनल से नई टिकट बुक करें और तुरंत फ्लैट ₹20 कमीशन पाएं!
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setBookingSubTab('auto_book')}
-                      className="py-2.5 px-4 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-xs transition inline-block cursor-pointer"
-                    >
-                      ⚡ नई बस टिकट बुक करें ➔
-                    </button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {filteredBookings.map((b) => (
-                      <div
-                        key={b.id}
-                        className="p-5 rounded-3xl bg-slate-900/90 border border-slate-800 hover:border-amber-400/50 transition-all space-y-3 relative group"
-                      >
-                        {/* Header: Code & Status */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-black text-amber-400 text-xs">
-                              {b.booking_code}
-                            </span>
-                            {b.ticket_pnr && (
-                              <span className="text-[10px] font-mono font-bold bg-slate-800 text-slate-300 px-2 py-0.5 rounded-md">
-                                PNR: {b.ticket_pnr}
-                              </span>
-                            )}
-                          </div>
-
-                          {b.status === 'confirmed' ? (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-                              कन्फर्म ✅
-                            </span>
-                          ) : b.status === 'cancellation_requested' || b.refund_status === 'requested' ? (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-400 border border-rose-500/40">
-                              रिफंड प्रतीक्षारत ⏳
-                            </span>
-                          ) : b.status === 'cancelled' || b.refund_status === 'approved' ? (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-800 text-slate-400">
-                              रिफंडेड 💸
-                            </span>
-                          ) : (
-                            <TicketCountdownTimer createdAt={b.created_at} deadlineAt={b.deadline_at} />
-                          )}
-                        </div>
-
-                        {/* Route & Passenger */}
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-sm font-black text-white">
-                            <span>{getBookingRoute(b).from}</span>
-                            <span className="text-amber-400">➔</span>
-                            <span>{getBookingRoute(b).to}</span>
-                          </div>
-                          <p className="text-xs text-slate-400">
-                            {getBookingRoute(b).operator} • यात्रा: <strong className="text-slate-300">{b.journey_date}</strong> ({b.departure_time_pref || 'Regular'})
-                          </p>
-                          <p className="text-xs text-slate-400">
-                            यात्री: <strong className="text-slate-200">{b.customer_name}</strong> (+91 {b.customer_mobile}) • सीट: {getBookingSeats(b)}
-                          </p>
-                        </div>
-
-                        {/* Financials & Commission */}
-                        <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
-                          <div>
-                            <span className="text-[10px] text-slate-400 block">कुल किराया</span>
-                            <strong className="text-sm font-black text-white font-mono">
-                              ₹{getBookingFare(b).toLocaleString('en-IN')}
-                            </strong>
-                          </div>
-
-                          <div className="text-right">
-                            <span className="text-[10px] text-slate-400 block">GO एजेंट कमीशन</span>
-                            <span className="text-xs font-black text-amber-400">
-                              +₹20.00 (Flat)
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Action Buttons: Green Card, Print & Refund */}
-                        <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
-                          {b.status === 'confirmed' ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => setSelectedGreenCardBooking(b)}
-                                className="flex-1 min-w-[130px] py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs transition flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
-                              >
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping inline-block" />
-                                <span>🟢 लाइव ग्रीन कार्ड</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => setSelectedPrintBooking(b)}
-                                className="flex-1 min-w-[110px] py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
-                              >
-                                <Printer className="w-3.5 h-3.5 text-amber-400" />
-                                <span>ई-टिकट प्रिंट</span>
-                              </button>
-
-                              <a
-                                href={getWhatsAppTicketMessage({
-                                  customer_name: b.customer_name,
-                                  customer_mobile: b.customer_mobile,
-                                  booking_code: b.booking_code,
-                                  ticket_pnr: b.ticket_pnr,
-                                  from_city: b.from_city,
-                                  to_city: b.to_city,
-                                  journey_date: b.journey_date,
-                                  confirmed_seats: b.confirmed_seats,
-                                  actual_fare: getBookingFare(b),
-                                  total_estimated_amount: b.total_estimated_amount,
-                                  actual_operator: b.actual_operator,
-                                  actual_boarding_point: b.actual_boarding_point,
-                                  actual_drop_point: b.actual_drop_point,
-                                }).url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="py-2 px-3 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-500/30 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
-                                title="ग्राहक को WhatsApp पर टिकट भेजें"
-                              >
-                                <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
-                                <span>WhatsApp टिकट</span>
-                              </a>
-                            </>
-                          ) : (
-                            <div className="flex-1 py-2 px-3 rounded-xl bg-slate-900 border border-amber-500/30 text-amber-300 text-xs font-semibold flex items-center justify-between">
-                              <span className="flex items-center gap-1.5">
-                                <Clock className="w-3.5 h-3.5 text-amber-400 animate-spin" />
-                                <span>ई-टिकट डाउनलोड लॉक: एडमिन अप्रूवल के बाद ही जारी होगा</span>
-                              </span>
-                              <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-200">
-                                {b.status === 'booking_request' ? 'सत्यापन जारी' : b.status === 'awaiting_operator_confirmation' ? 'ऑपरेटर जांच' : b.status}
-                              </span>
-                            </div>
-                          )}
-
-                          {b.status === 'confirmed' && b.refund_status !== 'approved' && b.refund_status !== 'requested' && (
-                            <button
-                              type="button"
-                              onClick={() => setRefundBooking(b)}
-                              className="py-2 px-3 rounded-xl bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-500/30 font-bold text-xs transition flex items-center gap-1 cursor-pointer"
-                            >
-                              <RotateCcw className="w-3.5 h-3.5" />
-                              <span>रिफंड अनुरोध</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Refund Modal */}
-            {refundBooking && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-                <div className="bg-slate-900 border-2 border-rose-500/80 rounded-3xl max-w-md w-full p-6 text-white space-y-4 shadow-2xl">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-black text-base text-rose-400 flex items-center gap-2">
-                      <RotateCcw className="w-5 h-5 text-rose-400" />
-                      <span>रिफंड / कैंसिलेशन अनुरोध</span>
-                    </h3>
-                    <button
-                      onClick={() => setRefundBooking(null)}
-                      className="p-1 rounded-full text-slate-400 hover:text-white"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800 text-xs space-y-1">
-                    <p>बुकिंग: <strong>{refundBooking.booking_code}</strong></p>
-                    <p>रूट: <strong>{getBookingRoute(refundBooking).from} ➔ {getBookingRoute(refundBooking).to}</strong></p>
-                    <p>किराया: <strong>₹{getBookingFare(refundBooking).toLocaleString('en-IN')}</strong></p>
-                  </div>
-
-                  <form onSubmit={handleRefundSubmit} className="space-y-3 text-xs">
-                    <div>
-                      <label className="block font-bold text-slate-300 mb-1">
-                        रिफंड का कारण बताएं *
-                      </label>
-                      <textarea
-                        rows={3}
+                        value={bookingDate}
+                        onChange={(e) => setBookingDate(e.target.value)}
+                        className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-xs focus:border-amber-400 outline-none"
                         required
-                        value={refundReason}
-                        onChange={(e) => setRefundReason(e.target.value)}
-                        placeholder="उदा. यात्री की यात्रा योजना रद्द हुई / बस लेट हुई..."
-                        className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-rose-400"
                       />
                     </div>
 
-                    <div className="p-2.5 bg-rose-950/40 rounded-xl border border-rose-500/30 text-[11px] text-rose-200">
-                      एडमिन अनुमोदन के पश्चात रिफंड राशि सीधे आपके <strong>Go Wallet</strong> में क्रेडिट कर दी जाएगी।
-                    </div>
-
-                    <div className="flex items-center gap-2 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => setRefundBooking(null)}
-                        className="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold"
+                    <div>
+                      <label className="block text-slate-400 font-bold mb-1">
+                        बस ऑपरेटर / सर्विस प्रकार *
+                      </label>
+                      <select
+                        value={selectedBusOperator}
+                        onChange={(e) => {
+                          setSelectedBusOperator(e.target.value);
+                          if (e.target.value.includes('Royal AC Sleeper')) setBaseFarePerSeat(650);
+                          else if (e.target.value.includes('Deluxe')) setBaseFarePerSeat(550);
+                          else setBaseFarePerSeat(450);
+                        }}
+                        className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-xs focus:border-amber-400 outline-none"
                       >
-                        रद्द करें
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={isSubmittingRefund}
-                        className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black transition disabled:opacity-50"
-                      >
-                        {isSubmittingRefund ? 'भेजा जा रहा है...' : 'अनुरोध सबमिट करें'}
-                      </button>
+                        <option value="SafarGo Superfast Express (AC)">SafarGo Superfast Express (AC) - ₹450</option>
+                        <option value="Royal AC Sleeper Deluxe">Royal AC Sleeper Deluxe - ₹650</option>
+                        <option value="MP Tourism InterCity (2x2)">MP Tourism InterCity (2x2) - ₹550</option>
+                        <option value="Gramin Express Seater">Gramin Express Seater - ₹350</option>
+                      </select>
                     </div>
-                  </form>
-                </div>
-              </div>
-            )}
+                  </div>
 
-          </div>
-        )}
-
-        {/* ============================================================ */}
-        {/* 3. TAB: 💳 GO WALLET MANAGEMENT                              */}
-        {/* ============================================================ */}
-        {activeTab === 'wallet' && (
-          <div className="space-y-6 animate-fadeIn">
-            
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-black text-white flex items-center gap-2">
-                  <Wallet className="w-5 h-5 text-emerald-400" />
-                  <span>Go Wallet संपूर्ण प्रबंधन</span>
-                </h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  10-मिनट टाइमर आधारित सुरक्षित रीचार्ज, फ्लैट ₹20 कमीशन क्रेडिट एवं लाइव लेजर
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setIsInstantAddMoneyModalOpen(true)}
-                  className="py-2.5 px-4 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-400 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-xs transition flex items-center gap-2 shadow-lg cursor-pointer active:scale-95"
-                >
-                  <Zap className="w-4 h-4 fill-slate-950" />
-                  <span>⚡ GO Instant Add Money</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsWithdrawalModalOpen(true)}
-                  className="py-2.5 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/40 font-black text-xs transition flex items-center gap-2 shadow-md cursor-pointer active:scale-95"
-                >
-                  <TrendingDown className="w-4 h-4" />
-                  <span>🏦 बैंक / UPI निकासी</span>
-                </button>
-              </div>
-            </div>
-
-            {/* 3D Fintech Virtual Card Visualization */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              {/* Virtual 3D GO Card */}
-              <div
-                className="relative rounded-3xl p-6 sm:p-7 bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950 border-2 border-amber-400/80 shadow-[0_20px_40px_rgba(245,158,11,0.2)] text-white space-y-6 overflow-hidden"
-                style={{ perspective: '1000px' }}
-              >
-                <div className="absolute top-0 right-0 w-64 h-64 bg-amber-400/10 rounded-full blur-2xl pointer-events-none" />
-
-                {/* Card Top: Chip & Logo */}
-                <div className="flex items-center justify-between relative z-10">
-                  <div className="flex items-center gap-2">
-                    {/* Metallic Golden Chip */}
-                    <div className="w-10 h-7 rounded-md bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 border border-yellow-200 shadow-inner flex items-center justify-center">
-                      <div className="w-6 h-4 border border-amber-600/40 rounded-xs" />
-                    </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">
-                      GO ULTRA PASS
+                  {/* Passenger Details */}
+                  <div className="p-4 bg-slate-950/70 rounded-2xl border border-slate-800 space-y-3">
+                    <span className="text-[11px] font-black text-amber-400 uppercase tracking-wider block">
+                      यात्री विवरण (Passenger Information)
                     </span>
-                  </div>
-
-                  <Go3DUltraLogo size="sm" showBadge={false} />
-                </div>
-
-                {/* Card Balance */}
-                <div className="relative z-10 space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-                    उपलब्ध Go Wallet बैलेंस
-                  </span>
-                  <div className="text-3xl sm:text-4xl font-black font-mono text-emerald-400 tracking-tight">
-                    ₹{(agentWalletBalance || 0).toLocaleString('en-IN')}.00
-                  </div>
-                </div>
-
-                {/* Card Bottom: Holder Name & ID */}
-                <div className="relative z-10 flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
-                  <div>
-                    <span className="text-[9px] text-slate-500 uppercase block">कार्ड धारक (Agent)</span>
-                    <strong className="text-slate-200 font-mono">{currentUser?.full_name || 'GO AGENT'}</strong>
-                  </div>
-
-                  <div className="text-right">
-                    <span className="text-[9px] text-slate-500 uppercase block">GO ID</span>
-                    <strong className="text-amber-400 font-mono">{currentUser?.id?.slice(0, 10).toUpperCase() || 'GO-AGT-01'}</strong>
-                  </div>
-                </div>
-              </div>
-
-              {/* Commission Ledger Summary Card */}
-              <div className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-4">
-                <h3 className="font-black text-sm text-white flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-amber-400" />
-                  <span>फ्लैट ₹20 कमीशन खाता स्थिति</span>
-                </h3>
-
-                <div className="space-y-3 text-xs">
-                  <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800 flex justify-between items-center">
-                    <span className="text-slate-400">प्रति बस टिकट कमीशन दर:</span>
-                    <strong className="text-amber-400 text-sm font-black">₹20.00 / सीट</strong>
-                  </div>
-
-                  <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800 flex justify-between items-center">
-                    <span className="text-slate-400">कुल कन्फर्म टिकटें:</span>
-                    <strong className="text-white font-mono">{confirmedCount} टिकट</strong>
-                  </div>
-
-                  <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800 flex justify-between items-center">
-                    <span className="text-slate-400">कुल संचित कमीशन:</span>
-                    <strong className="text-emerald-400 text-base font-black font-mono">
-                      ₹{totalCommissionEarned.toLocaleString('en-IN')}.00
-                    </strong>
-                  </div>
-
-                  <p className="text-[11px] text-slate-400 leading-snug">
-                    * कमीशन राशि आपके Go Wallet बैलेंस में स्वतः क्रेडिट होती है, जिसका उपयोग आप नई टिकटें बुक करने में कर सकते हैं।
-                  </p>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Wallet Recharges & History Table */}
-            <div className="p-5 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-4">
-              <h3 className="font-black text-sm text-white flex items-center gap-2">
-                <Clock className="w-4 h-4 text-cyan-400" />
-                <span>Go Wallet रीचार्ज अनुरोध इतिहास (Recharge Logs)</span>
-              </h3>
-
-              {agentWalletRecharges.length === 0 ? (
-                <div className="p-8 text-center text-slate-500 space-y-2">
-                  <Wallet className="w-8 h-8 mx-auto text-slate-600 opacity-60" />
-                  <p className="text-xs">कोई रीचार्ज अनुरोध रिकॉर्ड मौजूद नहीं है।</p>
-                </div>
-              ) : (
-                <div className="space-y-2.5">
-                  {agentWalletRecharges.map((r) => (
-                    <div
-                      key={r.id}
-                      className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 flex items-center justify-between gap-3 text-xs"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                            r.status === 'approved'
-                              ? 'bg-emerald-500/20 text-emerald-400'
-                              : r.status === 'rejected'
-                              ? 'bg-rose-500/20 text-rose-400'
-                              : 'bg-amber-500/20 text-amber-400'
-                          }`}
-                        >
-                          <ArrowDownLeft className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <strong className="text-white font-mono">UTR: {r.utr_number}</strong>
-                            <span
-                              className={`text-[10px] font-bold px-2 py-0.2 rounded-full ${
-                                r.status === 'approved'
-                                  ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/40'
-                                  : r.status === 'rejected'
-                                  ? 'bg-rose-950 text-rose-400 border border-rose-500/40'
-                                  : 'bg-amber-950 text-amber-400 border border-amber-500/40'
-                              }`}
-                            >
-                              {r.status === 'approved' ? 'स्वीकृत' : r.status === 'rejected' ? 'अस्वीकृत' : 'समीक्षाधीन (10m)'}
-                            </span>
-                          </div>
-                          <span className="text-[11px] text-slate-400">
-                            {new Date(r.created_at).toLocaleString('en-IN')}
-                          </span>
-                        </div>
-                      </div>
-
-                      <strong className="text-sm font-black text-emerald-400 font-mono">
-                        +₹{Number(r.amount).toLocaleString('en-IN')}
-                      </strong>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-          </div>
-        )}
-
-        {/* ============================================================ */}
-        {/* 4. TAB: 👤 GO ACCOUNT & GO KYC VERIFICATION                  */}
-        {/* ============================================================ */}
-        {activeTab === 'account' && (
-          <div className="space-y-6 animate-fadeIn">
-            
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-black text-white flex items-center gap-2">
-                  <User className="w-5 h-5 text-amber-400" />
-                  <span>Go Account एवं अधिकृत Go KYC सत्यापन</span>
-                </h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  आधार कार्ड, पैन कार्ड एवं बैंक खाता सत्यापन — 100% प्रोफेशनल GO यूजर प्रोफाइल
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  logout();
-                  if (onNavigateHome) {
-                    onNavigateHome();
-                  } else {
-                    window.location.href = '/';
-                  }
-                }}
-                className="py-2 px-3.5 rounded-xl bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-rose-200 border border-slate-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>लॉगआउट करें (Sign Out)</span>
-              </button>
-            </div>
-
-            {/* Account Sub-Navigation Switcher */}
-            <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-2xl">
-              <button
-                type="button"
-                onClick={() => setAccountSubTab('profile')}
-                className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer ${
-                  accountSubTab === 'profile'
-                    ? 'bg-amber-400 text-slate-950 font-black shadow-md'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                }`}
-              >
-                <span>👤 माई प्रोफाइल (Profile)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setAccountSubTab('tickets')}
-                className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer ${
-                  accountSubTab === 'tickets'
-                    ? 'bg-amber-400 text-slate-950 font-black shadow-md'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                }`}
-              >
-                <span>🎫 टिकट व सहायता (24h SLA)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setAccountSubTab('history')}
-                className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer ${
-                  accountSubTab === 'history'
-                    ? 'bg-amber-400 text-slate-950 font-black shadow-md'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                }`}
-              >
-                <span>📊 ऐड मनी हिस्ट्री व 3m टाइमर</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setAccountSubTab('refer')}
-                className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer ${
-                  accountSubTab === 'refer'
-                    ? 'bg-amber-400 text-slate-950 font-black shadow-md'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                }`}
-              >
-                <span>🎁 Refer & Earn (₹100)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setAccountSubTab('kyc')}
-                className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer ${
-                  accountSubTab === 'kyc'
-                    ? 'bg-amber-400 text-slate-950 font-black shadow-md'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                }`}
-              >
-                <span>🛡️ Go KYC सत्यापन</span>
-              </button>
-            </div>
-
-            {/* TAB: GO AGENT PROFILE (PHOTO UPLOAD, EDITABLE DETAILS & LOCKED CONTACTS) */}
-            {accountSubTab === 'profile' && (
-              <div className="space-y-6 animate-fadeIn">
-                {/* Profile Digital ID Card with SPECIAL HUGE GREEN TICK */}
-                <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-2 border-amber-400/60 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                  <div className="flex items-center gap-4">
-                    <div className="relative">
-                      {profileAvatarUrl ? (
-                        <img
-                          src={profileAvatarUrl}
-                          alt="Agent Profile"
-                          className="w-20 h-20 rounded-2xl object-cover border-2 border-amber-400 shadow-lg"
-                        />
-                      ) : (
-                        <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-amber-400 via-orange-500 to-cyan-400 text-slate-950 font-black text-3xl flex items-center justify-center shadow-lg shrink-0">
-                          {currentUser?.full_name?.charAt(0) || 'G'}
-                        </div>
-                      )}
-                      <label className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 flex items-center justify-center cursor-pointer shadow-md transition">
-                        <Camera className="w-4 h-4" />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleProfilePicUpload}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-
-                    <div className="space-y-1 text-left">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-xl font-black text-white">
-                          {currentUser?.full_name || 'GO Special Agent'}
-                        </h3>
-                        <span className="text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full">
-                          GO AGENT
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-300">
-                        दुकान / केंद्र: <strong className="text-white">{currentUser?.shop_name || 'डिजिटल सेवा केंद्र'}</strong>
-                      </p>
-                      <p className="text-xs text-slate-400 font-mono">
-                        {currentUser?.city}, {currentUser?.district}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Special Huge Green Tick Badge in Profile */}
-                  {isKycVerified ? (
-                    <div className="p-4 rounded-2xl bg-emerald-950/80 border-2 border-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.4)] flex items-center gap-3 shrink-0">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-400 to-teal-300 text-slate-950 flex items-center justify-center shadow-md shrink-0">
-                        <CheckCircle2 className="w-8 h-8 stroke-[3] text-slate-950" />
-                      </div>
-                      <div className="text-left">
-                        <span className="text-xs font-black text-white uppercase block">100% KYC सत्यापित</span>
-                        <span className="text-[10px] font-mono text-emerald-300 block">स्पेशल ग्रीन टिक अधिकृत</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-3 bg-slate-950/80 rounded-2xl border border-slate-800 text-xs text-amber-300 shrink-0 flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-amber-400 animate-spin" />
-                      <span>KYC सत्यापन प्रक्रियाधीन</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Profile Edit Form */}
-                <form onSubmit={handleSaveProfile} className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-5">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                    <div>
-                      <h3 className="text-base font-black text-white flex items-center gap-2">
-                        <User className="w-5 h-5 text-amber-400" />
-                        <span>GO Agent प्रोफाइल विवरण (View & Edit)</span>
-                      </h3>
-                      <p className="text-xs text-slate-400">
-                        आप अपना नाम, दुकान का नाम व पता एडिट कर सकते हैं। मोबाइल नंबर व जीमेल सुरक्षा कारणों से लॉक हैं।
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                    {/* Full Name (Editable) */}
-                    <div>
-                      <label className="block font-bold text-slate-300 mb-1">
-                        एजेंट का पूरा नाम (Full Name) *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={profileName}
-                        onChange={(e) => setProfileName(e.target.value)}
-                        placeholder="आपका पूरा नाम"
-                        className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold outline-none focus:border-amber-400"
-                      />
-                    </div>
-
-                    {/* Shop Name (Editable) */}
-                    <div>
-                      <label className="block font-bold text-slate-300 mb-1">
-                        दुकान / केंद्र का नाम (Shop / CSC Center Name)
-                      </label>
-                      <input
-                        type="text"
-                        value={profileShopName}
-                        onChange={(e) => setProfileShopName(e.target.value)}
-                        placeholder="जैसे: माँ वैष्णो डिजिटल सेवा केंद्र"
-                        className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold outline-none focus:border-amber-400"
-                      />
-                    </div>
-
-                    {/* LOCKED: Mobile Number */}
-                    <div>
-                      <label className="block font-bold text-slate-300 mb-1 flex items-center justify-between">
-                        <span>मोबाइल नंबर (Mobile Number - Locked)</span>
-                        <span className="text-[10px] text-rose-400 font-bold flex items-center gap-1">
-                          <Lock className="w-3 h-3" /> परिवर्तन अनुमत नहीं
-                        </span>
-                      </label>
-                      <div className="relative">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="sm:col-span-2">
+                        <label className="block text-slate-400 text-[11px] font-bold mb-1">
+                          यात्री का पूरा नाम *
+                        </label>
                         <input
                           type="text"
-                          disabled
-                          value={`+91 ${currentUser?.mobile || ''}`}
-                          className="w-full p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-slate-400 font-mono font-bold cursor-not-allowed"
+                          value={passengerName}
+                          onChange={(e) => setPassengerName(e.target.value)}
+                          placeholder="उदा. राहुल शर्मा"
+                          className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                          required
                         />
-                        <div className="absolute right-3 top-3 text-slate-500">
-                          <Lock className="w-4 h-4" />
-                        </div>
                       </div>
-                      <p className="text-[10px] text-slate-500 mt-1">
-                        सुरक्षा कारणों एवं OTP सत्यापन के कारण मोबाइल नंबर बदला नहीं जा सकता।
-                      </p>
-                    </div>
 
-                    {/* LOCKED: Email / Gmail */}
-                    <div>
-                      <label className="block font-bold text-slate-300 mb-1 flex items-center justify-between">
-                        <span>जीमेल / ईमेल (Gmail - Locked)</span>
-                        <span className="text-[10px] text-rose-400 font-bold flex items-center gap-1">
-                          <Lock className="w-3 h-3" /> परिवर्तन अनुमत नहीं
-                        </span>
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          disabled
-                          value={currentUser?.email || ''}
-                          className="w-full p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-slate-400 font-mono font-bold cursor-not-allowed"
-                        />
-                        <div className="absolute right-3 top-3 text-slate-500">
-                          <Lock className="w-4 h-4" />
-                        </div>
-                      </div>
-                      <p className="text-[10px] text-slate-500 mt-1">
-                        सुरक्षा कारणों एवं प्राथमिक क्रेडेंशियल होने से जीमेल बदला नहीं जा सकता।
-                      </p>
-                    </div>
-
-                    {/* Address (Editable) */}
-                    <div className="sm:col-span-2">
-                      <label className="block font-bold text-slate-300 mb-1">
-                        दुकान / केंद्र का पूरा पता (Complete Address)
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={profileAddress}
-                        onChange={(e) => setProfileAddress(e.target.value)}
-                        placeholder="वार्ड नंबर, मुख्य बाजार, लैंडमार्क, तहसील आदि"
-                        className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-medium outline-none focus:border-amber-400"
-                      />
-                    </div>
-
-                    {/* City (Editable) */}
-                    <div>
-                      <label className="block font-bold text-slate-300 mb-1">
-                        शहर / कस्बा (City / Town)
-                      </label>
-                      <input
-                        type="text"
-                        value={profileCity}
-                        onChange={(e) => setProfileCity(e.target.value)}
-                        placeholder="जैसे: सिरोंज, विदिशा, भोपाल"
-                        className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-medium outline-none focus:border-amber-400"
-                      />
-                    </div>
-
-                    {/* District (Editable) */}
-                    <div>
-                      <label className="block font-bold text-slate-300 mb-1">
-                        जिला (District)
-                      </label>
-                      <input
-                        type="text"
-                        value={profileDistrict}
-                        onChange={(e) => setProfileDistrict(e.target.value)}
-                        placeholder="जैसे: विदिशा, भोपाल, इंदौर"
-                        className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-medium outline-none focus:border-amber-400"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Profile Photo Uploader */}
-                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      {profileAvatarUrl ? (
-                        <img
-                          src={profileAvatarUrl}
-                          alt="Avatar"
-                          className="w-12 h-12 rounded-xl object-cover border border-amber-400"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400">
-                          <User className="w-6 h-6" />
-                        </div>
-                      )}
                       <div>
-                        <span className="text-xs font-bold text-white block">प्रोफाइल फोटो अपलोड करें</span>
-                        <span className="text-[10px] text-slate-400">JPG, PNG (अधिकतम 5MB)</span>
+                        <label className="block text-slate-400 text-[11px] font-bold mb-1">
+                          उम्र (Age) *
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="120"
+                          value={passengerAge}
+                          onChange={(e) => setPassengerAge(e.target.value)}
+                          className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                          required
+                        />
                       </div>
                     </div>
 
-                    <label className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-xl transition border border-amber-400/30 cursor-pointer flex items-center gap-1.5">
-                      <Camera className="w-3.5 h-3.5" />
-                      <span>फोटो चुनें (Change Photo)</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleProfilePicUpload}
-                        className="hidden"
-                      />
-                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-slate-400 text-[11px] font-bold mb-1">
+                          यात्री का मोबाइल नंबर (WhatsApp Ticket) *
+                        </label>
+                        <input
+                          type="tel"
+                          maxLength={10}
+                          value={passengerMobile}
+                          onChange={(e) => setPassengerMobile(e.target.value.replace(/\D/g, ''))}
+                          placeholder="10-अंकीय मोबाइल नंबर"
+                          className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400 font-mono"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-400 text-[11px] font-bold mb-1">
+                          सीटों की संख्या (Seats) *
+                        </label>
+                        <select
+                          value={selectedSeatCount}
+                          onChange={(e) => setSelectedSeatCount(parseInt(e.target.value) || 1)}
+                          className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400 font-bold"
+                        >
+                          <option value={1}>1 सीट</option>
+                          <option value={2}>2 सीटें</option>
+                          <option value={3}>3 सीटें</option>
+                          <option value={4}>4 सीटें</option>
+                          <option value={5}>5 सीटें</option>
+                          <option value={6}>6 सीटें</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="pt-2 flex justify-end">
-                    <button
-                      type="submit"
-                      disabled={isSavingProfile}
-                      className="w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs shadow-lg transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                    >
-                      <Save className="w-4 h-4" />
-                      <span>{isSavingProfile ? 'सेव हो रहा है...' : 'प्रोफाइल सेव करें (Save Changes)'}</span>
-                    </button>
+                  {/* Fare & Commission Summary Banner */}
+                  <div className="p-4 bg-gradient-to-r from-emerald-950/70 via-slate-900 to-amber-950/70 rounded-2xl border border-emerald-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block">कुल टिकट किराया</span>
+                      <span className="text-2xl font-black text-white font-mono">
+                        ₹{(baseFarePerSeat * selectedSeatCount).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[10px] text-slate-400 block">आपकी शुद्ध कमाई (Commission)</span>
+                      <span className="text-lg font-black text-amber-400 font-mono">
+                        +₹20.00 नकद
+                      </span>
+                    </div>
                   </div>
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={isSubmittingBooking}
+                    className="w-full py-4 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black rounded-2xl text-sm shadow-xl transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <Bus className="w-5 h-5" />
+                    <span>
+                      {isSubmittingBooking
+                        ? 'बुकिंग सबमिट हो रही है...'
+                        : `कन्फर्म बुकिंग सबमिट करें (₹${(baseFarePerSeat * selectedSeatCount).toLocaleString('en-IN')})`}
+                    </span>
+                  </button>
+
                 </form>
               </div>
             )}
 
-            {/* TAB: REFER & EARN ₹100 DESK */}
-            {accountSubTab === 'refer' && (
-              <div className="animate-fadeIn">
-                <ReferAndEarn />
-              </div>
-            )}
-
-            {/* TAB: SUPPORT TICKETS & HELPDESK (24-Hour SLA) */}
-            {accountSubTab === 'tickets' && (
-              <div className="animate-fadeIn">
-                <GoAgentSupportDesk />
-              </div>
-            )}
-
-            {/* TAB: ADD MONEY HISTORY & 3-MINUTE TIMERS */}
-            {accountSubTab === 'history' && (
-              <div className="animate-fadeIn">
-                <GoAccountHistoryDesk />
-              </div>
-            )}
-
-            {/* TAB: KYC & PROFILE DETAILS */}
-            {accountSubTab === 'kyc' && (
-              <div className="space-y-6 animate-fadeIn">
-                {/* Profile Digital ID Card */}
-                <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-2 border-amber-400/60 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-400 via-orange-500 to-cyan-400 text-slate-950 font-black text-2xl flex items-center justify-center shadow-lg shrink-0">
-                  {currentUser?.full_name?.charAt(0) || 'G'}
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-black text-white">
-                      {currentUser?.full_name || 'GO Special Agent'}
-                    </h3>
-                    <span className="text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 px-2 py-0.2 rounded-full">
-                      GO AGENT
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-300">
-                    दुकान / केंद्र: <strong className="text-white">{currentUser?.shop_name || 'डिजिटल सेवा केंद्र'}</strong>
-                  </p>
-                  <p className="text-xs text-slate-400">
-                    {currentUser?.email} • +91 {currentUser?.mobile} • {currentUser?.city}, {currentUser?.district}
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-3 bg-slate-950/80 rounded-2xl border border-slate-800 text-xs space-y-1 text-right shrink-0">
-                <span className="text-[10px] text-slate-400 block">सत्यापन स्थिति</span>
-                {currentUser?.kyc_status === 'verified' ? (
-                  <span className="text-emerald-400 font-black flex items-center justify-end gap-1">
-                    <CheckCircle2 className="w-4 h-4" /> 100% KYC सत्यापित
-                  </span>
-                ) : currentUser?.kyc_status === 'pending' ? (
-                  <span className="text-amber-400 font-bold flex items-center justify-end gap-1">
-                    <Clock className="w-4 h-4" /> सत्यापन समीक्षाधीन
-                  </span>
-                ) : (
-                  <span className="text-rose-400 font-bold flex items-center justify-end gap-1">
-                    <AlertCircle className="w-4 h-4" /> KYC अधूरा (जमा करें)
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Go KYC Verification Module */}
-            <div className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-5">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <h3 className="text-base font-black text-white flex items-center gap-2">
-                    <ShieldCheck className="w-5 h-5 text-amber-400" />
-                    <span>Go KYC सत्यापन फॉर्म (Aadhaar, PAN & Bank Desk)</span>
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    GO यूजर्स के लिए आधिकारिक सत्यापन अनिवार्य है ताकि पेआउट्स एवं वॉलेट निकासी में कोई रुकावट न आए।
-                  </p>
-                </div>
-              </div>
-
-              <form onSubmit={handleKycSubmit} className="space-y-4 text-xs">
-                
-                {/* Aadhaar & PAN Card inputs */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block font-bold text-slate-300 mb-1">
-                      12-अंकीय आधार कार्ड नंबर (Aadhaar Number) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      maxLength={12}
-                      value={aadhaarNumber}
-                      onChange={(e) => setAadhaarNumber(e.target.value.replace(/\D/g, ''))}
-                      placeholder="XXXX XXXX XXXX"
-                      className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono focus:border-amber-400 outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-300 mb-1">
-                      10-अंकीय पैन कार्ड नंबर (PAN Number) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      maxLength={10}
-                      value={panNumber}
-                      onChange={(e) => setPanNumber(e.target.value.toUpperCase())}
-                      placeholder="ABCDE1234F"
-                      className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono uppercase focus:border-amber-400 outline-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Bank Account Details */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block font-bold text-slate-300 mb-1">
-                      बैंक खाता धारक का नाम (Account Holder Name) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={bankHolder}
-                      onChange={(e) => setBankHolder(e.target.value)}
-                      placeholder="उदा. पवन कुमार"
-                      className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white focus:border-amber-400 outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-300 mb-1">
-                      बैंक का नाम (Bank Name) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={bankName}
-                      onChange={(e) => setBankName(e.target.value)}
-                      placeholder="उदा. State Bank of India / HDFC"
-                      className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white focus:border-amber-400 outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block font-bold text-slate-300 mb-1">
-                      बैंक खाता संख्या (Account Number) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={bankAccount}
-                      onChange={(e) => setBankAccount(e.target.value.replace(/\D/g, ''))}
-                      placeholder="खाता नंबर दर्ज करें"
-                      className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono focus:border-amber-400 outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-300 mb-1">
-                      खाता संख्या पुनः दर्ज करें (Confirm Account Number) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={confirmBankAccount}
-                      onChange={(e) => setConfirmBankAccount(e.target.value.replace(/\D/g, ''))}
-                      placeholder="पुनः खाता नंबर दर्ज करें"
-                      className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono focus:border-amber-400 outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-300 mb-1">
-                    IFSC कोड (Bank IFSC Code) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={11}
-                    value={bankIfsc}
-                    onChange={(e) => setBankIfsc(e.target.value.toUpperCase())}
-                    placeholder="उदा. SBIN0001234"
-                    className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono uppercase focus:border-amber-400 outline-none"
-                  />
-                </div>
-
-                {/* Upload Buttons */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                  <div className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 space-y-2">
-                    <span className="font-bold text-slate-300 block">आधार कार्ड फोटो अपलोड</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleKycFileUpload(e, 'aadhaar')}
-                      className="text-xs text-slate-400"
-                    />
-                    {aadhaarFrontUrl && (
-                      <span className="text-[10px] text-emerald-400 font-bold block">✓ आधार फोटो संलग्न</span>
-                    )}
-                  </div>
-
-                  <div className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 space-y-2">
-                    <span className="font-bold text-slate-300 block">पैन कार्ड फोटो अपलोड</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleKycFileUpload(e, 'pan')}
-                      className="text-xs text-slate-400"
-                    />
-                    {panCardUrl && (
-                      <span className="text-[10px] text-emerald-400 font-bold block">✓ पैन कार्ड फोटो संलग्न</span>
-                    )}
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSubmittingKyc}
-                  className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 text-slate-950 font-black rounded-xl shadow-lg transition active:scale-98 disabled:opacity-50 text-xs flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Send className="w-4 h-4 text-slate-950" />
-                  <span>{isSubmittingKyc ? 'KYC सत्यापन भेजा जा रहा है...' : 'Go KYC सत्यापन अनुरोध भेजें ➔'}</span>
-                </button>
-              </form>
-            </div>
           </div>
         )}
 
-      </div>
-    )}
+        {/* ============================================================ */}
+        {/* TAB 3: 📜 HISTORY (माई टिकट्स व हिस्ट्री)                    */}
+        {/* ============================================================ */}
+        {activeTab === 'history' && (
+          <div className="space-y-6 animate-fadeIn">
+            
+            {/* Header & Filter Bar */}
+            <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-amber-400" />
+                    <span>बुकिंग हिस्ट्री व टिकट्स (Booking History)</span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    आपकी सभी बस टिकटों की लाइव स्थिति, PNR एवं WhatsApp टिकट प्रेषण
+                  </p>
+                </div>
+                <span className="text-xs font-bold text-slate-400 font-mono">
+                  कुल टिकटें: {myGoBookings.length}
+                </span>
+              </div>
+
+              {/* 4 Core Filter Buttons: All, Pending, Confirmed, Cancelled */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setHistoryFilter('all')}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    historyFilter === 'all'
+                      ? 'bg-amber-400 text-slate-950 font-black shadow-md'
+                      : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  <span>सभी (All)</span>
+                  <span className="text-[10px] opacity-80">({myGoBookings.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setHistoryFilter('pending')}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    historyFilter === 'pending'
+                      ? 'bg-amber-400 text-slate-950 font-black shadow-md'
+                      : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>प्रतीक्षारत (Pending)</span>
+                  <span className="text-[10px] opacity-80">
+                    ({myGoBookings.filter((b) => b.status !== 'confirmed' && b.status !== 'cancelled' && b.status !== 'refund_processed').length})
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setHistoryFilter('confirmed')}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    historyFilter === 'confirmed'
+                      ? 'bg-emerald-400 text-slate-950 font-black shadow-md'
+                      : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>कन्फर्म (Confirmed)</span>
+                  <span className="text-[10px] opacity-80">({confirmedCount})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setHistoryFilter('cancelled')}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    historyFilter === 'cancelled'
+                      ? 'bg-rose-500 text-white font-black shadow-md'
+                      : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>रद्द (Cancelled)</span>
+                  <span className="text-[10px] opacity-80">
+                    ({myGoBookings.filter((b) => b.status === 'cancelled' || b.status === 'cancellation_requested' || b.status === 'refund_processed').length})
+                  </span>
+                </button>
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                <input
+                  type="text"
+                  value={historySearchTerm}
+                  onChange={(e) => setHistorySearchTerm(e.target.value)}
+                  placeholder="PNR, यात्री का नाम, मोबाइल या शहर से खोजें..."
+                  className="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                />
+              </div>
+            </div>
+
+            {/* Bookings List */}
+            {filteredHistoryBookings.length === 0 ? (
+              <div className="p-12 text-center text-slate-500 space-y-3 bg-slate-900/50 rounded-3xl border border-slate-800">
+                <Bus className="w-12 h-12 mx-auto text-slate-600 opacity-50" />
+                <p className="text-sm font-bold text-slate-400">कोई टिकट नहीं मिली।</p>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('booking')}
+                  className="py-2.5 px-4 bg-amber-400 text-slate-950 font-black rounded-xl text-xs cursor-pointer inline-block"
+                >
+                  नई बस टिकट बुक करें ➔
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredHistoryBookings.map((b) => (
+                  <div
+                    key={b.id}
+                    className="p-4 sm:p-5 rounded-2xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition space-y-3"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <strong className="text-white text-sm font-mono">{b.booking_code}</strong>
+                          {b.status === 'confirmed' ? (
+                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-500/40 text-[10px] font-black">
+                              PNR: {b.ticket_pnr || 'OK'} ✓
+                            </span>
+                          ) : b.status === 'cancelled' || b.status === 'refund_processed' ? (
+                            <span className="px-2.5 py-0.5 rounded-full bg-rose-950 text-rose-400 border border-rose-500/40 text-[10px] font-black">
+                              रद्द / रिफंड
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-500/40 text-[10px] font-black flex items-center gap-1">
+                              <Clock className="w-3 h-3 animate-spin" />
+                              सत्यापन प्रक्रियाधीन
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-300 font-bold mt-1">
+                          {getBookingRoute(b).from} ➔ {getBookingRoute(b).to} • यात्रा: {b.journey_date}
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-lg font-black text-white font-mono block">
+                          ₹{getBookingFare(b).toLocaleString('en-IN')}
+                        </span>
+                        <span className="text-[10px] font-bold text-amber-400">+₹20 कमीशन</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-400">
+                      <div>
+                        यात्री: <strong className="text-white">{b.customer_name}</strong> (+91 {b.customer_mobile}) • सीट: <span className="text-emerald-400 font-mono font-bold">{getBookingSeats(b)}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {b.status === 'confirmed' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const msg = getWhatsAppTicketMessage(b);
+                              window.open(`https://wa.me/91${b.customer_mobile}?text=${encodeURIComponent(msg)}`, '_blank');
+                            }}
+                            className="py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            <span>WhatsApp पर भेजें</span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPrintBooking(b)}
+                          className="py-1.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                          <span>प्रिंट</span>
+                        </button>
+
+                        {b.status === 'confirmed' && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedGreenCardBooking(b)}
+                            className="py-1.5 px-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+                          >
+                            <span>ग्रीन कार्ड</span>
+                          </button>
+                        )}
+
+                        {b.status === 'confirmed' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setUberDefaultDestination(`${getBookingRoute(b).to} Bus Stand`);
+                              setIsUberModalOpen(true);
+                            }}
+                            className="py-1.5 px-3 rounded-xl bg-black hover:bg-slate-800 border border-slate-700 text-white font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+                            title="यात्री के लिए Uber कैब/ऑटो राइड लिंक"
+                          >
+                            <Car className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Uber राइड</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+          </div>
+        )}
+
+        {/* ============================================================ */}
+        {/* TAB 4: 👤 ACCOUNT (प्रोफाइल, KYC 24H LOCK & REFER & EARN)    */}
+        {/* ============================================================ */}
+        {activeTab === 'account' && (
+          <div className="space-y-6 animate-fadeIn">
+            
+            {/* 1. AGENT PROFILE & EDIT FORM */}
+            <div className="p-5 sm:p-7 rounded-3xl bg-slate-900 border border-slate-800 space-y-6">
+              
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <img
+                      src={profileAvatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'}
+                      alt="Avatar"
+                      className="w-16 h-16 rounded-2xl object-cover border-2 border-amber-400"
+                    />
+                    <label className="absolute -bottom-1 -right-1 p-1.5 bg-amber-400 text-slate-950 rounded-lg cursor-pointer shadow hover:bg-amber-300">
+                      <Camera className="w-3.5 h-3.5" />
+                      <input type="file" accept="image/*" className="hidden" onChange={handleProfilePicUpload} />
+                    </label>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-white">{currentUser?.full_name || 'GO एजेंट'}</h3>
+                    <p className="text-xs text-slate-400">{currentUser?.shop_name || 'अधिकृत केंद्र'} • ID: {currentUser?.id?.slice(-6).toUpperCase()}</p>
+                    <span className="text-[10px] text-emerald-400 font-bold block mt-0.5">अधिकृत GO एजेंट नेटवर्क</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {currentUser?.kyc_status === 'verified' ? (
+                    <span className="px-3 py-1 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-500/40 text-xs font-bold flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> KYC सत्यापित
+                    </span>
+                  ) : currentUser?.kyc_status === 'pending' ? (
+                    <span className="px-3 py-1 rounded-full bg-amber-950 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5" /> KYC समीक्षाधीन (24h)
+                    </span>
+                  ) : (
+                    <span className="px-3 py-1 rounded-full bg-rose-950 text-rose-400 border border-rose-500/40 text-xs font-bold">
+                      KYC लंबित
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Profile Edit Form */}
+              <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-400 font-bold mb-1">पूरा नाम (Full Name) *</label>
+                    <input
+                      type="text"
+                      value={profileName}
+                      onChange={(e) => setProfileName(e.target.value)}
+                      className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 font-bold mb-1">दुकान / केंद्र का नाम (Shop Name)</label>
+                    <input
+                      type="text"
+                      value={profileShopName}
+                      onChange={(e) => setProfileShopName(e.target.value)}
+                      className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-slate-400 font-bold mb-1">पता (Address)</label>
+                    <input
+                      type="text"
+                      value={profileAddress}
+                      onChange={(e) => setProfileAddress(e.target.value)}
+                      className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 font-bold mb-1">शहर (City)</label>
+                    <input
+                      type="text"
+                      value={profileCity}
+                      onChange={(e) => setProfileCity(e.target.value)}
+                      className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 font-bold mb-1">जिला (District)</label>
+                    <input
+                      type="text"
+                      value={profileDistrict}
+                      onChange={(e) => setProfileDistrict(e.target.value)}
+                      className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Read-only Mobile & Email */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  <div>
+                    <label className="block text-slate-500 font-bold mb-1">पंजीकृत मोबाइल (सुरक्षित)</label>
+                    <input
+                      type="text"
+                      disabled
+                      value={currentUser?.mobile || ''}
+                      className="w-full p-2.5 bg-slate-950/50 border border-slate-800 rounded-xl text-slate-400 text-xs cursor-not-allowed font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-500 font-bold mb-1">पंजीकृत ईमेल (सुरक्षित)</label>
+                    <input
+                      type="text"
+                      disabled
+                      value={currentUser?.email || ''}
+                      className="w-full p-2.5 bg-slate-950/50 border border-slate-800 rounded-xl text-slate-400 text-xs cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="submit"
+                    disabled={isSavingProfile}
+                    className="py-2.5 px-6 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>{isSavingProfile ? 'सेव हो रहा है...' : 'प्रोफाइल सेव करें'}</span>
+                  </button>
+                </div>
+              </form>
+
+            </div>
+
+            {/* 2. KYC VERIFICATION SECTION */}
+            <div className="p-5 sm:p-7 rounded-3xl bg-slate-900 border border-slate-800 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-amber-400" />
+                  <h3 className="text-base sm:text-lg font-black text-white">KYC सत्यापन डेस्क</h3>
+                </div>
+                <span className="text-xs text-slate-400">सुरक्षा मानक • 24 घंटे में अप्रूवल</span>
+              </div>
+
+              {/* CASE A: KYC SUBMITTED & PENDING (User CANNOT edit or view upload form again) */}
+              {currentUser?.kyc_status === 'pending' ? (
+                <div className="p-6 rounded-2xl bg-gradient-to-br from-amber-950/60 via-slate-950 to-slate-900 border-2 border-amber-400 text-center space-y-4 animate-fadeIn">
+                  <div className="w-14 h-14 rounded-full bg-amber-400/20 border-2 border-amber-400 text-amber-300 mx-auto flex items-center justify-center animate-pulse">
+                    <Clock className="w-7 h-7" />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950">
+                      KYC VERIFICATION PENDING (24 HOURS)
+                    </span>
+                    <h4 className="text-lg font-black text-white pt-2">
+                      KYC सत्यापन प्रक्रियाधीन (24 घंटे का समय)
+                    </h4>
+                    <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
+                      आपके आधार कार्ड एवं पैन कार्ड के विवरण सुरक्षित रूप से हमारे सत्यापन डेस्क को प्राप्त हो चुके हैं। SafarGo एडमिन डेस्क द्वारा 24 घंटे के भीतर आपका सत्यापन पूर्ण कर दिया जाएगा।
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-slate-950/80 rounded-xl border border-amber-500/30 text-[11px] text-amber-300/90 max-w-sm mx-auto">
+                    🔒 सुरक्षा कारणों से सबमिट किए गए दस्तावेजों में परिवर्तन लॉक कर दिया गया है।
+                  </div>
+                </div>
+              ) : currentUser?.kyc_status === 'verified' ? (
+                /* CASE B: KYC VERIFIED */
+                <div className="p-6 rounded-2xl bg-gradient-to-br from-emerald-950/70 via-slate-950 to-teal-950 border-2 border-emerald-400 text-center space-y-3 animate-fadeIn">
+                  <div className="w-14 h-14 rounded-full bg-emerald-400 text-slate-950 mx-auto flex items-center justify-center font-black shadow-[0_0_20px_#10b981]">
+                    <CheckCircle2 className="w-8 h-8" />
+                  </div>
+                  <h4 className="text-lg font-black text-white">100% KYC सत्यापित अधिकृत GO एजेंट</h4>
+                  <p className="text-xs text-emerald-300">
+                    आपका खाता पूरी तरह सत्यापित है। सभी साप्ताहिक पेआउट्स व लाइव बस टिकटिंग सक्रिय हैं।
+                  </p>
+                </div>
+              ) : (
+                /* CASE C: KYC NOT SUBMITTED (Show Form) */
+                <form onSubmit={handleKycSubmit} className="space-y-4 text-xs">
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/40 rounded-xl text-xs text-amber-300">
+                    कृपया अपना 12-अंकीय आधार कार्ड एवं 10-अंकीय पैन कार्ड दर्ज करें। सबमिट करने के बाद 24 घंटे के अंदर एडमिन द्वारा सत्यापन पूरा किया जाएगा।
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-slate-400 font-bold mb-1">आधार कार्ड नंबर (12 अंक) *</label>
+                      <input
+                        type="text"
+                        maxLength={12}
+                        value={kycAadhaar}
+                        onChange={(e) => setKycAadhaar(e.target.value.replace(/\D/g, ''))}
+                        placeholder="1234 5678 9012"
+                        className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400 font-mono"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 font-bold mb-1">पैन कार्ड नंबर (10 अक्षर/अंक) *</label>
+                      <input
+                        type="text"
+                        maxLength={10}
+                        value={kycPan}
+                        onChange={(e) => setKycPan(e.target.value.toUpperCase())}
+                        placeholder="ABCDE1234F"
+                        className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400 font-mono uppercase"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmittingKyc}
+                    className="w-full py-3 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>{isSubmittingKyc ? 'सबमिट हो रहा है...' : 'KYC सत्यापन हेतु सबमिट करें (24-Hour SLA)'}</span>
+                  </button>
+                </form>
+              )}
+
+            </div>
+
+            {/* 3. REFER & EARN ₹100 PER 5 BOOKINGS (At bottom of Account Tab) */}
+            <div className="p-6 rounded-3xl bg-gradient-to-r from-indigo-950 via-slate-900 to-purple-950 border-2 border-indigo-400/80 shadow-2xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500 text-white">
+                    REFER & EARN ₹100
+                  </span>
+                  <h3 className="text-lg font-black text-white">
+                    साथी एजेंटों को जोड़ें और कमाएं ₹100 सीधा कैश
+                  </h3>
+                  <p className="text-xs text-slate-300 max-w-lg leading-relaxed">
+                    अपने रेफरल लिंक से नए बस एजेंटों या दुकानदारों को जोड़ें। आपके रेफर किए गए एजेंट की पहली <strong>5 सफल बुकिंग</strong> होते ही आपको ₹100 का नकद बोनस सीधे Go Wallet में प्राप्त होगा!
+                  </p>
+                </div>
+
+                <div className="bg-slate-950/90 border border-indigo-500/40 rounded-2xl p-4 text-center shrink-0">
+                  <span className="text-[10px] text-slate-400 font-bold block">रेफरल कोड</span>
+                  <span className="text-xl font-black text-amber-400 font-mono">
+                    {currentUser?.referral_code || `GO${currentUser?.mobile?.slice(-4) || '2026'}`}
+                  </span>
+                </div>
+              </div>
+
+              {/* WhatsApp Share Button */}
+              <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const refCode = currentUser?.referral_code || `GO${currentUser?.mobile?.slice(-4) || '2026'}`;
+                    const shareText = `नमस्ते! SafarGo GO Agent नेटवर्क से जुड़ें और बस टिकट बुकिंग पर तुरंत ₹20 कमीशन व साप्ताहिक पेआउट पाएं। मेरा रेफरल कोड है: ${refCode}। अभी रजिस्टर करें: https://safargo.in/`;
+                    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+                  }}
+                  className="w-full sm:w-auto py-3 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-lg transition flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>WhatsApp पर रेफरल लिंक भेजें</span>
+                </button>
+
+                <span className="text-[11px] text-slate-400 text-center sm:text-left">
+                  प्रत्येक 5 बुकिंग पर ₹100 स्वतः Go Wallet में जुड़ता है।
+                </span>
+              </div>
+            </div>
+
+          </div>
+        )}
 
       </main>
 
       {/* ============================================================== */}
-      {/* 5 EXCLUSIVE BOTTOM NAVIGATION OPTIONS (WITH 3D GO ANIMATION)    */}
+      {/* 4 EXCLUSIVE BOTTOM NAVIGATION OPTIONS                          */}
       {/* ============================================================== */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/95 backdrop-blur-xl border-t-2 border-amber-400/60 shadow-[0_-10px_25px_rgba(0,0,0,0.5)] py-2 px-2 sm:px-6">
-        <div className="max-w-lg mx-auto grid grid-cols-5 gap-1 text-center items-center">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/95 backdrop-blur-xl border-t-2 border-amber-400/60 shadow-[0_-10px_25px_rgba(0,0,0,0.6)] py-2 px-3 sm:px-6">
+        <div className="max-w-md mx-auto grid grid-cols-4 gap-2 text-center items-center">
           
-          {/* Option 1: ⚡ Dashboard */}
+          {/* Option 1: Dashboard */}
           <button
             type="button"
             onClick={() => setActiveTab('dashboard')}
-            className={`flex flex-col items-center justify-center py-1 rounded-2xl transition cursor-pointer ${
+            className={`flex flex-col items-center justify-center py-1.5 rounded-2xl transition cursor-pointer ${
               activeTab === 'dashboard'
                 ? 'text-amber-400 font-black bg-amber-400/15'
                 : 'text-slate-400 hover:text-white font-bold'
@@ -2417,137 +1765,62 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
             <span className="text-[10px]">डैशबोर्ड</span>
           </button>
 
-          {/* Option 2: 🚀 3D "GO" Animated New Bus Booking */}
+          {/* Option 2: Booking (5-Min Timer & Fast Track) */}
           <button
             type="button"
-            onClick={() => {
-              setActiveTab('bookings');
-              setBookingSubTab('auto_book');
-            }}
-            className={`relative flex flex-col items-center justify-center py-1 px-0.5 rounded-2xl transition cursor-pointer group active:scale-95 ${
-              activeTab === 'bookings' && bookingSubTab === 'auto_book'
-                ? 'text-amber-300 font-black bg-gradient-to-t from-amber-500/25 via-amber-400/15 to-transparent border border-amber-400/80 shadow-[0_0_20px_rgba(245,158,11,0.4)]'
-                : 'text-amber-400 hover:text-amber-300 font-extrabold hover:bg-slate-900'
-            }`}
-            title="⚡ नई GO बस बुकिंग — ₹20 कमीशन प्रति टिकट"
-          >
-            <div className="relative transform group-hover:scale-115 transition-transform duration-300 animate-pulse">
-              <Go3DUltraLogo size="sm" showBadge={false} interactive={false} />
-            </div>
-            <span className="text-[9px] sm:text-[10px] font-black text-amber-300 truncate tracking-tight">
-              नई बस बुकिंग
-            </span>
-          </button>
-
-          {/* Option 3: 🎫 Bookings & Refund */}
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('bookings');
-              setBookingSubTab('history');
-            }}
-            className={`flex flex-col items-center justify-center py-1 rounded-2xl transition cursor-pointer ${
-              activeTab === 'bookings' && bookingSubTab === 'history'
+            onClick={() => setActiveTab('booking')}
+            className={`flex flex-col items-center justify-center py-1.5 rounded-2xl transition cursor-pointer ${
+              activeTab === 'booking'
                 ? 'text-amber-400 font-black bg-amber-400/15'
                 : 'text-slate-400 hover:text-white font-bold'
             }`}
           >
             <Bus className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px]">माई टिकट्स</span>
+            <span className="text-[10px]">बुकिंग</span>
           </button>
 
-          {/* Option 4: 💳 Go Wallet */}
+          {/* Option 3: History (Filtered Bookings) */}
           <button
             type="button"
-            onClick={() => setActiveTab('wallet')}
-            className={`flex flex-col items-center justify-center py-1 rounded-2xl transition cursor-pointer ${
-              activeTab === 'wallet'
+            onClick={() => setActiveTab('history')}
+            className={`flex flex-col items-center justify-center py-1.5 rounded-2xl transition cursor-pointer ${
+              activeTab === 'history'
                 ? 'text-amber-400 font-black bg-amber-400/15'
                 : 'text-slate-400 hover:text-white font-bold'
             }`}
           >
-            <Wallet className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px]">Go Wallet</span>
+            <FileText className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px]">हिस्ट्री</span>
           </button>
 
-          {/* Option 5: 👤 Go Account & KYC */}
+          {/* Option 4: Account (Profile, KYC Lock & Refer) */}
           <button
             type="button"
             onClick={() => setActiveTab('account')}
-            className={`flex flex-col items-center justify-center py-1 rounded-2xl transition cursor-pointer ${
+            className={`flex flex-col items-center justify-center py-1.5 rounded-2xl transition cursor-pointer ${
               activeTab === 'account'
                 ? 'text-amber-400 font-black bg-amber-400/15'
                 : 'text-slate-400 hover:text-white font-bold'
             }`}
           >
             <User className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px]">Go अकाउंट</span>
+            <span className="text-[10px]">अकाउंट</span>
           </button>
 
         </div>
       </nav>
 
-      {/* RedBus Interactive Seat Selection Modal */}
-      {selectedTripForSeatMap && (
-        <RedBusSeatMapModal
-          trip={selectedTripForSeatMap}
-          onClose={() => setSelectedTripForSeatMap(null)}
-          onConfirmSelection={(selection) => {
-            const currentTrip = selectedTripForSeatMap;
-            setSelectedTripForSeatMap(null);
-            setAutoCheckoutData({
-              trip: currentTrip,
-              selectedSeats: selection.selectedSeats,
-              totalFare: selection.totalFare,
-              seatCategory: selection.seatCategory,
-              boardingPoint: selection.boardingPoint,
-              dropPoint: selection.dropPoint,
-            });
-          }}
-        />
+      {/* ============================================================== */}
+      {/* MODALS                                                         */}
+      {/* ============================================================== */}
+      {isWithdrawalModalOpen && (
+        <GoAgentWithdrawalModal onClose={() => setIsWithdrawalModalOpen(false)} />
       )}
 
-      {/* Auto Bus Booking Checkout Modal (With Go Wallet 1-Click Pay & ₹20 Commission Credit) */}
-      {autoCheckoutData && (
-        <AutoBusBookingCheckoutModal
-          isOpen={true}
-          trip={autoCheckoutData.trip}
-          selectedSeats={autoCheckoutData.selectedSeats}
-          totalFare={autoCheckoutData.totalFare}
-          seatCategory={autoCheckoutData.seatCategory}
-          boardingPoint={autoCheckoutData.boardingPoint}
-          dropPoint={autoCheckoutData.dropPoint}
-          onClose={() => setAutoCheckoutData(null)}
-          onBookingSuccess={(booking) => {
-            setAutoCheckoutData(null);
-            setBookingSubTab('history');
-            success(
-              '🎉 GO बस टिकट कन्फर्म!',
-              `PNR ${booking.ticket_pnr || booking.booking_code} जारी हो चुका है। +₹20.00 कमीशन आपके Go Wallet में जुड़ चुका है!`
-            );
-          }}
-        />
-      )}
-
-      {/* Wallet Recharge Modal (With 10-Minute Lock & Strict Warnings) */}
-      {isRechargeModalOpen && (
-        <WalletRechargeModal onClose={() => setIsRechargeModalOpen(false)} />
-      )}
-
-      {/* ⚡ GO Instant Add Money Modal */}
       {isInstantAddMoneyModalOpen && (
         <GoInstantAddMoneyModal onClose={() => setIsInstantAddMoneyModalOpen(false)} />
       )}
 
-      {/* 🏦 GO Agent Advance Withdrawal Modal */}
-      {isWithdrawalModalOpen && (
-        <GoAgentWithdrawalModal
-          initialMode={withdrawalModalMode}
-          onClose={() => setIsWithdrawalModalOpen(false)}
-        />
-      )}
-
-      {/* 🟢 Live Ticket Green Card Modal */}
       {selectedGreenCardBooking && (
         <LiveTicketGreenCard
           booking={selectedGreenCardBooking}
@@ -2555,7 +1828,6 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
         />
       )}
 
-      {/* Print Ticket Modal */}
       {selectedPrintBooking && (
         <PrintTicketModal
           booking={selectedPrintBooking}
@@ -2563,9 +1835,10 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
         />
       )}
 
-      {/* 🛺 Uber Local Ride Assist Modal for Agents */}
+      {/* 🛺 Uber Local Ride Assist Modal */}
       {isUberModalOpen && (
         <UberAgentAssistModal
+          defaultDestination={uberDefaultDestination}
           onClose={() => setIsUberModalOpen(false)}
         />
       )}

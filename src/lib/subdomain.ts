@@ -13,7 +13,7 @@
  * - Session/LocalStorage persistence
  */
 
-export type AppSubdomain = 'main' | 'admin' | 'agent' | 'promoter' | 'shop' | 'creator' | 'careers' | 'login';
+export type AppSubdomain = 'main' | 'admin' | 'agent' | 'promoter' | 'shop' | 'creator' | 'careers' | 'login' | 'help';
 
 export interface SubdomainConfig {
   id: AppSubdomain;
@@ -98,6 +98,15 @@ export const SUBDOMAIN_CONFIGS: Record<AppSubdomain, SubdomainConfig> = {
     subdomainPrefix: 'login',
     themeColor: 'from-amber-400 via-orange-500 to-red-600',
   },
+  help: {
+    id: 'help',
+    title: 'SafarGo 24x7 एजेंट सहायता व समाधान केंद्र',
+    badge: '24h SLA Guarantee',
+    description: '24 घंटे में समाधान गारंटी, लाइव टिकट ट्रैकिंग, वॉलेट व पेआउट सहायता डेस्क',
+    pathFallback: '/help',
+    subdomainPrefix: 'help',
+    themeColor: 'from-blue-600 via-indigo-600 to-slate-900',
+  },
 };
 
 const STORAGE_KEY_CUSTOM_DOMAIN = 'safargo_custom_domain';
@@ -129,14 +138,14 @@ export function detectSubdomain(): AppSubdomain {
   // 1. Priority: URL query parameter for testing (e.g. ?subdomain=admin)
   const searchParams = new URLSearchParams(window.location.search);
   const querySub = searchParams.get('subdomain')?.toLowerCase().trim();
-  if (querySub && ['admin', 'agent', 'promoter', 'shop', 'creator', 'careers', 'login', 'main'].includes(querySub)) {
+  if (querySub && ['admin', 'agent', 'promoter', 'shop', 'creator', 'careers', 'login', 'help', 'main'].includes(querySub)) {
     return querySub as AppSubdomain;
   }
 
   // 2. LocalStorage override if set manually by developer/admin switcher
   try {
     const storedOverride = sessionStorage.getItem(STORAGE_KEY_SUBDOMAIN_OVERRIDE);
-    if (storedOverride && ['admin', 'agent', 'promoter', 'shop', 'creator', 'careers', 'login', 'main'].includes(storedOverride)) {
+    if (storedOverride && ['admin', 'agent', 'promoter', 'shop', 'creator', 'careers', 'login', 'help', 'main'].includes(storedOverride)) {
       return storedOverride as AppSubdomain;
     }
   } catch {}
@@ -202,6 +211,16 @@ export function detectSubdomain(): AppSubdomain {
     hostname === 'jobs.localhost'
   ) {
     return 'careers';
+  }
+
+  // Help & Support subdomains (help.safargo.in, support.safargo.in)
+  if (
+    hostname.startsWith('help.') ||
+    hostname.startsWith('support.') ||
+    hostname === 'help.localhost' ||
+    hostname === 'support.localhost'
+  ) {
+    return 'help';
   }
 
   return 'main';

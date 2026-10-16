@@ -15,7 +15,7 @@ import {
   Clock,
   Sparkles,
   Lock,
-  Award
+  Calendar,
 } from 'lucide-react';
 import { sendWhatsAppOtp, verifyWhatsAppOtp } from '../../lib/whatsappService';
 
@@ -26,21 +26,27 @@ interface GoAgentWithdrawalModalProps {
 
 export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
   onClose,
-  initialMode = 'salary',
 }) => {
   const { currentUser } = useAuth();
   const {
     agentWalletBalance,
     withdrawFromGoWallet,
-    withdrawMonthlySalary,
     requestPayout,
-    bookings,
+    agentPayoutRequests,
   } = useData();
   const { error, success } = useToast();
 
-  const [withdrawalType, setWithdrawalType] = useState<'salary' | 'wallet'>(initialMode);
+  const safeBalance = Math.max(0, Number(agentWalletBalance) || 0);
+
+  // Check if there is already an active pending withdrawal for this agent
+  const pendingPayout = (agentPayoutRequests || []).find(
+    (p) => p.status === 'pending' || p.status === 'processing'
+  );
+
   const [payoutMethod, setPayoutMethod] = useState<'upi' | 'bank'>('upi');
-  const [walletAmount, setWalletAmount] = useState<string>('500');
+  const [walletAmount, setWalletAmount] = useState<string>(
+    safeBalance > 0 ? String(safeBalance) : '500'
+  );
 
   // WhatsApp 2FA OTP States
   const [otpSent, setOtpSent] = useState(false);
@@ -67,7 +73,7 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
   const [isSuccess, setIsSuccess] = useState(false);
   const [withdrawnAmount, setWithdrawnAmount] = useState(0);
 
-  // Sunday Withdrawal Rule: Allowed only on Sundays (हर रविवार)
+  // Sunday Weekly Payout Policy: Every Sunday (हर रविवार साप्ताहिक सेटलमेंट)
   const today = new Date();
   const dayOfWeek = today.getDay(); // 0 = Sunday
   const isSunday = dayOfWeek === 0;
@@ -83,48 +89,29 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
     month: 'long',
   });
 
-  // Calculate 280 Target Cycle status
-  const TARGET_SALARY_TICKETS = 280;
-  const FIXED_MONTHLY_SALARY = 10000;
-
-  const myConfirmedBookings = (bookings || []).filter(
-    (b) => b.agent_id === currentUser?.id && b.status === 'confirmed'
-  );
-  const totalConfirmedBookings = myConfirmedBookings.length;
-
-  const agentSalaryClaims = JSON.parse(
-    localStorage.getItem(`safargo_salary_claims_${currentUser?.id}`) || '0'
-  );
-
-  // Active tickets in current target cycle after deducting 280 for each salary claimed
-  const currentCycleTickets = Math.max(
-    0,
-    totalConfirmedBookings - agentSalaryClaims * TARGET_SALARY_TICKETS
-  );
-  const isSalaryTargetMet = currentCycleTickets >= TARGET_SALARY_TICKETS;
-  const remainingTicketsForSalary = Math.max(0, TARGET_SALARY_TICKETS - currentCycleTickets);
-  const salaryProgressPercent = Math.min(
-    100,
-    Math.round((currentCycleTickets / TARGET_SALARY_TICKETS) * 100)
-  );
-
-  const safeBalance = Number(agentWalletBalance) || 0;
   const parsedWalletAmount = parseFloat(walletAmount) || 0;
-
-  const effectiveAmount = withdrawalType === 'salary' ? FIXED_MONTHLY_SALARY : parsedWalletAmount;
 
   const handleSendWithdrawalOtp = async () => {
     if (!currentUser?.mobile) {
       error('मोबाइल अनुपलब्ध', 'आपके खाते में कोई पंजीकृत मोबाइल नंबर नहीं है।');
       return;
     }
+    if (parsedWalletAmount < 100) {
+      error('न्यूनतम निकासी', 'न्यूनतम निकासी राशि ₹100 होनी चाहिए।');
+      return;
+    }
+    if (parsedWalletAmount > safeBalance) {
+      error('अपर्याप्त बैलेंस', `आपके वॉलेट में केवल ₹${safeBalance.toLocaleString('en-IN')} उपलब्ध हैं।`);
+      return;
+    }
+
     setIsSendingOtp(true);
     try {
       const res = await sendWhatsAppOtp({
         mobile: currentUser.mobile,
         purpose: 'withdrawal',
         agentName: currentUser.full_name,
-        amount: effectiveAmount,
+        amount: parsedWalletAmount,
         email: currentUser.email,
       });
       if (res.success) {
@@ -165,8 +152,18 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
     if (!isWithdrawalAllowed) {
       error(
         'रविवार निकासी नियम',
-        `निकासी केवल प्रत्येक रविवार (Every Sunday) को ही उपलब्ध है। अगली निकासी तिथि: ${nextSundayFormatted}`
+        `साप्ताहिक निकासी केवल प्रत्येक रविवार को उपलब्ध है। आगामी रविवार: ${nextSundayFormatted}`
       );
+      return;
+    }
+
+    if (parsedWalletAmount < 100) {
+      error('न्यूनतम निकासी', 'न्यूनतम निकासी राशि ₹100 है।');
+      return;
+    }
+
+    if (parsedWalletAmount > safeBalance) {
+      error('अपर्याप्त बैलेंस', `आपके वॉलेट में केवल ₹${safeBalance.toLocaleString('en-IN')} उपलब्ध हैं।`);
       return;
     }
 
@@ -176,10 +173,7 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
       const cleanUpi = upiId.trim();
       const upiRegex = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/;
       if (!cleanUpi || !upiRegex.test(cleanUpi)) {
-        error(
-          'अमान्य UPI ID',
-          'कृपया सही UPI ID दर्ज करें (उदा. 9826011223@paytm या name@okhdfcbank)।'
-        );
+        error('अमान्य UPI ID', 'कृपया सही UPI ID दर्ज करें (उदा. 9826011223@paytm)।');
         return;
       }
       destination = cleanUpi;
@@ -202,54 +196,24 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      if (withdrawalType === 'salary') {
-        // Mode 1: Monthly Fixed Salary Withdrawal (Requires 280 tickets completed)
-        if (!isSalaryTargetMet) {
-          error(
-            'लक्ष्य अपूर्ण',
-            `₹10,000 फिक्स्ड वेतन के लिए 280 टिकट पूरे होने चाहिए। आपके पास अभी ${currentCycleTickets} टिकट हैं।`
-          );
-          return;
+      const ok = await withdrawFromGoWallet(parsedWalletAmount, payoutMethod, destination);
+      if (ok) {
+        if (requestPayout) {
+          await requestPayout({
+            amount: parsedWalletAmount,
+            payout_method: payoutMethod === 'bank' ? 'bank_transfer' : 'upi',
+            upi_id: payoutMethod === 'upi' ? destination : undefined,
+            bank_account_holder: payoutMethod === 'bank' ? accountHolder : undefined,
+            bank_account_number: payoutMethod === 'bank' ? accountNumber : undefined,
+            bank_ifsc: payoutMethod === 'bank' ? ifscCode.trim().toUpperCase() : undefined,
+            bank_name: payoutMethod === 'bank' ? bankName : undefined,
+            admin_notes: `⚡ GO Agent साप्ताहिक निकासी (Sunday Payout): ${destination}`,
+          }).catch(console.warn);
         }
 
-        const ok = await withdrawMonthlySalary(payoutMethod, destination);
-        if (ok) {
-          setWithdrawnAmount(FIXED_MONTHLY_SALARY);
-          setIsSuccess(true);
-        }
-      } else {
-        // Mode 2: Regular Wallet Balance Withdrawal
-        if (parsedWalletAmount < 100) {
-          error('न्यूनतम निकासी', 'न्यूनतम निकासी राशि ₹100 है।');
-          return;
-        }
-
-        if (parsedWalletAmount > safeBalance) {
-          error(
-            'अपर्याप्त बैलेंस',
-            `आपके वॉलेट में केवल ₹${safeBalance.toLocaleString('en-IN')} उपलब्ध हैं।`
-          );
-          return;
-        }
-
-        const ok = await withdrawFromGoWallet(parsedWalletAmount, payoutMethod, destination);
-        if (ok) {
-          if (requestPayout) {
-            await requestPayout({
-              amount: parsedWalletAmount,
-              payout_method: payoutMethod === 'bank' ? 'bank_transfer' : 'upi',
-              upi_id: payoutMethod === 'upi' ? destination : undefined,
-              bank_account_holder: payoutMethod === 'bank' ? accountHolder : undefined,
-              bank_account_number: payoutMethod === 'bank' ? accountNumber : undefined,
-              bank_ifsc: payoutMethod === 'bank' ? ifscCode.trim().toUpperCase() : undefined,
-              bank_name: payoutMethod === 'bank' ? bankName : undefined,
-              admin_notes: `⚡ GO Agent निकासी अनुरोध: ${destination}`,
-            }).catch(console.warn);
-          }
-
-          setWithdrawnAmount(parsedWalletAmount);
-          setIsSuccess(true);
-        }
+        setWithdrawnAmount(parsedWalletAmount);
+        setIsSuccess(true);
+        success('निकासी अनुरोध सबमिट हुआ!', `₹${parsedWalletAmount} की निकासी एडमिन डेस्क को भेज दी गई है।`);
       }
     } catch (err: any) {
       error('Withdrawal Error', err?.message || 'निकासी प्रक्रिया में त्रुटि हुई।');
@@ -259,494 +223,427 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in">
-      <div className="bg-slate-900 border-2 border-amber-500/50 rounded-3xl max-w-lg w-full text-white shadow-2xl overflow-hidden my-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+      <div className="relative w-full max-w-lg bg-slate-900 border-2 border-amber-400/80 rounded-3xl shadow-[0_25px_60px_rgba(0,0,0,0.8)] overflow-hidden text-white max-h-[92vh] flex flex-col">
+        
         {/* Header */}
-        <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-950 via-slate-900 to-amber-950/50 border-b border-amber-500/40 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-500 text-slate-950 flex items-center justify-center font-black shadow-lg">
-              <TrendingDown className="w-5 h-5" />
+        <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 border-b border-amber-400/40 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-400/20 text-amber-400 flex items-center justify-center border border-amber-400/40">
+              <Wallet className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-black text-sm sm:text-base text-white">
-                  GO Agent निकासी डेस्क (Payout Terminal)
-                </h3>
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-400 text-slate-950">
-                  रविवार निकासी
+              <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                <span>साप्ताहिक Go Wallet निकासी</span>
+                <span className="text-[10px] bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full font-bold uppercase">
+                  Weekly Payout
                 </span>
-              </div>
-              <p className="text-[11px] text-amber-300 font-medium">
-                मासिक फिक्स्ड वेतन (₹10,000) अथवा वॉलेट बैलेंस ट्रांसफर करें
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                हर रविवार (Every Sunday) सीधे बैंक या UPI खाते में पेआउट
               </p>
             </div>
           </div>
-
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Success Screen */}
-        {isSuccess ? (
-          <div className="p-6 sm:p-8 text-center space-y-5 animate-in zoom-in-95">
-            <div className="w-20 h-20 rounded-full bg-emerald-500/20 text-emerald-400 border-2 border-emerald-400 flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(16,185,129,0.4)] animate-bounce">
-              <CheckCircle2 className="w-10 h-10" />
-            </div>
+        {/* Content Body */}
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-4 text-xs">
 
-            <div className="space-y-1">
-              <span className="text-xs uppercase font-black tracking-widest text-emerald-400">
-                {withdrawalType === 'salary' ? '🎉 मासिक वेतन निकासी सफल!' : 'निकासी अनुरोध सफल!'}
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-black text-white font-mono">
-                ₹{withdrawnAmount.toLocaleString('en-IN')}.00
-              </h2>
-              <p className="text-xs text-slate-300">
-                {withdrawalType === 'salary' ? (
-                  <>
-                    ₹10,000 फिक्स्ड वेतन आपके <strong>{payoutMethod === 'upi' ? 'UPI खाते' : 'बैंक खाते'}</strong> में भेज दिया गया है। <strong>280 टिकट लक्ष्य से माइनस कर दिए गए हैं</strong>।
-                  </>
-                ) : (
-                  <>
-                    राशि आपके Go Wallet से निकाल ली गई है और <strong>{payoutMethod === 'upi' ? 'UPI खाते' : 'बैंक खाते'}</strong> में भेजी जा रही है।
-                  </>
-                )}
-              </p>
-            </div>
-
-            {withdrawalType === 'salary' && (
-              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-400/40 text-xs text-amber-300 font-medium text-left">
-                🎯 <strong>नया चक्र प्रारंभ:</strong> 280 टिकट आपके सक्रिय लक्ष्य से घटा दिए गए हैं। अगले ₹10,000 वेतन के लिए पुनः 280 टिकट का लक्ष्य सक्रिय हो गया है।
-              </div>
-            )}
-
-            <button
-              onClick={onClose}
-              className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black rounded-xl text-sm transition shadow-lg cursor-pointer"
-            >
-              पूर्ण (Done)
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleWithdrawalSubmit} className="p-4 sm:p-6 space-y-4 text-xs">
-            {/* Mode Switcher: Salary vs Wallet */}
-            <div className="grid grid-cols-2 gap-2 p-1.5 rounded-2xl bg-slate-950 border border-slate-800">
-              <button
-                type="button"
-                onClick={() => setWithdrawalType('salary')}
-                className={`py-2.5 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition cursor-pointer text-xs ${
-                  withdrawalType === 'salary'
-                    ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black shadow-md'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Award className="w-4 h-4" />
-                <span>₹10k मासिक वेतन (280 लक्ष्य)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setWithdrawalType('wallet')}
-                className={`py-2.5 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition cursor-pointer text-xs ${
-                  withdrawalType === 'wallet'
-                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black shadow-md'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Wallet className="w-4 h-4" />
-                <span>वॉलेट बैलेंस (₹{safeBalance.toLocaleString('en-IN')})</span>
-              </button>
-            </div>
-
-            {/* TAB A: 10K MONTHLY SALARY MODE */}
-            {withdrawalType === 'salary' && (
-              <div className="space-y-3">
-                {isSalaryTargetMet ? (
-                  /* Target Completed Banner */
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-emerald-500/20 border-2 border-emerald-400 text-left space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 text-xs font-black text-emerald-300">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                        🎉 280 टिकट लक्ष्य पूर्ण! ₹10,000 फिक्स्ड वेतन अनलॉक
-                      </span>
-                      <span className="text-[10px] bg-emerald-400 text-slate-950 font-black px-2 py-0.5 rounded-full uppercase">
-                        वेतन अनलॉक
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-300 leading-relaxed">
-                      सख्त नियम के अनुसार 280 टिकट लक्ष्य पूर्ण होने पर आपको <strong>फिक्स्ड ₹10,000 मासिक वेतन</strong> मिलता है (कोई अतिरिक्त कमीशन अलग से नहीं)। निकासी करने पर <strong>280 टिकट लक्ष्य से माइनस हो जाएंगे</strong>।
-                    </p>
-                    <div className="bg-slate-950/80 p-2.5 rounded-xl border border-emerald-500/30 flex justify-between items-center font-mono">
-                      <span className="text-slate-400 text-[11px]">निकासी वेतन राशि:</span>
-                      <span className="text-xl font-black text-emerald-400">₹10,000.00</span>
-                    </div>
-                  </div>
-                ) : (
-                  /* Target Locked Banner */
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-slate-900 to-amber-500/10 border-2 border-amber-500/40 text-left space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 text-xs font-black text-amber-300">
-                        <Lock className="w-4 h-4 text-amber-400" />
-                        ₹10,000 मासिक वेतन निकासी अभी लॉक है
-                      </span>
-                      <span className="text-[10px] bg-amber-400/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
-                        {remainingTicketsForSalary} टिकट बाकी
-                      </span>
-                    </div>
-
-                    <p className="text-[11px] text-slate-300 leading-relaxed">
-                      GO Agent नियम: <strong>280 टिकट का लक्ष्य पूरा होने पर ही ₹10,000 वेतन निकासी का विकल्प खुलेगा।</strong> लक्ष्य से कम टिकट होने पर केवल प्रति टिकट ₹20 कमीशन मिलता है।
-                    </p>
-
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-[11px] font-bold text-slate-300">
-                        <span>प्रगति: {currentCycleTickets} / {TARGET_SALARY_TICKETS} टिकट</span>
-                        <span className="text-amber-400 font-mono">{salaryProgressPercent}%</span>
-                      </div>
-                      <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-700">
-                        <div
-                          className="h-full bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full transition-all"
-                          style={{ width: `${salaryProgressPercent}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* TAB B: WALLET BALANCE MODE */}
-            {withdrawalType === 'wallet' && (
-              <div className="space-y-3">
-                <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                      उपलब्ध Go Wallet बैलेंस
-                    </span>
-                    <span className="text-xl font-black text-emerald-400 font-mono">
-                      ₹{safeBalance.toLocaleString('en-IN')}.00
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setWalletAmount(safeBalance.toString())}
-                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs transition border border-amber-400/30 cursor-pointer"
-                  >
-                    पूरा निकालें (Max)
-                  </button>
+          {/* CASE A: PENDING PAYOUT REQUEST ALREADY ACTIVE (Cannot submit another until approved) */}
+          {pendingPayout ? (
+            <div className="space-y-4 animate-fadeIn">
+              <div className="p-5 rounded-3xl bg-gradient-to-br from-amber-950/70 via-slate-900 to-slate-950 border-2 border-amber-400 text-center space-y-4 shadow-xl">
+                <div className="w-16 h-16 rounded-full bg-amber-400/20 border-2 border-amber-400 text-amber-300 mx-auto flex items-center justify-center animate-pulse">
+                  <Clock className="w-8 h-8" />
                 </div>
 
-                <div>
-                  <label className="block font-bold text-slate-300 text-[11px] mb-1">
-                    निकासी राशि (Withdrawal Amount) *
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-base">
-                      ₹
-                    </span>
-                    <input
-                      type="number"
-                      min={100}
-                      max={safeBalance}
-                      required
-                      value={walletAmount}
-                      onChange={(e) => setWalletAmount(e.target.value)}
-                      placeholder="कम से कम ₹100"
-                      className="w-full pl-8 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono font-bold text-base outline-none focus:border-emerald-400 transition"
-                    />
-                  </div>
-                  <p className="text-[10px] text-slate-400 mt-1">न्यूनतम निकासी राशि ₹100 है।</p>
+                <div className="space-y-1">
+                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950">
+                    प्रतीक्षारत (Pending Approval)
+                  </span>
+                  <h4 className="text-lg font-black text-white pt-2">
+                    आपकी निकासी प्रक्रियाधीन है
+                  </h4>
+                  <p className="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
+                    आपने पहले ही निकासी का अनुरोध सबमिट किया हुआ है। एडमिन द्वारा स्वीकृति मिलते ही राशि आपके खाते में भेज दी जाएगी।
+                  </p>
                 </div>
-              </div>
-            )}
 
-            {/* Sunday Withdrawal Day Policy Banner */}
-            {isSunday ? (
-              <div className="p-3 rounded-2xl bg-emerald-500/15 border-2 border-emerald-400 text-emerald-300 flex items-center justify-between text-xs font-bold">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping inline-block" />
-                  <span>🟢 आज रविवार है! साप्ताहिक निकासी विंडो खुली है (Sunday Active)</span>
-                </div>
-                <span className="text-[10px] bg-emerald-400 text-slate-950 font-black px-2 py-0.5 rounded-full uppercase">
-                  विंडो ओपन
-                </span>
-              </div>
-            ) : (
-              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border border-amber-500/40 text-xs space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2 text-amber-300 font-black">
-                    <Clock className="w-4 h-4 text-amber-400" />
-                    <span>साप्ताहिक रविवार निकासी नियम (Every Sunday Withdrawal)</span>
+                {/* Details Card */}
+                <div className="bg-slate-950/80 rounded-2xl p-4 border border-amber-500/30 text-left space-y-2.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">अनुरोधित राशि:</span>
+                    <span className="text-lg font-black text-amber-300 font-mono">
+                      ₹{pendingPayout.amount.toLocaleString('en-IN')}
+                    </span>
                   </div>
-                  <span className="text-[10px] bg-amber-400/20 text-amber-300 font-mono px-2 py-0.5 rounded-full border border-amber-400/30">
-                    {daysUntilSunday} दिन शेष
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">भुगतान माध्यम:</span>
+                    <span className="font-bold text-white uppercase">
+                      {pendingPayout.payout_method === 'bank_transfer' ? '🏦 बैंक ट्रांसफर' : '📱 UPI ID'}
+                    </span>
+                  </div>
+                  {pendingPayout.upi_id && (
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-400">UPI ID:</span>
+                      <span className="font-mono text-emerald-400">{pendingPayout.upi_id}</span>
+                    </div>
+                  )}
+                  {pendingPayout.bank_account_number && (
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-400">खाता संख्या:</span>
+                      <span className="font-mono text-emerald-400">
+                        •••• {pendingPayout.bank_account_number.slice(-4)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">अनुरोध तिथि:</span>
+                    <span className="text-slate-300">
+                      {new Date(pendingPayout.created_at).toLocaleDateString('hi-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs pt-1 border-t border-slate-800">
+                    <span className="text-slate-400">स्थिति:</span>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black flex items-center gap-1">
+                      <Clock className="w-3 h-3 animate-spin" />
+                      एडमिन स्वीकृति प्रक्रियाधीन (हर रविवार सेटलमेंट)
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-blue-950/40 rounded-2xl border border-blue-500/30 text-[11px] text-blue-300 text-left flex items-start gap-2">
+                  <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>सुरक्षा नियम:</strong> एक समय में केवल एक निकासी अनुरोध लंबित रह सकता है। एडमिन द्वारा इस अनुरोध को प्रोसेस करने के बाद ही आप नया अनुरोध कर सकेंगे।
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-300 leading-relaxed">
-                  GO Agent वेतन एवं वॉलेट से राशि की निकासी केवल <strong>प्रत्येक रविवार (Sunday)</strong> को की जा सकती है। अगली निकासी विंडो <strong>{nextSundayFormatted}</strong> को खुलेगी।
-                </p>
-                <div className="pt-1 flex items-center justify-between">
-                  <span className="text-[10px] text-slate-400">आपातकालीन मोड / टेस्टिंग अनुमति:</span>
-                  <button
-                    type="button"
-                    onClick={() => setEmergencyOverride(!emergencyOverride)}
-                    className="text-[10px] text-amber-400 hover:text-amber-300 underline font-bold cursor-pointer"
-                  >
-                    {emergencyOverride ? 'आपातकालीन मोड सक्रिय ✓' : 'आपातकालीन अनुमति प्राप्त करें'}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Withdrawal Method Switcher */}
-            <div className="space-y-1.5">
-              <label className="block font-bold text-slate-300 text-[11px]">
-                निकासी का माध्यम चुनें (Payment Destination) *
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPayoutMethod('upi')}
-                  className={`p-3 rounded-2xl border font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
-                    payoutMethod === 'upi'
-                      ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-md font-black'
-                      : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
-                  }`}
-                >
-                  <Smartphone className="w-4 h-4" />
-                  <span>UPI ट्रांसफर (GPay/PhonePe)</span>
-                </button>
 
                 <button
                   type="button"
-                  onClick={() => setPayoutMethod('bank')}
-                  className={`p-3 rounded-2xl border font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
-                    payoutMethod === 'bank'
-                      ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-md font-black'
-                      : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
-                  }`}
+                  onClick={onClose}
+                  className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-xl text-xs transition cursor-pointer"
                 >
-                  <Building className="w-4 h-4" />
-                  <span>बैंक खाता (IMPS Transfer)</span>
+                  डैशबोर्ड पर वापस जाएं
                 </button>
               </div>
             </div>
-
-            {/* Payout Destination Inputs */}
-            {payoutMethod === 'upi' ? (
-              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
-                <label className="block font-bold text-slate-300 text-[11px]">
-                  आपकी सक्रिय UPI ID दर्ज करें *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={upiId}
-                  onChange={(e) => setUpiId(e.target.value.toLowerCase().trim())}
-                  placeholder="उदा. 9826011223@paytm / name@okhdfcbank"
-                  className="w-full p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono font-bold text-xs outline-none focus:border-amber-400"
-                />
+          ) : isSuccess ? (
+            /* CASE B: JUST COMPLETED SUCCESS VIEW */
+            <div className="p-6 text-center space-y-4 animate-fadeIn">
+              <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 text-emerald-400 mx-auto flex items-center justify-center">
+                <CheckCircle2 className="w-8 h-8" />
               </div>
-            ) : (
-              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <h4 className="text-lg font-black text-emerald-400">निकासी अनुरोध दर्ज हुआ!</h4>
+                <p className="text-xs text-slate-300 max-w-sm mx-auto">
+                  ₹{withdrawnAmount.toLocaleString('en-IN')} का निकासी अनुरोध एडमिन डेस्क को भेजा गया है। हर रविवार को पेआउट सीधे आपके खाते में क्रेडिट कर दिया जाता है।
+                </p>
+              </div>
+              <button
+                onClick={onClose}
+                className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs transition cursor-pointer"
+              >
+                पूर्ण (Done)
+              </button>
+            </div>
+          ) : (
+            /* CASE C: NEW WITHDRAWAL REQUEST FORM */
+            <form onSubmit={handleWithdrawalSubmit} className="space-y-4">
+              
+              {/* Go Wallet Balance Pill */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/80 via-slate-900 to-emerald-950/80 border border-emerald-500/40 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">उपलब्ध Go Wallet बैलेंस</span>
+                  <span className="text-2xl font-black text-emerald-400 font-mono">
+                    ₹{safeBalance.toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <span className="px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold">
+                  साप्ताहिक निकासी
+                </span>
+              </div>
+
+              {/* Sunday Policy Info Banner */}
+              <div className={`p-3.5 rounded-2xl border text-left flex items-start gap-2.5 ${
+                isSunday
+                  ? 'bg-emerald-950/50 border-emerald-500/50 text-emerald-300'
+                  : 'bg-amber-950/50 border-amber-500/40 text-amber-300'
+              }`}>
+                <Calendar className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                <div className="space-y-0.5">
+                  <div className="font-bold text-xs flex items-center gap-1.5">
+                    <span>साप्ताहिक रविवार पेआउट नियम (Every Sunday Withdrawal)</span>
+                    {isSunday && (
+                      <span className="px-2 py-0.2 rounded-full bg-emerald-400 text-slate-950 text-[9px] font-black">
+                        आज रविवार है!
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-snug">
+                    {isSunday
+                      ? 'आज रविवार है — आप आज बिना किसी रुकावट के अपनी कमाई की निकासी का अनुरोध कर सकते हैं।'
+                      : `निकासी हर रविवार को प्रोसेस होती है। आगामी रविवार: ${nextSundayFormatted}`}
+                  </p>
+                  {!isSunday && (
+                    <button
+                      type="button"
+                      onClick={() => setEmergencyOverride(true)}
+                      className="text-[10px] text-amber-400 underline font-bold mt-1 inline-block cursor-pointer"
+                    >
+                      आपातकालीन निकासी अनुरोध भेजें (Emergency Payout Request)
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Withdrawal Amount Input */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <label className="font-bold text-slate-300 text-xs">
+                    निकासी राशि (Amount in ₹) *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setWalletAmount(String(safeBalance))}
+                    className="text-[10px] font-bold text-amber-400 hover:underline cursor-pointer"
+                  >
+                    पूरा बैलेंस निकालें (₹{safeBalance.toLocaleString('en-IN')})
+                  </button>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-3 font-bold text-slate-500 text-sm">₹</span>
+                  <input
+                    type="number"
+                    min="100"
+                    max={safeBalance || 100000}
+                    value={walletAmount}
+                    onChange={(e) => setWalletAmount(e.target.value)}
+                    className="w-full pl-8 pr-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono font-bold text-sm focus:border-amber-400 outline-none"
+                    placeholder="500"
+                    required
+                  />
+                </div>
+                <span className="text-[10px] text-slate-400 block">न्यूनतम निकासी: ₹100</span>
+              </div>
+
+              {/* Payout Method Tabs (UPI vs Bank) */}
+              <div className="space-y-2">
+                <label className="font-bold text-slate-300 text-xs block">
+                  भुगतान माध्यम चुनें (Payout Method)
+                </label>
+                <div className="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setPayoutMethod('upi')}
+                    className={`py-2 px-3 rounded-lg font-bold flex items-center justify-center gap-1.5 transition cursor-pointer text-xs ${
+                      payoutMethod === 'upi'
+                        ? 'bg-amber-400 text-slate-950 font-black shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Smartphone className="w-4 h-4" />
+                    <span>UPI ID (तुरंत)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPayoutMethod('bank')}
+                    className={`py-2 px-3 rounded-lg font-bold flex items-center justify-center gap-1.5 transition cursor-pointer text-xs ${
+                      payoutMethod === 'bank'
+                        ? 'bg-amber-400 text-slate-950 font-black shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Building className="w-4 h-4" />
+                    <span>बैंक खाता (NEFT/IMPS)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Method Specific Fields */}
+              {payoutMethod === 'upi' ? (
+                <div className="space-y-1.5">
+                  <label className="font-bold text-slate-300 text-xs block">
+                    आपकी UPI ID *
+                  </label>
+                  <input
+                    type="text"
+                    value={upiId}
+                    onChange={(e) => setUpiId(e.target.value)}
+                    placeholder="उदा. 9826011223@paytm या name@okhdfcbank"
+                    className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono text-xs focus:border-amber-400 outline-none"
+                    required
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2.5 bg-slate-950/60 p-3 rounded-2xl border border-slate-800">
                   <div>
-                    <label className="block font-bold text-slate-300 text-[10px] mb-1">
+                    <label className="font-bold text-slate-300 text-[11px] block mb-1">
                       खाताधारक का नाम *
                     </label>
                     <input
                       type="text"
-                      required
                       value={accountHolder}
                       onChange={(e) => setAccountHolder(e.target.value)}
-                      placeholder="नाम (पासबुक अनुसार)"
-                      className="w-full p-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold text-xs outline-none focus:border-amber-400"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-300 text-[10px] mb-1">
-                      बैंक का नाम *
-                    </label>
-                    <input
-                      type="text"
+                      placeholder="नाम जो बैंक पासबुक में है"
+                      className="w-full p-2 bg-slate-950 border border-slate-700 rounded-lg text-white text-xs outline-none focus:border-amber-400"
                       required
-                      value={bankName}
-                      onChange={(e) => setBankName(e.target.value)}
-                      placeholder="SBI / HDFC / PNB"
-                      className="w-full p-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold text-xs outline-none focus:border-amber-400"
                     />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="font-bold text-slate-300 text-[11px] block mb-1">
+                        बैंक का नाम *
+                      </label>
+                      <input
+                        type="text"
+                        value={bankName}
+                        onChange={(e) => setBankName(e.target.value)}
+                        placeholder="SBI, HDFC, आदि"
+                        className="w-full p-2 bg-slate-950 border border-slate-700 rounded-lg text-white text-xs outline-none focus:border-amber-400"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-300 text-[11px] block mb-1">
+                        IFSC कोड *
+                      </label>
+                      <input
+                        type="text"
+                        value={ifscCode}
+                        onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
+                        placeholder="SBIN0001234"
+                        maxLength={11}
+                        className="w-full p-2 bg-slate-950 border border-slate-700 rounded-lg text-white font-mono text-xs outline-none focus:border-amber-400 uppercase"
+                        required
+                      />
+                    </div>
+                  </div>
                   <div>
-                    <label className="block font-bold text-slate-300 text-[10px] mb-1">
-                      खाता संख्या (A/c Number) *
+                    <label className="font-bold text-slate-300 text-[11px] block mb-1">
+                      खाता संख्या *
                     </label>
                     <input
                       type="password"
-                      required
                       value={accountNumber}
                       onChange={(e) => setAccountNumber(e.target.value)}
-                      placeholder="खाता संख्या"
-                      className="w-full p-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono text-xs outline-none focus:border-amber-400"
+                      placeholder="खाता संख्या दर्ज करें"
+                      className="w-full p-2 bg-slate-950 border border-slate-700 rounded-lg text-white font-mono text-xs outline-none focus:border-amber-400"
+                      required
                     />
                   </div>
-
                   <div>
-                    <label className="block font-bold text-slate-300 text-[10px] mb-1">
-                      खाता संख्या दोबारा दर्ज करें *
+                    <label className="font-bold text-slate-300 text-[11px] block mb-1">
+                      खाता संख्या की पुष्टि करें *
                     </label>
                     <input
                       type="text"
-                      required
                       value={confirmAccountNumber}
                       onChange={(e) => setConfirmAccountNumber(e.target.value)}
-                      placeholder="खाता संख्या पुष्टि"
-                      className="w-full p-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono text-xs outline-none focus:border-amber-400"
+                      placeholder="खाता संख्या पुनः दर्ज करें"
+                      className="w-full p-2 bg-slate-950 border border-slate-700 rounded-lg text-white font-mono text-xs outline-none focus:border-amber-400"
+                      required
                     />
                   </div>
                 </div>
+              )}
 
-                <div>
-                  <label className="block font-bold text-slate-300 text-[10px] mb-1">
-                    IFSC कोड (11 अक्षर) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={11}
-                    value={ifscCode}
-                    onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
-                    placeholder="उदा. SBIN0001234"
-                    className="w-full p-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono text-xs uppercase outline-none focus:border-amber-400"
-                  />
+              {/* 2FA WhatsApp OTP Security Guard */}
+              <div className="p-3.5 rounded-2xl bg-slate-950 border border-amber-500/40 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span className="font-bold text-white text-xs">WhatsApp 2FA सुरक्षा सत्यापन</span>
+                  </div>
+                  {isOtpVerified && (
+                    <span className="text-[10px] font-black text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-500/40">
+                      ✓ सत्यापित (Verified)
+                    </span>
+                  )}
                 </div>
-              </div>
-            )}
 
-            {/* Deduction Notice */}
-            {withdrawalType === 'salary' && isSalaryTargetMet && (
-              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2 text-[10px] text-amber-200">
-                <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                <span>
-                  <strong>280 टिकट लक्ष्य कटौती सूचना:</strong> यह ₹10,000 वेतन निकालने पर आपके सक्रिय लक्ष्य में से ठीक 280 टिकट माइनस हो जाएंगे और नया वेतन चक्र शुरू होगा।
-                </span>
-              </div>
-            )}
-
-            {/* 📲 WhatsApp OTP 2FA Security Box */}
-            <div className="p-3.5 rounded-2xl bg-slate-950 border border-emerald-500/40 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-emerald-400 flex items-center gap-1.5">
-                  <Smartphone className="w-3.5 h-3.5" />
-                  <span>सुरक्षा 2FA: WhatsApp OTP सत्यापन अनिवार्य</span>
-                </span>
-                {isOtpVerified && (
-                  <span className="text-[10px] bg-emerald-500 text-slate-950 px-2 py-0.5 rounded-full font-black flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" />
-                    वेरीफाइड ✓
-                  </span>
-                )}
-              </div>
-
-              {!isOtpVerified ? (
-                <div className="space-y-2">
-                  <p className="text-[11px] text-slate-400">
-                    निकासी सुरक्षित करने हेतु आपके पंजीकृत नंबर (+91 {currentUser?.mobile}) पर 6-अंकीय OTP भेजा जाएगा।
-                  </p>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      maxLength={6}
-                      value={enteredOtp}
-                      onChange={(e) => setEnteredOtp(e.target.value.replace(/\D/g, ''))}
-                      placeholder="6-अंकीय WhatsApp OTP दर्ज करें"
-                      className="flex-1 p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono font-bold text-center tracking-widest outline-none focus:border-emerald-400 text-sm"
-                    />
+                {!isOtpVerified ? (
+                  <div className="space-y-2">
                     {!otpSent ? (
                       <button
                         type="button"
-                        onClick={handleSendWithdrawalOtp}
                         disabled={isSendingOtp}
-                        className="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition cursor-pointer shrink-0"
+                        onClick={handleSendWithdrawalOtp}
+                        className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
                       >
-                        {isSendingOtp ? 'भेज रहे हैं...' : '📲 OTP भेजें'}
+                        <Smartphone className="w-3.5 h-3.5" />
+                        <span>{isSendingOtp ? 'OTP भेजा जा रहा है...' : 'WhatsApp पर OTP भेजें'}</span>
                       </button>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={handleVerifyWithdrawalOtp}
-                        className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs transition cursor-pointer shrink-0 active:scale-95"
-                      >
-                        सत्यापित करें
-                      </button>
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            maxLength={6}
+                            value={enteredOtp}
+                            onChange={(e) => setEnteredOtp(e.target.value)}
+                            placeholder="6-अंकीय OTP दर्ज करें"
+                            className="flex-1 p-2 bg-slate-900 border border-amber-400 rounded-xl text-white font-mono text-center tracking-widest text-sm outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleVerifyWithdrawalOtp}
+                            className="px-4 py-2 bg-amber-400 text-slate-950 font-black rounded-xl text-xs hover:bg-amber-300 cursor-pointer"
+                          >
+                            सत्यापित करें
+                          </button>
+                        </div>
+                        {otpUrl && (
+                          <a
+                            href={otpUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] text-emerald-400 hover:underline block text-center"
+                          >
+                            सीधे WhatsApp पर OTP देखें ➔
+                          </a>
+                        )}
+                      </div>
                     )}
                   </div>
+                ) : (
+                  <p className="text-[11px] text-emerald-300">
+                    2FA सुरक्षा सत्यापन पूर्ण हो चुका है। अब आप निकासी सबमिट कर सकते हैं।
+                  </p>
+                )}
+              </div>
 
-                  {otpSent && otpUrl && (
-                    <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
-                      <span>OTP नहीं मिला?</span>
-                      <a
-                        href={otpUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-emerald-400 hover:underline font-bold flex items-center gap-1"
-                      >
-                        <span>WhatsApp चैट में OTP देखें ➔</span>
-                      </a>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="p-2.5 rounded-xl bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>WhatsApp OTP सत्यापन सफल। अब आप सुरक्षित निकासी सबमिट कर सकते हैं।</span>
-                </div>
-              )}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2 pt-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 py-3 bg-slate-800 text-slate-300 font-bold rounded-xl"
-              >
-                रद्द करें
-              </button>
+              {/* Submit Button */}
               <button
                 type="submit"
-                disabled={
-                  isSubmitting ||
-                  !isWithdrawalAllowed ||
-                  (withdrawalType === 'salary' && !isSalaryTargetMet) ||
-                  (withdrawalType === 'wallet' &&
-                    (parsedWalletAmount < 100 || parsedWalletAmount > safeBalance))
-                }
-                className={`flex-2 py-3 font-black rounded-xl shadow-lg transition disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer ${
-                  withdrawalType === 'salary'
-                    ? 'bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950'
-                    : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950'
-                }`}
+                disabled={isSubmitting || !isOtpVerified || parsedWalletAmount < 100 || parsedWalletAmount > safeBalance}
+                className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black rounded-2xl text-xs shadow-xl transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {isSubmitting
-                  ? 'प्रोसेसिंग...'
-                  : withdrawalType === 'salary' && !isSalaryTargetMet
-                  ? `🔒 280 टिकट पूरे करें (${currentCycleTickets}/280)`
-                  : !isWithdrawalAllowed
-                  ? '🔒 केवल रविवार को निकासी संभव (Sunday Only)'
-                  : withdrawalType === 'salary'
-                  ? '🎉 ₹10,000 वेतन निकालें ➔'
-                  : `₹${parsedWalletAmount || 0} निकालें ➔`}
+                <Wallet className="w-4 h-4" />
+                <span>
+                  {isSubmitting
+                    ? 'अनुरोध सबमिट हो रहा है...'
+                    : `₹${parsedWalletAmount.toLocaleString('en-IN')} निकासी अनुरोध सबमिट करें`}
+                </span>
               </button>
-            </div>
-          </form>
-        )}
+            </form>
+          )}
+
+        </div>
+
       </div>
     </div>
   );

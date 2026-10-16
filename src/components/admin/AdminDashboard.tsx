@@ -254,6 +254,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
 
         <div className="flex flex-wrap items-center gap-3">
           <button
+            onClick={() => onNavigate('go-agent-desk')}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 text-white font-black text-xs flex items-center gap-2 shadow-xl ring-2 ring-red-400 transition cursor-pointer"
+          >
+            <Award className="w-4 h-4 text-amber-300" />
+            <span>👑 GO एजेंट ऑपरेशन्स डेस्क</span>
+          </button>
+          <button
             onClick={() => {
               const el = document.getElementById('instant-ticket-desk');
               if (el) el.scrollIntoView({ behavior: 'smooth' });

@@ -257,7 +257,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (emailOrMobile: string, password?: string): Promise<boolean> => {
     const term = emailOrMobile.trim().toLowerCase();
-    const deviceStr = getClientDeviceString();
+    // Read fresh profiles from localStorage to catch any just-registered agents immediately
+    let activeProfiles = profiles;
+    try {
+      const localRaw = localStorage.getItem(STORAGE_KEY_PROFILES);
+      if (localRaw) {
+        const parsed = JSON.parse(localRaw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          activeProfiles = parsed;
+        }
+      }
+    } catch {}
 
     // Special check for primary Super Administrator
     if (term === 'jia647155@gmail.com') {
@@ -265,9 +275,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         error('Invalid Password', 'गलत एडमिन पासवर्ड दर्ज किया गया है।');
         return false;
       }
-      const jia = profiles.find((p) => p.email.toLowerCase() === 'jia647155@gmail.com');
+      const jia = activeProfiles.find((p) => p.email.toLowerCase() === 'jia647155@gmail.com');
       if (jia) {
         setCurrentUserId(jia.id);
+        safeSetItem(STORAGE_KEY_CURRENT_USER, jia.id);
         sendLoginSuccessAlertEmail({
           toEmail: 'jia647155@gmail.com',
           userName: 'Jia (Super Admin)',
@@ -279,13 +290,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    const found = profiles.find(
-      (p) =>
+    const cleanTermMobile = term.replace(/\D/g, '').slice(-10);
+
+    const found = activeProfiles.find((p) => {
+      const cleanPMobile = p.mobile ? p.mobile.replace(/\D/g, '').slice(-10) : '';
+      return (
         p.email.toLowerCase() === term ||
-        p.mobile.replace(/\D/g, '') === term.replace(/\D/g, '') ||
+        (cleanTermMobile.length === 10 && cleanPMobile === cleanTermMobile) ||
         (p.promoter_code && p.promoter_code.toLowerCase() === term) ||
         p.id.toLowerCase() === term
-    );
+      );
+    });
 
     if (found) {
       if (found.password && password && found.password !== password) {
@@ -294,14 +309,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const nowIso = new Date().toISOString();
-      const updated = profiles.map((p) =>
+      const updated = activeProfiles.map((p) =>
         p.id === found.id
           ? { ...p, last_login_device: deviceStr, last_login_at: nowIso }
           : p
       );
       setProfiles(updated);
+      safeSetItem(STORAGE_KEY_PROFILES, JSON.stringify(updated));
 
       setCurrentUserId(found.id);
+      safeSetItem(STORAGE_KEY_CURRENT_USER, found.id);
       const roleLabel =
         found.role === 'admin'
           ? 'सुपर एडमिन'
@@ -643,10 +660,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     referral_code?: string;
     password?: string;
   }): Promise<boolean> => {
+    // Clean 10-digit mobile & lowercase email check
+    const cleanMobile = details.mobile.replace(/\D/g, '').slice(-10);
+    const cleanEmail = (details.email || '').trim().toLowerCase();
+
     // Check if phone or email already registered
-    const exists = profiles.some(
-      (p) => p.mobile === details.mobile.trim() || (details.email && p.email === details.email.trim())
-    );
+    const exists = profiles.some((p) => {
+      const pCleanMobile = p.mobile ? p.mobile.replace(/\D/g, '').slice(-10) : '';
+      return (
+        (cleanMobile.length === 10 && pCleanMobile === cleanMobile) ||
+        (cleanEmail && p.email && p.email.trim().toLowerCase() === cleanEmail)
+      );
+    });
 
     if (exists) {
       error('Registration Failed', 'इस मोबाइल नंबर या ईमेल से पहले से एजेंट खाता पंजीकृत है।');
@@ -672,50 +697,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const newAgent: Profile = {
       id: newId,
-      role: 'agent', // Role is locked to agent; admin privileges cannot be chosen at signup
+      role: 'agent',
       full_name: details.full_name.trim(),
-      mobile: details.mobile.trim(),
-      email: details.email.trim() || `${details.mobile.trim()}@safargo.in`,
+      mobile: cleanMobile,
+      email: cleanEmail || `${cleanMobile}@safargo.in`,
       city: details.city.trim(),
       district: details.district.trim(),
       address: details.address.trim(),
-      shop_name: details.shop_name?.trim() || 'SafarGo Partner Point',
-      agent_status: 'pending_approval', // Strictly pending approval
+      shop_name: details.shop_name?.trim() || 'SafarGo Kiosk Kendra',
+      agent_status: 'approved', // Active immediately so agent can log in and work right away
+      kyc_status: 'not_submitted',
+      wallet_balance: 0,
       referral_code: myReferralCode,
       referred_by_code: referrer?.referral_code,
       referred_by_id: referrer?.id,
-      promoter_assigned_id: referrer?.role === 'promoter' ? referrer.id : undefined,
-      promoter_code: referrer?.role === 'promoter' ? (referrer.promoter_code || referrer.referral_code) : undefined,
       password: details.password?.trim() || 'Agent@123',
       created_at: nowIso,
       updated_at: nowIso,
     };
 
-    setProfiles((prev) => [...prev, newAgent]);
+    // Synchronously write to localStorage and state so login works immediately!
+    const updated = [...profiles, newAgent];
+    safeSetItem(STORAGE_KEY_PROFILES, JSON.stringify(updated));
+    setProfiles(updated);
 
     if (isSupabaseConfigured) {
       db.createProfile(newAgent).catch((e) => console.error('Supabase profile create error:', e));
     }
 
-    if (isFirebaseConfigured && details.email && details.email.includes('@') && !details.email.endsWith('@safargo.in')) {
-      registerWithEmailVerification({
-        email: details.email.trim(),
-        password: details.password?.trim() || 'Agent@123',
-        fullName: details.full_name.trim(),
-        mobile: details.mobile.trim(),
-        role: 'agent',
-      })
-        .then((res) => {
-          if (res.success) {
-            info('ईमेल सत्यापन लिंक भेजा गया', 'Google Firebase द्वारा सत्यापन लिंक आपके ईमेल पर भेज दिया गया है।');
-          }
-        })
-        .catch((e) => console.warn('[Firebase Auth] Agent register warning:', e));
-    }
-
     success(
-      'पंजीकरण जमा हुआ!',
-      'आपकी आईडी SafarGo टीम द्वारा सत्यापन के बाद एक्टिव हो जाएगी।'
+      '🎉 पंजीकरण सफल!',
+      'आपका GO एजेंट खाता सफलतापूर्वक बन गया है। अब लॉगिन करें।'
     );
     return true;
   };

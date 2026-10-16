@@ -13,6 +13,7 @@ import { AdminSecurityDesk } from './AdminSecurityDesk';
 import { AdminPromoterManagement } from './AdminPromoterManagement';
 import { AdminSupportDesk } from './AdminSupportDesk';
 import { AdminJobsDesk } from './AdminJobsDesk';
+import { AdminGoAgentDesk } from './AdminGoAgentDesk';
 import { SafarGoLogo } from '../common/SafarGoLogo';
 import { buildSubdomainUrl } from '../../lib/subdomain';
 import {
@@ -239,6 +240,7 @@ export const AdminSubdomainLayout: React.FC<AdminSubdomainLayoutProps> = () => {
             <nav className="hidden lg:flex items-center gap-1 text-xs font-bold">
               {[
                 { id: 'dashboard', label: 'डैशबोर्ड', icon: LayoutDashboard },
+                { id: 'go-agent-desk', label: '👑 GO एजेंट डेस्क', icon: Award },
                 { id: 'bookings', label: `बुकिंग्स (${pendingBookingsCount})`, icon: FileCheck },
                 { id: 'agents', label: 'एजेंट प्रबंधन', icon: Users },
                 { id: 'jobs', label: 'जॉब्स एवं भर्ती', icon: Briefcase },
@@ -299,6 +301,7 @@ export const AdminSubdomainLayout: React.FC<AdminSubdomainLayoutProps> = () => {
           <div className="lg:hidden flex items-center gap-1 overflow-x-auto py-2 border-t border-slate-800 text-xs">
             {[
               { id: 'dashboard', label: 'डैशबोर्ड' },
+              { id: 'go-agent-desk', label: '👑 GO एजेंट' },
               { id: 'bookings', label: `बुकिंग्स (${pendingBookingsCount})` },
               { id: 'agents', label: 'एजेंट' },
               { id: 'jobs', label: 'जॉब्स' },
@@ -332,7 +335,8 @@ export const AdminSubdomainLayout: React.FC<AdminSubdomainLayoutProps> = () => {
         {activeAdminTab === 'dashboard' && (
           <AdminDashboard
             onNavigate={(tab) => {
-              if (tab === 'admin-bookings') setActiveAdminTab('bookings');
+              if (tab === 'go-agent-desk' || tab === 'admin-go-desk' || tab === 'admin-kyc-desk') setActiveAdminTab('go-agent-desk');
+              else if (tab === 'admin-bookings') setActiveAdminTab('bookings');
               else if (tab === 'admin-agents') setActiveAdminTab('agents');
               else if (tab === 'admin-jobs') setActiveAdminTab('jobs');
               else if (tab === 'admin-salary') setActiveAdminTab('salary');
@@ -345,6 +349,10 @@ export const AdminSubdomainLayout: React.FC<AdminSubdomainLayoutProps> = () => {
             }}
             onOpenBooking={(id) => setSelectedReviewBookingId(id)}
           />
+        )}
+
+        {activeAdminTab === 'go-agent-desk' && (
+          <AdminGoAgentDesk />
         )}
 
         {activeAdminTab === 'bookings' && (
