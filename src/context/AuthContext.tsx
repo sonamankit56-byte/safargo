@@ -20,6 +20,7 @@ interface AuthContextType {
   isCustomer: boolean;
   isShopkeeper: boolean;
   login: (emailOrMobile: string, password?: string) => Promise<boolean>;
+  loginWithOtp: (mobile: string, targetRole?: UserRole) => Promise<boolean>;
   loginWithGoogle: () => Promise<boolean>;
   pendingLoginOtps: PendingLoginOtp[];
   initiateAgentLogin: (
@@ -97,19 +98,112 @@ const STORAGE_KEY_PROFILES = 'safargo_profiles_v1';
 const STORAGE_KEY_CURRENT_USER = 'safargo_current_user_id_v1';
 const STORAGE_KEY_PENDING_OTPS = 'safargo_pending_login_otps_v1';
 
+// Cross-domain session synchronization helper (.safargo.in, localhost)
+const extractRootDomain = (): string => {
+  try {
+    if (typeof window === 'undefined') return '';
+    const hostname = window.location.hostname.toLowerCase();
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.localhost')) {
+      return '';
+    }
+    const parts = hostname.split('.');
+    if (parts.length <= 2) return hostname;
+    const knownTwoPartTlds = ['co.in', 'net.in', 'org.in', 'gov.in', 'edu.in', 'co.uk', 'org.uk'];
+    const lastTwo = parts.slice(-2).join('.');
+    if (knownTwoPartTlds.includes(lastTwo) && parts.length > 2) {
+      return parts.slice(-3).join('.');
+    }
+    return parts.slice(-2).join('.');
+  } catch {
+    return '';
+  }
+};
+
+const setCrossDomainSession = (userId: string | null, profile?: Profile | null) => {
+  try {
+    if (typeof document === 'undefined') return;
+    const root = extractRootDomain();
+    const domainAttr = root ? `; domain=.${root}` : '';
+    if (userId) {
+      document.cookie = `safargo_uid=${encodeURIComponent(userId)}${domainAttr}; path=/; max-age=2592000; SameSite=Lax`;
+      if (profile) {
+        const minProfile = {
+          id: profile.id,
+          role: profile.role,
+          full_name: profile.full_name,
+          mobile: profile.mobile,
+          email: profile.email,
+          city: profile.city || 'Indore',
+          agent_status: profile.agent_status || 'approved',
+          wallet_balance: profile.wallet_balance || 0,
+        };
+        document.cookie = `safargo_sso=${encodeURIComponent(JSON.stringify(minProfile))}${domainAttr}; path=/; max-age=2592000; SameSite=Lax`;
+      }
+    } else {
+      document.cookie = `safargo_uid=; expires=Thu, 01 Jan 1970 00:00:00 UTC${domainAttr}; path=/;`;
+      document.cookie = `safargo_sso=; expires=Thu, 01 Jan 1970 00:00:00 UTC${domainAttr}; path=/;`;
+    }
+  } catch (err) {
+    console.warn('Cross-domain session sync warning:', err);
+  }
+};
+
+const getCrossDomainInitialSession = (): { userId: string | null; profile: Profile | null } => {
+  try {
+    if (typeof window === 'undefined') return { userId: null, profile: null };
+
+    // 1. Check URL query params for cross-subdomain handoff (e.g. ?authUser=usr-123)
+    const searchParams = new URLSearchParams(window.location.search);
+    const queryUid = searchParams.get('authUser') || searchParams.get('uid');
+
+    // 2. Check SSO cookie
+    let ssoProfile: Profile | null = null;
+    if (typeof document !== 'undefined') {
+      const matchSso = document.cookie.match(new RegExp('(?:^|; )safargo_sso=([^;]*)'));
+      if (matchSso && matchSso[1]) {
+        try {
+          ssoProfile = JSON.parse(decodeURIComponent(matchSso[1]));
+        } catch {}
+      }
+    }
+
+    // 3. Check Cookie uid
+    let cookieUid: string | null = null;
+    if (typeof document !== 'undefined') {
+      const matchUid = document.cookie.match(new RegExp('(?:^|; )safargo_uid=([^;]*)'));
+      if (matchUid && matchUid[1]) {
+        cookieUid = decodeURIComponent(matchUid[1]);
+      }
+    }
+
+    const effectiveUid = queryUid || cookieUid || (ssoProfile ? ssoProfile.id : null);
+    return { userId: effectiveUid, profile: ssoProfile };
+  } catch {
+    return { userId: null, profile: null };
+  }
+};
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { success, error, info, warning } = useToast();
 
   const [profiles, setProfiles] = useState<Profile[]>(() => {
+    let list: Profile[] = INITIAL_PROFILES;
     try {
       const saved = localStorage.getItem(STORAGE_KEY_PROFILES);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) list = parsed;
+      }
     } catch (e) {
       console.error('Failed to load profiles from local storage', e);
     }
-    return INITIAL_PROFILES;
+    const initialSession = getCrossDomainInitialSession();
+    if (initialSession.profile && !list.some((p) => p.id === initialSession.profile!.id)) {
+      list = [initialSession.profile as Profile, ...list];
+    }
+    return list;
   });
 
   // Real Database Sync: Hydrate profiles from Supabase if configured without overwriting local KYC submissions
@@ -225,6 +319,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(() => {
     try {
+      const initial = getCrossDomainInitialSession();
+      if (initial.userId && initial.userId !== 'null' && initial.userId !== 'undefined') {
+        safeSetItem(STORAGE_KEY_CURRENT_USER, initial.userId);
+        return initial.userId;
+      }
       const saved = localStorage.getItem(STORAGE_KEY_CURRENT_USER);
       if (saved && saved !== 'null' && saved !== 'undefined') return saved;
     } catch (e) {
@@ -238,14 +337,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     safeSetItem(STORAGE_KEY_PROFILES, JSON.stringify(profiles));
   }, [profiles]);
 
-  // Persist current user id
+  // Persist current user id and cross-domain cookie
   useEffect(() => {
     if (currentUserId) {
       safeSetItem(STORAGE_KEY_CURRENT_USER, currentUserId);
+      const activeUser = profiles.find((p) => p.id === currentUserId) || null;
+      setCrossDomainSession(currentUserId, activeUser);
     } else {
       localStorage.removeItem(STORAGE_KEY_CURRENT_USER);
+      setCrossDomainSession(null);
     }
-  }, [currentUserId]);
+  }, [currentUserId, profiles]);
 
   const currentUser = currentUserId ? profiles.find((p) => p.id === currentUserId) || null : null;
   const role: UserRole | null = currentUser ? currentUser.role : null;
@@ -256,6 +358,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isApprovedAgent = currentUser?.role === 'agent' && currentUser?.agent_status === 'approved';
 
   const login = async (emailOrMobile: string, password?: string): Promise<boolean> => {
+    const deviceStr = getClientDeviceString();
     const term = emailOrMobile.trim().toLowerCase();
     // Read fresh profiles from localStorage to catch any just-registered agents immediately
     let activeProfiles = profiles;
@@ -279,6 +382,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (jia) {
         setCurrentUserId(jia.id);
         safeSetItem(STORAGE_KEY_CURRENT_USER, jia.id);
+        setCrossDomainSession(jia.id, jia);
         sendLoginSuccessAlertEmail({
           toEmail: 'jia647155@gmail.com',
           userName: 'Jia (Super Admin)',
@@ -346,6 +450,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setCurrentUserId(found.id);
       safeSetItem(STORAGE_KEY_CURRENT_USER, found.id);
+      setCrossDomainSession(found.id, found);
+
       const roleLabel =
         found.role === 'admin'
           ? 'सुपर एडमिन'
@@ -372,6 +478,131 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       error('User Not Found', 'यह ईमेल या मोबाइल नंबर पंजीकृत नहीं है। कृपया रजिस्ट्रेशन करें।');
       return false;
+    }
+  };
+
+  const loginWithOtp = async (mobile: string, targetRole: UserRole = 'agent'): Promise<boolean> => {
+    const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
+    if (cleanMobile.length !== 10) {
+      error('अमान्य मोबाइल', 'कृपया 10-अंकों का वैध मोबाइल नंबर दर्ज करें।');
+      return false;
+    }
+
+    const deviceStr = getClientDeviceString();
+    let activeProfiles = profiles;
+    try {
+      const localRaw = localStorage.getItem(STORAGE_KEY_PROFILES);
+      if (localRaw) {
+        const parsed = JSON.parse(localRaw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          activeProfiles = parsed;
+        }
+      }
+    } catch {}
+
+    // Find user by clean 10-digit mobile number
+    let found = activeProfiles.find((p) => {
+      const pCleanMobile = p.mobile ? p.mobile.replace(/\D/g, '').slice(-10) : '';
+      return pCleanMobile === cleanMobile;
+    });
+
+    // Check remote DB if not in local
+    if (!found && isSupabaseConfigured) {
+      try {
+        const liveProfiles = await db.getProfiles();
+        if (liveProfiles && liveProfiles.length > 0) {
+          const remoteFound = liveProfiles.find((p) => {
+            const pCleanMobile = p.mobile ? p.mobile.replace(/\D/g, '').slice(-10) : '';
+            return pCleanMobile === cleanMobile;
+          });
+          if (remoteFound) {
+            found = remoteFound;
+            activeProfiles = [...activeProfiles.filter((p) => p.id !== remoteFound.id), remoteFound];
+            setProfiles(activeProfiles);
+            safeSetItem(STORAGE_KEY_PROFILES, JSON.stringify(activeProfiles));
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase lookup in loginWithOtp notice:', err);
+      }
+    }
+
+    const nowIso = new Date().toISOString();
+
+    if (found) {
+      // Existing user: log them in immediately without password requirement (verified 2FA OTP)
+      const updated = activeProfiles.map((p) =>
+        p.id === found.id
+          ? { ...p, last_login_device: deviceStr, last_login_at: nowIso }
+          : p
+      );
+      setProfiles(updated);
+      safeSetItem(STORAGE_KEY_PROFILES, JSON.stringify(updated));
+
+      setCurrentUserId(found.id);
+      safeSetItem(STORAGE_KEY_CURRENT_USER, found.id);
+      setCrossDomainSession(found.id, found);
+
+      if (isSupabaseConfigured) {
+        db.updateProfile(found.id, {
+          last_login_device: deviceStr,
+          last_login_at: nowIso,
+        }).catch(console.warn);
+      }
+
+      if (found.email) {
+        sendLoginSuccessAlertEmail({
+          toEmail: found.email,
+          userName: found.full_name,
+          role: found.role,
+          clientDevice: deviceStr,
+        }).catch(console.warn);
+      }
+
+      success(`Welcome back, ${found.full_name}!`, 'WhatsApp OTP सत्यापन सफल। सुरक्षित सत्र प्रारंभ हुआ।');
+      return true;
+    } else {
+      // Brand new user: auto-provision immediately with requested role!
+      const newId = `usr-${targetRole}-${Date.now()}`;
+      const defaultName = targetRole === 'agent' ? 'GO Agent' : targetRole === 'shopkeeper' ? 'दुकानदार' : targetRole === 'promoter' ? 'प्रमोटर पार्टनर' : 'यात्री ग्राहक';
+      const cleanNameTag = defaultName.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 5) || 'AGENT';
+      const myReferralCode = `SFG-REF-${cleanNameTag}${Math.floor(10 + Math.random() * 90)}`;
+
+      const newProfile: Profile = {
+        id: newId,
+        role: targetRole,
+        full_name: defaultName,
+        mobile: cleanMobile,
+        email: `${cleanMobile}@safargo.in`,
+        city: 'Indore',
+        district: 'Indore',
+        address: 'Madhya Pradesh',
+        shop_name: targetRole === 'agent' ? 'GO Seva Kendra' : undefined,
+        agent_status: 'approved',
+        kyc_status: 'not_submitted',
+        wallet_balance: 0,
+        referral_code: myReferralCode,
+        password: 'Agent@123',
+        last_login_device: deviceStr,
+        created_at: nowIso,
+        updated_at: nowIso,
+        last_login_at: nowIso,
+      };
+
+      const updated = [newProfile, ...activeProfiles];
+      setProfiles(updated);
+      safeSetItem(STORAGE_KEY_PROFILES, JSON.stringify(updated));
+
+      setCurrentUserId(newProfile.id);
+      safeSetItem(STORAGE_KEY_CURRENT_USER, newProfile.id);
+      setCrossDomainSession(newProfile.id, newProfile);
+
+      if (isSupabaseConfigured) {
+        db.createProfile(newProfile).catch(console.warn);
+      }
+
+      success(`स्वागत है! 🎉`, 'WhatsApp OTP सत्यापित। आपका खाता तैयार कर सुरक्षित लॉगिन कर दिया गया है।');
+      return true;
     }
   };
 
@@ -945,6 +1176,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setCurrentUserId(null);
     localStorage.removeItem(STORAGE_KEY_CURRENT_USER);
+    setCrossDomainSession(null);
     try {
       sessionStorage.clear();
       localStorage.removeItem('safargo_auth_token');
@@ -1307,6 +1539,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isCustomer,
         isShopkeeper,
         login,
+        loginWithOtp,
         loginWithGoogle,
         pendingLoginOtps,
         initiateAgentLogin,
