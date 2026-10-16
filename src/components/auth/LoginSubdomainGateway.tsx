@@ -225,12 +225,9 @@ export const LoginSubdomainGateway: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const ok = await login(clean, password || 'admin123');
+      const ok = await login(clean);
       if (ok) {
         success('लॉगिन सफल! 🎉', 'WhatsApp 2FA सत्यापन सफल। डैशबोर्ड खुल रहा है...');
-        performRoleRedirect(selectedRole);
-      } else {
-        success('लॉगिन सफल! 🎉', 'सत्यापन संपन्न हुआ।');
         performRoleRedirect(selectedRole);
       }
     } finally {

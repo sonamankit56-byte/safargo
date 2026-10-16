@@ -24,6 +24,12 @@ import {
   FileText,
   Printer,
   Users,
+  Wifi,
+  BatteryCharging,
+  Wind,
+  Check,
+  Send,
+  X,
 } from 'lucide-react';
 import { MP_NETWORK_CITIES } from '../../lib/mockData';
 import { SafarGoLogo } from '../common/SafarGoLogo';
@@ -31,6 +37,13 @@ import { Go3DUltraLogo } from '../common/Go3DUltraLogo';
 import { PrintTicketModal } from '../common/PrintTicketModal';
 import { getWhatsAppTicketMessage } from '../../lib/whatsappService';
 import { Booking } from '../../types';
+
+import busHero from '../../assets/bus1.png';
+import busFleet1 from '../../assets/bus2.png';
+import busFleet2 from '../../assets/bus3.png';
+import busFleet3 from '../../assets/bus5.png';
+import busFleet4 from '../../assets/bus6.png';
+import busBg from '../../assets/bg1.jpg';
 
 interface HomePageProps {
   onOpenAuth: (initialTab?: 'login' | 'register') => void;
@@ -62,6 +75,17 @@ export const HomePage: React.FC<HomePageProps> = ({
   const [trackedBooking, setTrackedBooking] = useState<Booking | null>(null);
   const [pnrSearched, setPnrSearched] = useState(false);
   const [selectedPrintBooking, setSelectedPrintBooking] = useState<Booking | null>(null);
+
+  // Quick Interactive Seat Map Preview Modal State
+  const [previewSeatBus, setPreviewSeatBus] = useState<{
+    name: string;
+    time: string;
+    fare: number;
+    type: string;
+    image: string;
+  } | null>(null);
+  const [selectedSeats, setSelectedSeats] = useState<number[]>([12]);
+  const [deckTab, setDeckTab] = useState<'lower' | 'upper'>('lower');
 
   const handleSwapCities = () => {
     const temp = searchSource;
@@ -159,7 +183,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
 
           {/* Quick Value Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 max-w-3xl mx-auto text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 max-w-3xl mx-auto text-xs">
             <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800">
               <span className="text-amber-400 font-black block text-lg font-mono">₹20</span>
               <span className="text-slate-400 text-[11px]">फ्लैट कमीशन प्रति सीट</span>
@@ -175,6 +199,39 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800">
               <span className="text-orange-400 font-black block text-lg font-mono">24 घंटे</span>
               <span className="text-slate-400 text-[11px]">समाधान गारंटी डेस्क</span>
+            </div>
+          </div>
+
+          {/* Dynamic Visual Bus Stage with Floating Benefit Badges */}
+          <div className="relative pt-6 max-w-3xl mx-auto">
+            <div className="absolute inset-0 bg-gradient-to-t from-amber-500/20 via-orange-500/10 to-transparent blur-3xl rounded-full pointer-events-none" />
+            
+            <div className="relative z-10 flex flex-col items-center">
+              <img
+                src={busHero}
+                alt="SafarGo High-Deck Luxury Coach"
+                className="w-full max-w-lg h-auto object-contain drop-shadow-[0_20px_45px_rgba(245,158,11,0.35)] transform hover:scale-105 transition-all duration-500"
+              />
+
+              {/* Floating Benefit Badges */}
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 -mt-3 sm:-mt-6 relative z-20">
+                <div className="px-3 py-1.5 rounded-full bg-slate-900/95 border border-emerald-500/70 shadow-lg text-[11px] font-bold text-emerald-400 flex items-center gap-1.5 backdrop-blur-md">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>5-मिनट अप्रूवल गारंटी</span>
+                </div>
+                <div className="px-3 py-1.5 rounded-full bg-slate-900/95 border border-amber-400/80 shadow-lg text-[11px] font-black text-amber-300 flex items-center gap-1.5 backdrop-blur-md">
+                  <Wallet className="w-3.5 h-3.5 text-amber-400" />
+                  <span>फ्लैट ₹20 नकद कमीशन / सीट</span>
+                </div>
+                <div className="px-3 py-1.5 rounded-full bg-slate-900/95 border border-cyan-400/70 shadow-lg text-[11px] font-bold text-cyan-300 flex items-center gap-1.5 backdrop-blur-md">
+                  <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>हर रविवार सीधा बैंक/UPI पेआउट</span>
+                </div>
+                <div className="px-3 py-1.5 rounded-full bg-black/90 border border-slate-700 shadow-lg text-[11px] font-bold text-white flex items-center gap-1.5 backdrop-blur-md">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                  <span>🛺 Uber ऑटो/कैब राइड सेवा</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -273,45 +330,100 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </div>
               </div>
 
-              {/* Sample Bus Options for Route */}
-              <div className="space-y-2 pt-2">
+              {/* Sample Bus Options for Route with Visual Thumbnails & Amenities */}
+              <div className="space-y-3 pt-2">
                 <span className="text-xs font-bold text-slate-400 block">
                   उपलब्ध बसें: {searchSource} ➔ {searchDestination} ({searchDate})
                 </span>
 
                 {[
-                  { name: 'SafarGo Superfast Express (AC)', time: 'सुबह 07:30', fare: 450, seats: 14, type: '2x2 AC Seater' },
-                  { name: 'Royal AC Sleeper Deluxe', time: 'दोपहर 01:15', fare: 650, seats: 8, type: 'AC Sleeper' },
-                  { name: 'MP Tourism InterCity (2x2)', time: 'शाम 05:45', fare: 550, seats: 19, type: 'Fast Express' },
+                  {
+                    name: 'SafarGo Superfast Express (AC)',
+                    time: 'सुबह 07:30',
+                    fare: 450,
+                    seats: 14,
+                    type: '2x2 AC Pushback',
+                    image: busHero,
+                    amenities: ['AC', 'WiFi', 'Charging', 'Pushback'],
+                  },
+                  {
+                    name: 'Royal AC Sleeper Deluxe (2+1)',
+                    time: 'दोपहर 01:15',
+                    fare: 650,
+                    seats: 8,
+                    type: 'Luxury AC Sleeper',
+                    image: busFleet1,
+                    amenities: ['AC', 'WiFi', 'Charging', 'Blanket', 'Water'],
+                  },
+                  {
+                    name: 'MP Tourism InterCity Superfast',
+                    time: 'शाम 05:45',
+                    fare: 550,
+                    seats: 19,
+                    type: 'Multi-Axle AC Seater',
+                    image: busFleet2,
+                    amenities: ['AC', 'Charging', 'Pushback', 'GPS'],
+                  },
+                  {
+                    name: 'Gramin Regional Connect Seater',
+                    time: 'रात 09:00',
+                    fare: 350,
+                    seats: 22,
+                    type: 'Fast Express Seater',
+                    image: busFleet4,
+                    amenities: ['Pushback', 'Luggage Space'],
+                  },
                 ].map((bus, idx) => (
                   <div
                     key={idx}
-                    className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                    className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 hover:border-amber-400/50 transition flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs group"
                   >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <strong className="text-white text-sm">{bus.name}</strong>
-                        <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 text-[10px] font-bold border border-emerald-500/30">
-                          {bus.seats} सीटें खाली
-                        </span>
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-20 h-14 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center p-1 shrink-0 overflow-hidden group-hover:scale-105 transition-transform">
+                        <img src={bus.image} alt={bus.name} className="w-full h-full object-contain" />
                       </div>
-                      <p className="text-slate-400 text-[11px] mt-0.5">
-                        प्रस्थान: {bus.time} • प्रकार: {bus.type} • 5-मिनट अप्रूवल
-                      </p>
+
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <strong className="text-white text-sm">{bus.name}</strong>
+                          <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 text-[10px] font-bold border border-emerald-500/30">
+                            {bus.seats} सीटें खाली
+                          </span>
+                        </div>
+                        <p className="text-slate-400 text-[11px]">
+                          प्रस्थान: <span className="text-amber-300 font-bold">{bus.time}</span> • प्रकार: {bus.type} • 5-मिनट अप्रूवल
+                        </p>
+                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                          {bus.amenities.map((a, aIdx) => (
+                            <span key={aIdx} className="px-1.5 py-0.5 rounded bg-slate-900 text-slate-400 text-[9px] font-mono border border-slate-800">
+                              {a}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="flex items-center justify-between sm:justify-end gap-3">
-                      <div className="text-right">
-                        <span className="text-lg font-black text-amber-400 font-mono">₹{bus.fare}</span>
-                        <span className="text-[10px] text-slate-500 block">+₹20 एजेंट कमीशन</span>
+                    <div className="flex items-center justify-between md:justify-end gap-3 pt-2 md:pt-0 border-t md:border-t-0 border-slate-800">
+                      <div className="text-left md:text-right">
+                        <span className="text-xl font-black text-amber-400 font-mono">₹{bus.fare}</span>
+                        <span className="text-[10px] text-emerald-400 font-bold block">+₹20 एजेंट कमीशन</span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={handleJoinAgent}
-                        className="py-2 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs transition cursor-pointer"
-                      >
-                        सीट बुक करें ➔
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPreviewSeatBus(bus)}
+                          className="py-2.5 px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs transition cursor-pointer"
+                        >
+                          सीटें देखें
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleJoinAgent}
+                          className="py-2.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs transition cursor-pointer shadow-md"
+                        >
+                          बुक करें ➔
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -403,6 +515,196 @@ export const HomePage: React.FC<HomePageProps> = ({
               )}
             </div>
           )}
+
+        </div>
+      </section>
+
+      {/* ============================================================== */}
+      {/* 2.5 LUXURY BUS FLEET SHOWCASE (आधुनिक व सुरक्षित बस बेड़ा)       */}
+      {/* ============================================================== */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 border-t border-slate-900 bg-slate-950/60 relative overflow-hidden">
+        <div className="absolute top-1/2 left-0 w-80 h-80 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="max-w-6xl mx-auto space-y-10 relative z-10">
+          
+          <div className="text-center space-y-2">
+            <span className="text-xs uppercase font-black text-amber-400 tracking-wider">
+              PREMIUM FLEET PORTFOLIO
+            </span>
+            <h2 className="text-2xl sm:text-4xl font-black text-white">
+              SafarGo का आधुनिक व सुरक्षित बस बेड़ा
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-400 max-w-2xl mx-auto">
+              मध्य प्रदेश के सभी मुख्य हाईवे व ग्रामीण मार्गों पर चलने वाली अत्याधुनिक लग्जरी, स्लीपर एवं सुपरफास्ट बसें।
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+            {/* Bus 1: Volvo 9600 AC Sleeper */}
+            <div className="rounded-3xl bg-slate-900 border border-slate-800 hover:border-amber-400/60 p-5 space-y-4 transition-all duration-300 hover:-translate-y-1 group">
+              <div className="h-32 rounded-2xl bg-slate-950/80 flex items-center justify-center p-2 overflow-hidden border border-slate-800/80">
+                <img
+                  src={busFleet1}
+                  alt="Volvo Multi-Axle Sleeper"
+                  className="max-h-full object-contain group-hover:scale-110 transition-transform duration-500"
+                />
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-black uppercase text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full">
+                    2+1 Luxury Sleeper
+                  </span>
+                  <span className="text-xs font-mono font-bold text-slate-400">₹650 से</span>
+                </div>
+                <h3 className="text-base font-black text-white">Volvo 9600 AC स्लीपर</h3>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  व्यक्तिगत केबिन बर्थ, साइलेंट केबिन, मिनरल वॉटर एवं लाइव जीपीएस ट्रैकिंग।
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pt-1 text-[10px] text-slate-400 font-mono">
+                <span className="px-2 py-0.5 bg-slate-950 rounded border border-slate-800">❄️ Dual AC</span>
+                <span className="px-2 py-0.5 bg-slate-950 rounded border border-slate-800">📶 Free WiFi</span>
+                <span className="px-2 py-0.5 bg-slate-950 rounded border border-slate-800">🔌 220V Socket</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewSeatBus({
+                  name: 'Volvo 9600 Multi-Axle AC Sleeper',
+                  time: 'दोपहर 01:15',
+                  fare: 650,
+                  type: '2+1 Luxury Sleeper',
+                  image: busFleet1,
+                })}
+                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-amber-400 hover:text-slate-950 text-slate-300 font-bold text-xs transition cursor-pointer"
+              >
+                सीट लेआउट देखें
+              </button>
+            </div>
+
+            {/* Bus 2: BharatBenz Superfast */}
+            <div className="rounded-3xl bg-slate-900 border border-slate-800 hover:border-amber-400/60 p-5 space-y-4 transition-all duration-300 hover:-translate-y-1 group">
+              <div className="h-32 rounded-2xl bg-slate-950/80 flex items-center justify-center p-2 overflow-hidden border border-slate-800/80">
+                <img
+                  src={busHero}
+                  alt="BharatBenz High-Deck Express"
+                  className="max-h-full object-contain group-hover:scale-110 transition-transform duration-500"
+                />
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-black uppercase text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">
+                    2+2 Semi-Sleeper
+                  </span>
+                  <span className="text-xs font-mono font-bold text-slate-400">₹450 से</span>
+                </div>
+                <h3 className="text-base font-black text-white">BharatBenz हाई-डेक एक्सप्रेस</h3>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  एर्गोनॉमिक पुशबैक सीटें, आपातकालीन सुरक्षा सेंसर व ऑन-टाइम गारंटी।
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pt-1 text-[10px] text-slate-400 font-mono">
+                <span className="px-2 py-0.5 bg-slate-950 rounded border border-slate-800">💺 Pushback</span>
+                <span className="px-2 py-0.5 bg-slate-950 rounded border border-slate-800">❄️ Climate Control</span>
+                <span className="px-2 py-0.5 bg-slate-950 rounded border border-slate-800">📍 Live GPS</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewSeatBus({
+                  name: 'BharatBenz High-Deck Superfast (2x2 AC)',
+                  time: 'सुबह 07:30',
+                  fare: 450,
+                  type: '2x2 AC Pushback',
+                  image: busHero,
+                })}
+                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-amber-400 hover:text-slate-950 text-slate-300 font-bold text-xs transition cursor-pointer"
+              >
+                सीट लेआउट देखें
+              </button>
+            </div>
+
+            {/* Bus 3: Scania InterCity Express */}
+            <div className="rounded-3xl bg-slate-900 border border-slate-800 hover:border-amber-400/60 p-5 space-y-4 transition-all duration-300 hover:-translate-y-1 group">
+              <div className="h-32 rounded-2xl bg-slate-950/80 flex items-center justify-center p-2 overflow-hidden border border-slate-800/80">
+                <img
+                  src={busFleet2}
+                  alt="Scania InterCity Express"
+                  className="max-h-full object-contain group-hover:scale-110 transition-transform duration-500"
+                />
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-black uppercase text-cyan-400 bg-cyan-400/10 px-2 py-0.5 rounded-full">
+                    InterCity Superfast
+                  </span>
+                  <span className="text-xs font-mono font-bold text-slate-400">₹550 से</span>
+                </div>
+                <h3 className="text-base font-black text-white">Scania इंटरसिटी डीलक्स</h3>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  सुपरफास्ट हाईवे कनेक्टिविटी, रीडिंग लैंप, अतिरिक्त लेगरूम व CCTV।
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pt-1 text-[10px] text-slate-400 font-mono">
+                <span className="px-2 py-0.5 bg-slate-950 rounded border border-slate-800">💡 Reading Light</span>
+                <span className="px-2 py-0.5 bg-slate-950 rounded border border-slate-800">🛡️ CCTV Secure</span>
+                <span className="px-2 py-0.5 bg-slate-950 rounded border border-slate-800">🔋 Fast USB</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewSeatBus({
+                  name: 'Scania InterCity Express Deluxe',
+                  time: 'शाम 05:45',
+                  fare: 550,
+                  type: 'Multi-Axle InterCity',
+                  image: busFleet2,
+                })}
+                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-amber-400 hover:text-slate-950 text-slate-300 font-bold text-xs transition cursor-pointer"
+              >
+                सीट लेआउट देखें
+              </button>
+            </div>
+
+            {/* Bus 4: Gramin Express Seater */}
+            <div className="rounded-3xl bg-slate-900 border border-slate-800 hover:border-amber-400/60 p-5 space-y-4 transition-all duration-300 hover:-translate-y-1 group">
+              <div className="h-32 rounded-2xl bg-slate-950/80 flex items-center justify-center p-2 overflow-hidden border border-slate-800/80">
+                <img
+                  src={busFleet4}
+                  alt="Gramin Link Regional Fast Seater"
+                  className="max-h-full object-contain group-hover:scale-110 transition-transform duration-500"
+                />
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-black uppercase text-orange-400 bg-orange-400/10 px-2 py-0.5 rounded-full">
+                    Regional Connect
+                  </span>
+                  <span className="text-xs font-mono font-bold text-slate-400">₹350 से</span>
+                </div>
+                <h3 className="text-base font-black text-white">ग्रामीण एक्सप्रेस सीटर</h3>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  तहसील व ग्रामीण क्षेत्रों को सीधे जिला मुख्यालय से जोड़ने वाली सीधी सेवा।
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pt-1 text-[10px] text-slate-400 font-mono">
+                <span className="px-2 py-0.5 bg-slate-950 rounded border border-slate-800">📦 Luggage Space</span>
+                <span className="px-2 py-0.5 bg-slate-950 rounded border border-slate-800">⏱️ On-Time</span>
+                <span className="px-2 py-0.5 bg-slate-950 rounded border border-slate-800">🎫 E-Ticket</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewSeatBus({
+                  name: 'Gramin Regional Connect Seater',
+                  time: 'रात 09:00',
+                  fare: 350,
+                  type: 'Fast Regional Express',
+                  image: busFleet4,
+                })}
+                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-amber-400 hover:text-slate-950 text-slate-300 font-bold text-xs transition cursor-pointer"
+              >
+                सीट लेआउट देखें
+              </button>
+            </div>
+
+          </div>
 
         </div>
       </section>
@@ -547,6 +849,135 @@ export const HomePage: React.FC<HomePageProps> = ({
           booking={selectedPrintBooking}
           onClose={() => setSelectedPrintBooking(null)}
         />
+      )}
+
+      {/* Quick Interactive Seat Map Preview Modal */}
+      {previewSeatBus && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fadeIn">
+          <div className="relative w-full max-w-lg bg-slate-900 border-2 border-amber-400 rounded-3xl shadow-2xl p-6 space-y-5 animate-scaleUp text-xs max-h-[90vh] overflow-y-auto">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-3">
+                <img src={previewSeatBus.image} alt={previewSeatBus.name} className="w-14 h-9 object-contain" />
+                <div>
+                  <h3 className="text-sm font-black text-white">{previewSeatBus.name}</h3>
+                  <span className="text-[11px] text-slate-400">{previewSeatBus.type} • प्रस्थान: {previewSeatBus.time}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewSeatBus(null)}
+                className="p-1.5 rounded-full bg-slate-800 text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Deck Switcher */}
+            <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 max-w-xs mx-auto">
+              <button
+                type="button"
+                onClick={() => setDeckTab('lower')}
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  deckTab === 'lower' ? 'bg-amber-400 text-slate-950 font-black' : 'text-slate-400'
+                }`}
+              >
+                लोअर डेक (Lower)
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeckTab('upper')}
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  deckTab === 'upper' ? 'bg-amber-400 text-slate-950 font-black' : 'text-slate-400'
+                }`}
+              >
+                अपर डेक (Upper)
+              </button>
+            </div>
+
+            {/* Interactive 2x2 / 2x1 Seat Grid */}
+            <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-3">
+              <div className="flex justify-between items-center text-[10px] text-slate-400 border-b border-slate-800 pb-2">
+                <span>केबिन फ्रंट (Driver 💺)</span>
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded bg-slate-800 border border-slate-700" /> खाली
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded bg-amber-400" /> चुनी हुई
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded bg-slate-700 opacity-40" /> बुक
+                  </span>
+                </div>
+              </div>
+
+              {/* Seat Matrix */}
+              <div className="grid grid-cols-4 gap-2 py-2 max-w-xs mx-auto">
+                {(deckTab === 'lower'
+                  ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+                  : [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
+                ).map((seatNum) => {
+                  const isSelected = selectedSeats.includes(seatNum);
+                  const isBooked = [3, 7, 14, 22].includes(seatNum);
+                  return (
+                    <button
+                      key={seatNum}
+                      type="button"
+                      disabled={isBooked}
+                      onClick={() => {
+                        if (isSelected) setSelectedSeats(selectedSeats.filter((s) => s !== seatNum));
+                        else setSelectedSeats([...selectedSeats, seatNum]);
+                      }}
+                      className={`h-10 rounded-xl font-mono text-xs font-bold transition flex items-center justify-center cursor-pointer ${
+                        isBooked
+                          ? 'bg-slate-800/40 text-slate-600 border border-slate-800 cursor-not-allowed'
+                          : isSelected
+                          ? 'bg-amber-400 text-slate-950 font-black shadow-lg scale-105 border-2 border-white'
+                          : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700'
+                      }`}
+                    >
+                      {seatNum}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Selection Summary */}
+            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+              <div>
+                <span className="text-slate-400 block text-[10px]">चुनी गई सीटें:</span>
+                <span className="font-mono font-bold text-emerald-400">
+                  {selectedSeats.length > 0 ? selectedSeats.join(', ') : 'कोई नहीं'}
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-slate-400 block text-[10px]">कुल किराया:</span>
+                <span className="text-base font-black text-white font-mono">
+                  ₹{(previewSeatBus.fare * Math.max(1, selectedSeats.length)).toLocaleString('en-IN')}
+                </span>
+                <span className="text-[10px] text-amber-400 block font-bold">+₹20 कमीशन</span>
+              </div>
+            </div>
+
+            {/* CTA */}
+            <div className="pt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setPreviewSeatBus(null);
+                  handleJoinAgent();
+                }}
+                className="flex-1 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs transition cursor-pointer shadow-lg text-center"
+              >
+                GO एजेंट के माध्यम से कन्फर्म बुक करें ➔
+              </button>
+            </div>
+
+          </div>
+        </div>
       )}
 
     </div>

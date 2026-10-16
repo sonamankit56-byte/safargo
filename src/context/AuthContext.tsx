@@ -451,6 +451,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     password?: string
   ): Promise<{ success: boolean; pendingOtp?: PendingLoginOtp; isSuperAdmin?: boolean; message?: string }> => {
     const term = emailOrMobile.trim().toLowerCase();
+    const cleanTermMobile = term.replace(/\D/g, '').slice(-10);
+
+    // Read fresh profiles from localStorage to catch recently registered agents
+    let activeProfiles = profiles;
+    try {
+      const localRaw = localStorage.getItem(STORAGE_KEY_PROFILES);
+      if (localRaw) {
+        const parsed = JSON.parse(localRaw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          activeProfiles = parsed;
+        }
+      }
+    } catch {}
 
     // Super Admin special direct authorization
     if (term === 'jia647155@gmail.com') {
@@ -458,7 +471,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         error('Invalid Password', 'गलत एडमिन पासवर्ड दर्ज किया गया है।');
         return { success: false, message: 'Invalid password' };
       }
-      const jia = profiles.find((p) => p.email.toLowerCase() === 'jia647155@gmail.com');
+      const jia = activeProfiles.find((p) => p.email.toLowerCase() === 'jia647155@gmail.com');
       if (jia) {
         setCurrentUserId(jia.id);
         sendLoginSuccessAlertEmail({
@@ -472,13 +485,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    const found = profiles.find(
-      (p) =>
+    const found = activeProfiles.find((p) => {
+      const cleanPMobile = p.mobile ? p.mobile.replace(/\D/g, '').slice(-10) : '';
+      return (
         p.email.toLowerCase() === term ||
-        p.mobile.replace(/\D/g, '') === term.replace(/\D/g, '') ||
+        (cleanTermMobile.length === 10 && cleanPMobile === cleanTermMobile) ||
         (p.promoter_code && p.promoter_code.toLowerCase() === term) ||
         p.id.toLowerCase() === term
-    );
+      );
+    });
 
     if (!found) {
       error('User Not Found', 'यह ईमेल या मोबाइल नंबर पंजीकृत नहीं है। कृपया नया एजेंट रजिस्ट्रेशन करें।');
@@ -615,9 +630,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const resetPassword = async (emailOrMobile: string, newPassword: string): Promise<boolean> => {
     const term = emailOrMobile.trim().toLowerCase();
-    const index = profiles.findIndex(
-      (p) => p.email.toLowerCase() === term || p.mobile.replace(/\D/g, '') === term.replace(/\D/g, '')
-    );
+    const cleanTermMobile = term.replace(/\D/g, '').slice(-10);
+
+    let activeProfiles = profiles;
+    try {
+      const localRaw = localStorage.getItem(STORAGE_KEY_PROFILES);
+      if (localRaw) {
+        const parsed = JSON.parse(localRaw);
+        if (Array.isArray(parsed) && parsed.length > 0) activeProfiles = parsed;
+      }
+    } catch {}
+
+    const index = activeProfiles.findIndex((p) => {
+      const cleanPMobile = p.mobile ? p.mobile.replace(/\D/g, '').slice(-10) : '';
+      return (
+        p.email.toLowerCase() === term ||
+        (cleanTermMobile.length === 10 && cleanPMobile === cleanTermMobile)
+      );
+    });
 
     if (index === -1) {
       error('User Not Found', 'इस ईमेल या मोबाइल नंबर से कोई खाता नहीं मिला।');

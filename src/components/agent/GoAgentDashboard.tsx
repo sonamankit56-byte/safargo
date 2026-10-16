@@ -16,6 +16,11 @@ import { Booking, BookingStatus, BusTrip, SeatCategory } from '../../types';
 import { compressImage } from '../../lib/storageUtils';
 import { getWhatsAppTicketMessage } from '../../lib/whatsappService';
 import { buildSubdomainUrl } from '../../lib/subdomain';
+
+import busImgSuperfast from '../../assets/bus1.png';
+import busImgSleeper from '../../assets/bus2.png';
+import busImgIntercity from '../../assets/bus3.png';
+import busImgGramin from '../../assets/bus4.png';
 import {
   LayoutDashboard,
   Bus,
@@ -1129,6 +1134,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                           setSelectedBusOperator(e.target.value);
                           if (e.target.value.includes('Royal AC Sleeper')) setBaseFarePerSeat(650);
                           else if (e.target.value.includes('Deluxe')) setBaseFarePerSeat(550);
+                          else if (e.target.value.includes('Gramin')) setBaseFarePerSeat(350);
                           else setBaseFarePerSeat(450);
                         }}
                         className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-xs focus:border-amber-400 outline-none"
@@ -1138,6 +1144,72 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                         <option value="MP Tourism InterCity (2x2)">MP Tourism InterCity (2x2) - ₹550</option>
                         <option value="Gramin Express Seater">Gramin Express Seater - ₹350</option>
                       </select>
+                    </div>
+                  </div>
+
+                  {/* Visual Bus Fleet Selection Cards */}
+                  <div className="space-y-1.5 pt-1">
+                    <span className="text-[11px] font-bold text-slate-400 block">
+                      उपलब्ध बस प्रकार (क्लिक करके चुनें):
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      {[
+                        {
+                          name: 'SafarGo Superfast Express (AC)',
+                          label: 'Superfast AC',
+                          sub: '2x2 Pushback',
+                          fare: 450,
+                          img: busImgSuperfast,
+                        },
+                        {
+                          name: 'Royal AC Sleeper Deluxe',
+                          label: 'Royal Sleeper',
+                          sub: '2+1 AC Sleeper',
+                          fare: 650,
+                          img: busImgSleeper,
+                        },
+                        {
+                          name: 'MP Tourism InterCity (2x2)',
+                          label: 'InterCity Deluxe',
+                          sub: 'Fast Express',
+                          fare: 550,
+                          img: busImgIntercity,
+                        },
+                        {
+                          name: 'Gramin Express Seater',
+                          label: 'Gramin Seater',
+                          sub: 'Regional Express',
+                          fare: 350,
+                          img: busImgGramin,
+                        },
+                      ].map((busOpt) => {
+                        const isChosen = selectedBusOperator === busOpt.name;
+                        return (
+                          <div
+                            key={busOpt.name}
+                            onClick={() => {
+                              setSelectedBusOperator(busOpt.name);
+                              setBaseFarePerSeat(busOpt.fare);
+                            }}
+                            className={`p-2.5 rounded-2xl border transition-all cursor-pointer flex flex-col items-center text-center space-y-1 ${
+                              isChosen
+                                ? 'bg-amber-400/15 border-2 border-amber-400 shadow-md scale-[1.02]'
+                                : 'bg-slate-950/70 border-slate-800 hover:border-slate-700'
+                            }`}
+                          >
+                            <div className="h-12 w-full flex items-center justify-center p-1">
+                              <img src={busOpt.img} alt={busOpt.label} className="max-h-full object-contain" />
+                            </div>
+                            <span className="text-[11px] font-black text-white leading-tight block">
+                              {busOpt.label}
+                            </span>
+                            <span className="text-[9px] text-slate-400 block">{busOpt.sub}</span>
+                            <span className="text-xs font-black text-amber-400 font-mono">
+                              ₹{busOpt.fare}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
