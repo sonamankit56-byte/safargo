@@ -292,7 +292,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const cleanTermMobile = term.replace(/\D/g, '').slice(-10);
 
-    const found = activeProfiles.find((p) => {
+    let found = activeProfiles.find((p) => {
       const cleanPMobile = p.mobile ? p.mobile.replace(/\D/g, '').slice(-10) : '';
       return (
         p.email.toLowerCase() === term ||
@@ -301,6 +301,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         p.id.toLowerCase() === term
       );
     });
+
+    // Live Database Fallback: If not found in local memory, check live Supabase database
+    if (!found && isSupabaseConfigured) {
+      try {
+        const liveProfiles = await db.getProfiles();
+        if (liveProfiles && liveProfiles.length > 0) {
+          const remoteFound = liveProfiles.find((p) => {
+            const cleanPMobile = p.mobile ? p.mobile.replace(/\D/g, '').slice(-10) : '';
+            return (
+              (p.email && p.email.toLowerCase() === term) ||
+              (cleanTermMobile.length === 10 && cleanPMobile === cleanTermMobile) ||
+              (p.promoter_code && p.promoter_code.toLowerCase() === term) ||
+              (p.id && p.id.toLowerCase() === term)
+            );
+          });
+          if (remoteFound) {
+            found = remoteFound;
+            const merged = [...activeProfiles.filter((p) => p.id !== remoteFound.id), remoteFound];
+            activeProfiles = merged;
+            setProfiles(merged);
+            safeSetItem(STORAGE_KEY_PROFILES, JSON.stringify(merged));
+          }
+        }
+      } catch (e) {
+        console.warn('Supabase fallback lookup notice:', e);
+      }
+    }
 
     if (found) {
       if (found.password && password && found.password !== password) {
@@ -771,10 +798,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     address: string;
     password?: string;
   }): Promise<boolean> => {
-    const cleanMobile = details.mobile.replace(/\D/g, '');
-    const exists = profiles.some(
-      (p) => p.mobile === cleanMobile || (details.email && p.email === details.email.trim())
-    );
+    const cleanMobile = details.mobile.replace(/\D/g, '').slice(-10);
+    const cleanEmail = (details.email || '').trim().toLowerCase();
+    const exists = profiles.some((p) => {
+      const pCleanMobile = p.mobile ? p.mobile.replace(/\D/g, '').slice(-10) : '';
+      return (
+        (cleanMobile.length === 10 && pCleanMobile === cleanMobile) ||
+        (cleanEmail && p.email && p.email.trim().toLowerCase() === cleanEmail)
+      );
+    });
 
     if (exists) {
       error('Registration Failed', 'इस मोबाइल नंबर या ईमेल से पहले से खाता पंजीकृत है। कृपया लॉगिन करें।');
@@ -843,10 +875,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     category?: 'kirana' | 'medical' | 'dairy' | 'bakery' | 'hardware' | 'general_store';
     password?: string;
   }): Promise<boolean> => {
-    const cleanMobile = details.mobile.replace(/\D/g, '');
-    const exists = profiles.some(
-      (p) => p.mobile === cleanMobile || (details.email && p.email === details.email.trim())
-    );
+    const cleanMobile = details.mobile.replace(/\D/g, '').slice(-10);
+    const cleanEmail = (details.email || '').trim().toLowerCase();
+    const exists = profiles.some((p) => {
+      const pCleanMobile = p.mobile ? p.mobile.replace(/\D/g, '').slice(-10) : '';
+      return (
+        (cleanMobile.length === 10 && pCleanMobile === cleanMobile) ||
+        (cleanEmail && p.email && p.email.trim().toLowerCase() === cleanEmail)
+      );
+    });
 
     if (exists) {
       error('Registration Failed', 'इस मोबाइल नंबर से पहले से खाता पंजीकृत है।');

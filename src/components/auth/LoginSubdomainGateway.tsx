@@ -67,7 +67,16 @@ export const LoginSubdomainGateway: React.FC = () => {
   });
 
   // Action Mode inside role: 'login' | 'register' | 'forgot_password' | 'verify_email'
-  const [mode, setMode] = useState<'login' | 'register' | 'forgot_password' | 'verify_email'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot_password' | 'verify_email'>(() => {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      const m = p.get('mode')?.toLowerCase().trim();
+      if (m && ['login', 'register', 'forgot_password'].includes(m)) {
+        return m as any;
+      }
+    } catch {}
+    return 'login';
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [redirectTargetUrl, setRedirectTargetUrl] = useState<string>('');
@@ -352,7 +361,7 @@ export const LoginSubdomainGateway: React.FC = () => {
     }
   };
 
-  // Handle Registration Submit with Dual Resend Email + WhatsApp OTP
+  // Handle Registration Submit (Instant Real Database Registration + Direct to Login)
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
@@ -375,68 +384,53 @@ export const LoginSubdomainGateway: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-
-      // 1. Send Email OTP via Resend
-      await sendRegistrationOtpEmail({
-        toEmail: email.trim(),
-        fullName: fullName.trim(),
-        confirmCode: code,
-        role: selectedRole,
-      });
-
-      // 2. Send WhatsApp OTP in parallel
-      const waRes = await sendWhatsAppOtp({
+      const regDetails = {
+        full_name: fullName.trim(),
         mobile: cleanMobile,
-        purpose: 'registration',
-        agentName: fullName.trim(),
         email: email.trim(),
-      });
-      if (waRes.success) {
-        setRegOtpUrl(waRes.directWhatsAppUrl);
+        city: city.trim(),
+        district: district.trim(),
+        address: address.trim() || city.trim(),
+        shop_name: shopName.trim() || 'GO Seva Kendra',
+        password: password.trim(),
+        referral_code: referralCode.trim() ? referralCode.trim().toUpperCase() : undefined,
+      };
+
+      let regOk = false;
+      if (selectedRole === 'agent') {
+        regOk = await registerAgent(regDetails);
+      } else if (selectedRole === 'shopkeeper') {
+        regOk = await registerShopkeeper(regDetails);
+      } else {
+        regOk = await registerCustomer(regDetails);
       }
 
-      setPendingRegData({
-        code,
-        role: selectedRole,
-        details: {
-          full_name: fullName.trim(),
-          mobile: cleanMobile,
-          email: email.trim(),
-          city: city.trim(),
-          district: district.trim(),
-          address: address.trim() || city.trim(),
-          shop_name: shopName.trim() || 'GO Seva Kendra',
-          password: password.trim(),
-          referral_code: referralCode.trim() ? referralCode.trim().toUpperCase() : undefined,
-        },
-      });
+      if (regOk) {
+        success(
+          '🎉 सफल पंजीकरण! (Registration Successful)',
+          'आपका SafarGo खाता सफलतापूर्वक बन गया है। अब सीधे लॉगिन करें।'
+        );
+        setEmailOrMobile(cleanMobile);
+        setPassword(password.trim());
+        setMode('login');
 
-      setEnteredVerifyCode('');
-      setMode('verify_email');
-      info(
-        'WhatsApp व Gmail OTP भेजा गया! 📲✉️',
-        `6-अंकीय कोड WhatsApp (+91 ${cleanMobile}) और Gmail (${email.trim()}) दोनों पर भेजा गया है।`
-      );
+        // Send confirmation email in background
+        sendRegistrationOtpEmail({
+          toEmail: email.trim(),
+          fullName: fullName.trim(),
+          confirmCode: 'WELCOME',
+          role: selectedRole,
+        }).catch(console.warn);
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Handle Confirm Email & WhatsApp Dual OTP & Finalize Registration
+  // Fallback OTP verification if invoked
   const handleVerifyEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pendingRegData) return;
-
-    const trimmedInputCode = enteredVerifyCode.trim();
-    const isEmailCodeMatch = trimmedInputCode === pendingRegData.code.trim();
-    const waVerify = verifyWhatsAppOtp(pendingRegData.details.mobile, trimmedInputCode, 'registration');
-    const waPhoneVerify = verifyWhatsAppOtp(pendingRegData.details.mobile, trimmedInputCode, 'phone_verify');
-
-    if (!isEmailCodeMatch && !waVerify.verified && !waPhoneVerify.verified) {
-      error('गलत सत्यापन कोड', 'कृपया WhatsApp अथवा Gmail पर भेजा गया सही 6-अंकीय कोड दर्ज करें।');
-      return;
-    }
 
     setIsSubmitting(true);
     try {
@@ -450,9 +444,13 @@ export const LoginSubdomainGateway: React.FC = () => {
       }
 
       if (regOk) {
-        await login(pendingRegData.details.email, pendingRegData.details.password);
-        success('🎉 रजिस्ट्रेशन व सत्यापन सफल!', 'WhatsApp व Gmail सुरक्षा सत्यापन संपन्न। खाता सक्रिय हो चुका है!');
-        performRoleRedirect(pendingRegData.role);
+        success(
+          '🎉 सफल पंजीकरण! (Registration Successful)',
+          'आपका SafarGo खाता सफलतापूर्वक बन गया है। अब सीधे लॉगिन करें।'
+        );
+        setEmailOrMobile(pendingRegData.details.mobile);
+        setPassword(pendingRegData.details.password);
+        setMode('login');
       }
     } finally {
       setIsSubmitting(false);

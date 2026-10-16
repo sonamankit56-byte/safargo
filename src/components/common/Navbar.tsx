@@ -882,9 +882,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    onOpenAuth('login');
+                    window.location.href = buildSubdomainUrl('login', { mode: 'login' });
                   }}
-                  className="w-full py-2.5 bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5"
+                  className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <LogIn className="w-4 h-4 text-orange-400" />
                   लॉगिन करें
@@ -900,7 +900,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                           desc: 'प्रमोटर पार्टनर पोर्टल बहुत जल्द लाइव हो रहा है!'
                         });
                       } else {
-                        onOpenAuth('promoter_login');
+                        window.location.href = buildSubdomainUrl('login', { role: 'promoter', mode: 'login' });
                       }
                     }}
                     className="w-full py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm border border-amber-300 cursor-pointer"
@@ -917,12 +917,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    window.location.href = buildSubdomainUrl('agent');
+                    window.location.href = buildSubdomainUrl('login', { role: 'agent', mode: 'register' });
                   }}
-                  className="w-full py-2.5 bg-orange-600 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
                 >
                   <UserPlus className="w-4 h-4" />
-                  फ्री एजेंट बनें (agent.safargo.in)
+                  फ्री एजेंट बनें (login.safargo.in)
                 </button>
               </div>
             ) : role === 'agent' ? (

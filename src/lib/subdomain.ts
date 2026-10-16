@@ -256,37 +256,58 @@ export function extractBaseDomain(hostname: string): string {
 /**
  * Build target URL for a given subdomain
  */
-export function buildSubdomainUrl(targetSub: AppSubdomain): string {
+export function buildSubdomainUrl(
+  targetSub: AppSubdomain,
+  params?: Record<string, string | number | boolean>
+): string {
   if (typeof window === 'undefined') return '/';
 
   const hostname = window.location.hostname;
   const port = window.location.port ? `:${window.location.port}` : '';
   const protocol = window.location.protocol;
 
+  let url = '/';
+
   // Local development handling
   if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.localhost')) {
     if (targetSub === 'main') {
-      return `${protocol}//localhost${port}/`;
+      url = `${protocol}//localhost${port}/`;
+    } else {
+      // Supports query parameter testing locally:
+      url = `${protocol}//localhost${port}/?subdomain=${targetSub}`;
     }
-    // Supports query parameter testing locally:
-    return `${protocol}//localhost${port}/?subdomain=${targetSub}`;
-  }
-
-  // Vercel preview domain handling (e.g. safargo-xyz.vercel.app)
-  if (hostname.endsWith('.vercel.app')) {
+  } else if (hostname.endsWith('.vercel.app')) {
+    // Vercel preview domain handling (e.g. safargo-xyz.vercel.app)
     if (targetSub === 'main') {
-      return `${protocol}//${hostname}${port}/`;
+      url = `${protocol}//${hostname}${port}/`;
+    } else {
+      url = `${protocol}//${hostname}${port}/?subdomain=${targetSub}`;
     }
-    return `${protocol}//${hostname}${port}/?subdomain=${targetSub}`;
+  } else {
+    // Production custom domain handling (e.g. safargo.in, safargo.co.in)
+    const baseDomain = extractBaseDomain(hostname);
+
+    if (targetSub === 'main') {
+      url = `${protocol}//${baseDomain}${port}/`;
+    } else {
+      const prefix = SUBDOMAIN_CONFIGS[targetSub].subdomainPrefix;
+      url = `${protocol}//${prefix}.${baseDomain}${port}/`;
+    }
   }
 
-  // Production custom domain handling (e.g. safargo.in, safargo.co.in)
-  const baseDomain = extractBaseDomain(hostname);
-
-  if (targetSub === 'main') {
-    return `${protocol}//${baseDomain}${port}/`;
+  if (params && Object.keys(params).length > 0) {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && String(v).length > 0) {
+        qs.append(k, String(v));
+      }
+    });
+    const qsStr = qs.toString();
+    if (qsStr) {
+      const sep = url.includes('?') ? '&' : '?';
+      return `${url}${sep}${qsStr}`;
+    }
   }
 
-  const prefix = SUBDOMAIN_CONFIGS[targetSub].subdomainPrefix;
-  return `${protocol}//${prefix}.${baseDomain}${port}/`;
+  return url;
 }

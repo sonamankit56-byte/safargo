@@ -9,8 +9,7 @@ export const isSupabaseConfigured = Boolean(
   supabaseUrl && 
   supabaseAnonKey && 
   supabaseUrl !== 'https://your-project.supabase.co' &&
-  supabaseAnonKey !== 'your-anon-key-here' &&
-  !supabaseAnonKey.startsWith('sb_publishable_')
+  supabaseAnonKey !== 'your-anon-key-here'
 );
 
 export const supabase = isSupabaseConfigured

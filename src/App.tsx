@@ -87,13 +87,15 @@ const AppContent: React.FC = () => {
   const activeTrackOrderId = queryOrderId || selectedTrackOrderId;
 
   const handleOpenAuth = (initialTab: 'login' | 'register' | 'promoter_login' = 'login') => {
-    setAuthInitialTab(initialTab);
-    setIsAuthModalOpen(true);
+    if (initialTab === 'promoter_login') {
+      window.location.href = buildSubdomainUrl('login', { role: 'promoter', mode: 'login' });
+    } else {
+      window.location.href = buildSubdomainUrl('login', { role: 'agent', mode: initialTab });
+    }
   };
 
   const handleOpenGoAuth = (mode: 'login' | 'register' = 'login') => {
-    setGoAuthInitialMode(mode);
-    setIsGoAuthModalOpen(true);
+    window.location.href = buildSubdomainUrl('login', { role: 'agent', mode });
   };
 
   // Capture referral code from URL query params (e.g. ?ref=SFG-REF-PAWAN50 or ?referral=...)
@@ -146,12 +148,9 @@ const AppContent: React.FC = () => {
       }
     }
 
-    if (location.pathname === '/login' && !currentUser) {
-      setAuthInitialTab('login');
-      setIsAuthModalOpen(true);
-    } else if (location.pathname === '/register' && !currentUser) {
-      setAuthInitialTab('register');
-      setIsAuthModalOpen(true);
+    if ((location.pathname === '/login' || location.pathname === '/register') && !currentUser) {
+      // Direct rendering of LoginSubdomainGateway is handled below
+      return;
     } else if (location.pathname.startsWith('/admin')) {
       if (!currentUser || (role !== 'admin' && !isAdmin)) {
         if (role === 'customer') navigate('/customer', { replace: true });
@@ -214,11 +213,11 @@ const AppContent: React.FC = () => {
     return <CreatorSubdomainGateway />;
   }
 
-  if (activeSubdomain === 'careers') {
-    return <CareersSubdomainGateway />;
-  }
-
-  if (activeSubdomain === 'login') {
+  if (
+    activeSubdomain === 'login' ||
+    location.pathname === '/login' ||
+    location.pathname === '/register'
+  ) {
     return <LoginSubdomainGateway />;
   }
 
@@ -406,47 +405,11 @@ const AppContent: React.FC = () => {
         />
       )}
 
-      {/* Auth / Register Modal */}
-      {isAuthModalOpen && (
-        <AuthModal
-          isOpen={isAuthModalOpen}
-          initialTab={authInitialTab}
-          onClose={() => setIsAuthModalOpen(false)}
-          onOpenTrackPromoter={() => {
-            setIsAuthModalOpen(false);
-            setCurrentTab('home');
-            setTimeout(() => {
-              const el = document.getElementById('promoter-track-section');
-              if (el) {
-                el.scrollIntoView({ behavior: 'smooth' });
-              }
-            }, 100);
-          }}
-          onOpenApplyPromoter={() => {
-            setIsAuthModalOpen(false);
-            setIsPromoterModalOpen(true);
-          }}
-        />
-      )}
-
       {/* Promoter Partner Application Modal */}
       {isPromoterModalOpen && (
         <PromoterApplicationModal
           isOpen={isPromoterModalOpen}
           onClose={() => setIsPromoterModalOpen(false)}
-        />
-      )}
-
-      {/* GO Special Agent Ultra 3D Auth Modal */}
-      {isGoAuthModalOpen && (
-        <GoAgentAuthModal
-          isOpen={isGoAuthModalOpen}
-          initialMode={goAuthInitialMode}
-          onClose={() => setIsGoAuthModalOpen(false)}
-          onSuccessLogin={() => {
-            setIsGoAuthModalOpen(false);
-            setCurrentTab('go-agent');
-          }}
         />
       )}
 

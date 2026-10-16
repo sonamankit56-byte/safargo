@@ -1197,11 +1197,17 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                                 : 'bg-slate-950/70 border-slate-800 hover:border-slate-700'
                             }`}
                           >
-                            <div className="h-12 w-full flex items-center justify-center p-1">
+                            <div className="h-12 w-full flex items-center justify-center p-1 relative">
                               <img src={busOpt.img} alt={busOpt.label} className="max-h-full object-contain" />
+                              <span className="absolute top-0 right-0 px-1 py-0.2 rounded bg-amber-400 text-slate-950 font-black text-[7px] leading-tight">
+                                SafarGo ✓
+                              </span>
                             </div>
                             <span className="text-[11px] font-black text-white leading-tight block">
                               {busOpt.label}
+                            </span>
+                            <span className="text-[8px] text-emerald-400 font-bold block">
+                              🛡️ SafarGo Verified Bus
                             </span>
                             <span className="text-[9px] text-slate-400 block">{busOpt.sub}</span>
                             <span className="text-xs font-black text-amber-400 font-mono">
