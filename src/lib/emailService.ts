@@ -174,7 +174,7 @@ export async function sendLoginOtpEmail(params: {
                 </tr>
                 <tr>
                   <td style="font-weight: 700; color: #334155;">समय (IST):</td>
-                  <td style="color: #0f172a;">${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkolkata' })}</td>
+                  <td style="color: #0f172a;">${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</td>
                 </tr>
               </table>
 
