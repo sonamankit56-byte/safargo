@@ -25,7 +25,8 @@ import {
   Briefcase,
   Volume2,
   VolumeX,
-  Radio
+  Radio,
+  Award
 } from 'lucide-react';
 
 interface AdminDashboardProps {

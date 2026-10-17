@@ -72,6 +72,7 @@ import {
   ArrowUpRight,
   Tag,
   History,
+  RefreshCw,
 } from 'lucide-react';
 
 interface GoAgentDashboardProps {
