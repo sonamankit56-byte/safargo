@@ -223,23 +223,23 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-lg bg-slate-900 border-2 border-amber-400/80 rounded-3xl shadow-[0_25px_60px_rgba(0,0,0,0.8)] overflow-hidden text-white max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+      <div className="relative w-full max-w-lg bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden text-slate-900 max-h-[92vh] flex flex-col">
         
         {/* Header */}
-        <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 border-b border-amber-400/40 flex items-center justify-between">
+        <div className="p-4 sm:p-5 bg-[#0A2885] border-b border-[#05184B] flex items-center justify-between text-white">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-400/20 text-amber-400 flex items-center justify-center border border-amber-400/40">
-              <Wallet className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">
+              <Wallet className="w-5 h-5 text-[#FFB703]" />
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
                 <span>साप्ताहिक Go Wallet निकासी</span>
-                <span className="text-[10px] bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full font-bold uppercase">
+                <span className="text-[10px] bg-white text-[#0A2885] px-2.5 py-0.5 rounded-full font-bold uppercase shadow-xs">
                   Weekly Payout
                 </span>
               </h3>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-blue-200">
                 हर रविवार (Every Sunday) सीधे बैंक या UPI खाते में पेआउट
               </p>
             </div>
@@ -247,7 +247,7 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -259,54 +259,54 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
           {/* CASE A: PENDING PAYOUT REQUEST ALREADY ACTIVE (Cannot submit another until approved) */}
           {pendingPayout ? (
             <div className="space-y-4 animate-fadeIn">
-              <div className="p-5 rounded-3xl bg-gradient-to-br from-amber-950/70 via-slate-900 to-slate-950 border-2 border-amber-400 text-center space-y-4 shadow-xl">
-                <div className="w-16 h-16 rounded-full bg-amber-400/20 border-2 border-amber-400 text-amber-300 mx-auto flex items-center justify-center animate-pulse">
+              <div className="p-6 rounded-3xl bg-amber-50 border-2 border-amber-300 text-center space-y-4 shadow-sm text-slate-800">
+                <div className="w-16 h-16 rounded-full bg-amber-100 border-2 border-amber-300 text-[#FF6500] mx-auto flex items-center justify-center animate-pulse">
                   <Clock className="w-8 h-8" />
                 </div>
 
                 <div className="space-y-1">
-                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950">
+                  <span className="px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#FF6500] text-white shadow-xs">
                     प्रतीक्षारत (Pending Approval)
                   </span>
-                  <h4 className="text-lg font-black text-white pt-2">
+                  <h4 className="text-lg font-black text-slate-900 pt-2">
                     आपकी निकासी प्रक्रियाधीन है
                   </h4>
-                  <p className="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
+                  <p className="text-xs text-slate-600 max-w-sm mx-auto leading-relaxed">
                     आपने पहले ही निकासी का अनुरोध सबमिट किया हुआ है। एडमिन द्वारा स्वीकृति मिलते ही राशि आपके खाते में भेज दी जाएगी।
                   </p>
                 </div>
 
                 {/* Details Card */}
-                <div className="bg-slate-950/80 rounded-2xl p-4 border border-amber-500/30 text-left space-y-2.5">
+                <div className="bg-white rounded-2xl p-4 border border-amber-200 text-left space-y-2.5 shadow-xs">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400">अनुरोधित राशि:</span>
-                    <span className="text-lg font-black text-amber-300 font-mono">
+                    <span className="text-slate-500 font-bold">अनुरोधित राशि:</span>
+                    <span className="text-lg font-black text-[#FF6500] font-mono">
                       ₹{pendingPayout.amount.toLocaleString('en-IN')}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400">भुगतान माध्यम:</span>
-                    <span className="font-bold text-white uppercase">
+                    <span className="text-slate-500 font-bold">भुगतान माध्यम:</span>
+                    <span className="font-bold text-slate-900 uppercase">
                       {pendingPayout.payout_method === 'bank_transfer' ? '🏦 बैंक ट्रांसफर' : '📱 UPI ID'}
                     </span>
                   </div>
                   {pendingPayout.upi_id && (
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-400">UPI ID:</span>
-                      <span className="font-mono text-emerald-400">{pendingPayout.upi_id}</span>
+                      <span className="text-slate-500 font-bold">UPI ID:</span>
+                      <span className="font-mono text-emerald-600 font-bold">{pendingPayout.upi_id}</span>
                     </div>
                   )}
                   {pendingPayout.bank_account_number && (
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-400">खाता संख्या:</span>
-                      <span className="font-mono text-emerald-400">
+                      <span className="text-slate-500 font-bold">खाता संख्या:</span>
+                      <span className="font-mono text-emerald-600 font-bold">
                         •••• {pendingPayout.bank_account_number.slice(-4)}
                       </span>
                     </div>
                   )}
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400">अनुरोध तिथि:</span>
-                    <span className="text-slate-300">
+                    <span className="text-slate-500 font-bold">अनुरोध तिथि:</span>
+                    <span className="text-slate-700">
                       {new Date(pendingPayout.created_at).toLocaleDateString('hi-IN', {
                         day: 'numeric',
                         month: 'short',
@@ -316,17 +316,17 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
                       })}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center text-xs pt-1 border-t border-slate-800">
-                    <span className="text-slate-400">स्थिति:</span>
-                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black flex items-center gap-1">
-                      <Clock className="w-3 h-3 animate-spin" />
+                  <div className="flex justify-between items-center text-xs pt-1 border-t border-slate-100">
+                    <span className="text-slate-500 font-bold">स्थिति:</span>
+                    <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-black flex items-center gap-1">
+                      <Clock className="w-3 h-3 animate-spin text-[#FF6500]" />
                       एडमिन स्वीकृति प्रक्रियाधीन (हर रविवार सेटलमेंट)
                     </span>
                   </div>
                 </div>
 
-                <div className="p-3 bg-blue-950/40 rounded-2xl border border-blue-500/30 text-[11px] text-blue-300 text-left flex items-start gap-2">
-                  <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                <div className="p-3 bg-blue-50 rounded-2xl border border-blue-200 text-[11px] text-[#0A2885] text-left flex items-start gap-2">
+                  <ShieldCheck className="w-4 h-4 text-[#0A2885] shrink-0 mt-0.5" />
                   <span>
                     <strong>सुरक्षा नियम:</strong> एक समय में केवल एक निकासी अनुरोध लंबित रह सकता है। एडमिन द्वारा इस अनुरोध को प्रोसेस करने के बाद ही आप नया अनुरोध कर सकेंगे।
                   </span>
@@ -335,7 +335,7 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-xl text-xs transition cursor-pointer"
+                  className="w-full py-3.5 bg-[#0A2885] hover:bg-[#071E66] text-white font-extrabold rounded-full text-xs transition cursor-pointer shadow-sm active:scale-95"
                 >
                   डैशबोर्ड पर वापस जाएं
                 </button>
@@ -344,18 +344,18 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
           ) : isSuccess ? (
             /* CASE B: JUST COMPLETED SUCCESS VIEW */
             <div className="p-6 text-center space-y-4 animate-fadeIn">
-              <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 text-emerald-400 mx-auto flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
               <div className="space-y-1">
-                <h4 className="text-lg font-black text-emerald-400">निकासी अनुरोध दर्ज हुआ!</h4>
-                <p className="text-xs text-slate-300 max-w-sm mx-auto">
+                <h4 className="text-lg font-black text-emerald-700">निकासी अनुरोध दर्ज हुआ!</h4>
+                <p className="text-xs text-slate-600 max-w-sm mx-auto">
                   ₹{withdrawnAmount.toLocaleString('en-IN')} का निकासी अनुरोध एडमिन डेस्क को भेजा गया है। हर रविवार को पेआउट सीधे आपके खाते में क्रेडिट कर दिया जाता है।
                 </p>
               </div>
               <button
                 onClick={onClose}
-                className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs transition cursor-pointer"
+                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-full text-xs transition cursor-pointer shadow-md"
               >
                 पूर्ण (Done)
               </button>
@@ -365,14 +365,14 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
             <form onSubmit={handleWithdrawalSubmit} className="space-y-4">
               
               {/* Go Wallet Balance Pill */}
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/80 via-slate-900 to-emerald-950/80 border border-emerald-500/40 flex items-center justify-between">
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 via-slate-50 to-emerald-50 border border-slate-200 flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">उपलब्ध Go Wallet बैलेंस</span>
-                  <span className="text-2xl font-black text-emerald-400 font-mono">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 block">उपलब्ध Go Wallet बैलेंस</span>
+                  <span className="text-2xl font-black text-emerald-600 font-mono">
                     ₹{safeBalance.toLocaleString('en-IN')}
                   </span>
                 </div>
-                <span className="px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold">
+                <span className="px-3 py-1 rounded-full bg-[#0A2885] text-white text-[10px] font-bold shadow-xs">
                   साप्ताहिक निकासी
                 </span>
               </div>
@@ -380,20 +380,20 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
               {/* Sunday Policy Info Banner */}
               <div className={`p-3.5 rounded-2xl border text-left flex items-start gap-2.5 ${
                 isSunday
-                  ? 'bg-emerald-950/50 border-emerald-500/50 text-emerald-300'
-                  : 'bg-amber-950/50 border-amber-500/40 text-amber-300'
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                  : 'bg-amber-50 border-amber-300 text-amber-900'
               }`}>
-                <Calendar className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                <Calendar className="w-4 h-4 shrink-0 mt-0.5 text-[#FF6500]" />
                 <div className="space-y-0.5">
                   <div className="font-bold text-xs flex items-center gap-1.5">
                     <span>साप्ताहिक रविवार पेआउट नियम (Every Sunday Withdrawal)</span>
                     {isSunday && (
-                      <span className="px-2 py-0.2 rounded-full bg-emerald-400 text-slate-950 text-[9px] font-black">
+                      <span className="px-2 py-0.2 rounded-full bg-emerald-600 text-white text-[9px] font-black">
                         आज रविवार है!
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-300 leading-snug">
+                  <p className="text-[11px] text-slate-600 leading-snug">
                     {isSunday
                       ? 'आज रविवार है — आप आज बिना किसी रुकावट के अपनी कमाई की निकासी का अनुरोध कर सकते हैं।'
                       : `निकासी हर रविवार को प्रोसेस होती है। आगामी रविवार: ${nextSundayFormatted}`}
@@ -402,7 +402,7 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setEmergencyOverride(true)}
-                      className="text-[10px] text-amber-400 underline font-bold mt-1 inline-block cursor-pointer"
+                      className="text-[10px] text-[#0A2885] underline font-bold mt-1 inline-block cursor-pointer"
                     >
                       आपातकालीन निकासी अनुरोध भेजें (Emergency Payout Request)
                     </button>
@@ -413,46 +413,46 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
               {/* Withdrawal Amount Input */}
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
-                  <label className="font-bold text-slate-300 text-xs">
+                  <label className="font-bold text-slate-700 text-xs">
                     निकासी राशि (Amount in ₹) *
                   </label>
                   <button
                     type="button"
                     onClick={() => setWalletAmount(String(safeBalance))}
-                    className="text-[10px] font-bold text-amber-400 hover:underline cursor-pointer"
+                    className="text-[10px] font-bold text-[#0A2885] hover:underline cursor-pointer"
                   >
                     पूरा बैलेंस निकालें (₹{safeBalance.toLocaleString('en-IN')})
                   </button>
                 </div>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-3 font-bold text-slate-500 text-sm">₹</span>
+                  <span className="absolute left-3.5 top-2.5 font-bold text-slate-400 text-sm">₹</span>
                   <input
                     type="number"
                     min="100"
                     max={safeBalance || 100000}
                     value={walletAmount}
                     onChange={(e) => setWalletAmount(e.target.value)}
-                    className="w-full pl-8 pr-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono font-bold text-sm focus:border-amber-400 outline-none"
+                    className="w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono font-bold text-sm focus:bg-white focus:border-[#0A2885] outline-none transition"
                     placeholder="500"
                     required
                   />
                 </div>
-                <span className="text-[10px] text-slate-400 block">न्यूनतम निकासी: ₹100</span>
+                <span className="text-[10px] text-slate-500 block">न्यूनतम निकासी: ₹100</span>
               </div>
 
               {/* Payout Method Tabs (UPI vs Bank) */}
               <div className="space-y-2">
-                <label className="font-bold text-slate-300 text-xs block">
+                <label className="font-bold text-slate-700 text-xs block">
                   भुगतान माध्यम चुनें (Payout Method)
                 </label>
-                <div className="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800">
+                <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-full border border-slate-200">
                   <button
                     type="button"
                     onClick={() => setPayoutMethod('upi')}
-                    className={`py-2 px-3 rounded-lg font-bold flex items-center justify-center gap-1.5 transition cursor-pointer text-xs ${
+                    className={`py-2 px-3 rounded-full font-bold flex items-center justify-center gap-1.5 transition cursor-pointer text-xs ${
                       payoutMethod === 'upi'
-                        ? 'bg-amber-400 text-slate-950 font-black shadow-sm'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-[#0A2885] text-white shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     <Smartphone className="w-4 h-4" />
@@ -461,10 +461,10 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setPayoutMethod('bank')}
-                    className={`py-2 px-3 rounded-lg font-bold flex items-center justify-center gap-1.5 transition cursor-pointer text-xs ${
+                    className={`py-2 px-3 rounded-full font-bold flex items-center justify-center gap-1.5 transition cursor-pointer text-xs ${
                       payoutMethod === 'bank'
-                        ? 'bg-amber-400 text-slate-950 font-black shadow-sm'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-[#0A2885] text-white shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     <Building className="w-4 h-4" />
@@ -476,7 +476,7 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
               {/* Method Specific Fields */}
               {payoutMethod === 'upi' ? (
                 <div className="space-y-1.5">
-                  <label className="font-bold text-slate-300 text-xs block">
+                  <label className="font-bold text-slate-700 text-xs block">
                     आपकी UPI ID *
                   </label>
                   <input
@@ -484,14 +484,14 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
                     value={upiId}
                     onChange={(e) => setUpiId(e.target.value)}
                     placeholder="उदा. 9826011223@paytm या name@okhdfcbank"
-                    className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono text-xs focus:border-amber-400 outline-none"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono text-xs focus:bg-white focus:border-[#0A2885] outline-none"
                     required
                   />
                 </div>
               ) : (
-                <div className="space-y-2.5 bg-slate-950/60 p-3 rounded-2xl border border-slate-800">
+                <div className="space-y-2.5 bg-slate-50 p-3 rounded-2xl border border-slate-200">
                   <div>
-                    <label className="font-bold text-slate-300 text-[11px] block mb-1">
+                    <label className="font-bold text-slate-700 text-[11px] block mb-1">
                       खाताधारक का नाम *
                     </label>
                     <input
@@ -499,13 +499,13 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
                       value={accountHolder}
                       onChange={(e) => setAccountHolder(e.target.value)}
                       placeholder="नाम जो बैंक पासबुक में है"
-                      className="w-full p-2 bg-slate-950 border border-slate-700 rounded-lg text-white text-xs outline-none focus:border-amber-400"
+                      className="w-full p-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-xs outline-none focus:border-[#0A2885]"
                       required
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="font-bold text-slate-300 text-[11px] block mb-1">
+                      <label className="font-bold text-slate-700 text-[11px] block mb-1">
                         बैंक का नाम *
                       </label>
                       <input
@@ -513,12 +513,12 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
                         value={bankName}
                         onChange={(e) => setBankName(e.target.value)}
                         placeholder="SBI, HDFC, आदि"
-                        className="w-full p-2 bg-slate-950 border border-slate-700 rounded-lg text-white text-xs outline-none focus:border-amber-400"
+                        className="w-full p-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-xs outline-none focus:border-[#0A2885]"
                         required
                       />
                     </div>
                     <div>
-                      <label className="font-bold text-slate-300 text-[11px] block mb-1">
+                      <label className="font-bold text-slate-700 text-[11px] block mb-1">
                         IFSC कोड *
                       </label>
                       <input
@@ -527,13 +527,13 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
                         onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
                         placeholder="SBIN0001234"
                         maxLength={11}
-                        className="w-full p-2 bg-slate-950 border border-slate-700 rounded-lg text-white font-mono text-xs outline-none focus:border-amber-400 uppercase"
+                        className="w-full p-2 bg-white border border-slate-200 rounded-lg text-slate-900 font-mono text-xs outline-none focus:border-[#0A2885] uppercase"
                         required
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="font-bold text-slate-300 text-[11px] block mb-1">
+                    <label className="font-bold text-slate-700 text-[11px] block mb-1">
                       खाता संख्या *
                     </label>
                     <input
@@ -541,12 +541,12 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
                       value={accountNumber}
                       onChange={(e) => setAccountNumber(e.target.value)}
                       placeholder="खाता संख्या दर्ज करें"
-                      className="w-full p-2 bg-slate-950 border border-slate-700 rounded-lg text-white font-mono text-xs outline-none focus:border-amber-400"
+                      className="w-full p-2 bg-white border border-slate-200 rounded-lg text-slate-900 font-mono text-xs outline-none focus:border-[#0A2885]"
                       required
                     />
                   </div>
                   <div>
-                    <label className="font-bold text-slate-300 text-[11px] block mb-1">
+                    <label className="font-bold text-slate-700 text-[11px] block mb-1">
                       खाता संख्या की पुष्टि करें *
                     </label>
                     <input
@@ -554,7 +554,7 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
                       value={confirmAccountNumber}
                       onChange={(e) => setConfirmAccountNumber(e.target.value)}
                       placeholder="खाता संख्या पुनः दर्ज करें"
-                      className="w-full p-2 bg-slate-950 border border-slate-700 rounded-lg text-white font-mono text-xs outline-none focus:border-amber-400"
+                      className="w-full p-2 bg-white border border-slate-200 rounded-lg text-slate-900 font-mono text-xs outline-none focus:border-[#0A2885]"
                       required
                     />
                   </div>
@@ -562,14 +562,14 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
               )}
 
               {/* 2FA WhatsApp OTP Security Guard */}
-              <div className="p-3.5 rounded-2xl bg-slate-950 border border-amber-500/40 space-y-2.5">
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                    <span className="font-bold text-white text-xs">WhatsApp 2FA सुरक्षा सत्यापन</span>
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    <span className="font-bold text-slate-900 text-xs">WhatsApp 2FA सुरक्षा सत्यापन</span>
                   </div>
                   {isOtpVerified && (
-                    <span className="text-[10px] font-black text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-500/40">
+                    <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-300">
                       ✓ सत्यापित (Verified)
                     </span>
                   )}
@@ -582,7 +582,7 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
                         type="button"
                         disabled={isSendingOtp}
                         onClick={handleSendWithdrawalOtp}
-                        className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
+                        className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-full text-xs flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-50 transition active:scale-95"
                       >
                         <Smartphone className="w-3.5 h-3.5" />
                         <span>{isSendingOtp ? 'OTP भेजा जा रहा है...' : 'WhatsApp पर OTP भेजें'}</span>
@@ -596,12 +596,12 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
                             value={enteredOtp}
                             onChange={(e) => setEnteredOtp(e.target.value)}
                             placeholder="6-अंकीय OTP दर्ज करें"
-                            className="flex-1 p-2 bg-slate-900 border border-amber-400 rounded-xl text-white font-mono text-center tracking-widest text-sm outline-none"
+                            className="flex-1 p-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 font-mono text-center tracking-widest text-sm outline-none focus:border-[#0A2885]"
                           />
                           <button
                             type="button"
                             onClick={handleVerifyWithdrawalOtp}
-                            className="px-4 py-2 bg-amber-400 text-slate-950 font-black rounded-xl text-xs hover:bg-amber-300 cursor-pointer"
+                            className="px-5 py-2 rounded-full bg-[#0A2885] text-white font-bold text-xs hover:bg-[#071E66] cursor-pointer shadow-sm"
                           >
                             सत्यापित करें
                           </button>
@@ -611,7 +611,7 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
                             href={otpUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-[10px] text-emerald-400 hover:underline block text-center"
+                            className="text-[10px] text-emerald-600 hover:underline block text-center font-bold"
                           >
                             सीधे WhatsApp पर OTP देखें ➔
                           </a>
@@ -620,7 +620,7 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
                     )}
                   </div>
                 ) : (
-                  <p className="text-[11px] text-emerald-300">
+                  <p className="text-[11px] text-emerald-700 font-bold">
                     2FA सुरक्षा सत्यापन पूर्ण हो चुका है। अब आप निकासी सबमिट कर सकते हैं।
                   </p>
                 )}
@@ -630,7 +630,7 @@ export const GoAgentWithdrawalModal: React.FC<GoAgentWithdrawalModalProps> = ({
               <button
                 type="submit"
                 disabled={isSubmitting || !isOtpVerified || parsedWalletAmount < 100 || parsedWalletAmount > safeBalance}
-                className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black rounded-2xl text-xs shadow-xl transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full py-4 bg-[#FF6500] hover:bg-[#e05800] text-white font-extrabold rounded-full text-xs shadow-lg transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95"
               >
                 <Wallet className="w-4 h-4" />
                 <span>

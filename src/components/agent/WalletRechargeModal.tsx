@@ -374,23 +374,23 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
       <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 my-8">
         
         {/* Header */}
-        <div className="p-5 sm:p-6 bg-slate-900 text-white flex items-center justify-between">
+        <div className="p-5 sm:p-6 bg-[#0A2885] border-b border-[#05184B] text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-rose-600 text-white flex items-center justify-center shadow-lg shadow-orange-500/30 border border-amber-200">
-              <Wallet className="w-6 h-6" />
+            <div className="w-11 h-11 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">
+              <Wallet className="w-6 h-6 text-[#FFB703]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="font-black text-base sm:text-lg flex items-center gap-1.5">
-                  <span className="bg-gradient-to-r from-amber-300 via-orange-300 to-emerald-300 bg-clip-text text-transparent">Go Wallet</span>
+                  <span className="text-white">Go Wallet</span>
                   <span>में पैसे जोड़ें (Add Money)</span>
                 </h2>
-                <span className="text-[10px] font-black bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full">
+                <span className="text-[10px] font-black bg-white text-[#0A2885] px-2.5 py-0.5 rounded-full shadow-xs">
                   Min ₹{minAmount.toLocaleString('en-IN')}
                 </span>
               </div>
-              <p className="text-xs text-slate-300">
-                वर्तमान Go Wallet बैलेंस: <strong className="text-emerald-400">₹{safeWalletBalance.toFixed(2)}</strong>
+              <p className="text-xs text-blue-200">
+                वर्तमान Go Wallet बैलेंस: <strong className="text-emerald-300">₹{safeWalletBalance.toFixed(2)}</strong>
               </p>
             </div>
           </div>
@@ -633,7 +633,7 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50 transition"
+              className="px-5 py-2.5 rounded-full border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50 transition"
             >
               रद्द करें
             </button>
@@ -641,7 +641,7 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
               type="submit"
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 disabled:opacity-50 text-white font-black text-xs shadow-lg shadow-orange-500/30 transition flex items-center gap-2 active:scale-95 cursor-pointer"
+              className="px-7 py-2.5 rounded-full bg-[#0A2885] hover:bg-[#071E66] disabled:opacity-50 text-white font-black text-xs shadow-md transition flex items-center gap-2 active:scale-95 cursor-pointer"
             >
               <span>{isSubmitting ? 'अनुरोध भेजा जा रहा है...' : 'रिचार्ज अनुरोध सबमिट करें'}</span>
               <ArrowRight className="w-4 h-4" />

@@ -112,18 +112,18 @@ const BookingApprovalTimer: React.FC<{ createdAt: string; deadlineAt?: string }>
 
   if (secondsLeft <= 0) {
     return (
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-orange-950/90 border border-orange-500/50 text-orange-300 text-xs font-mono font-bold animate-pulse">
-        <Clock className="w-3.5 h-3.5 text-orange-400" />
+      <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-50 border border-orange-200 text-orange-800 text-xs font-mono font-bold shadow-xs animate-pulse">
+        <Clock className="w-3.5 h-3.5 text-[#FF6500]" />
         <span>स्वीकृति प्रक्रियाधीन (High Priority Desk)</span>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-950/90 border border-amber-400/80 text-amber-300 font-mono font-black shadow-inner">
-      <Clock className="w-4 h-4 text-amber-400 animate-spin" />
-      <span className="font-sans text-xs font-bold text-slate-300">5-मिनट अप्रूवल टाइमर:</span>
-      <span className="text-sm font-black text-amber-300 tracking-wider bg-slate-950 px-2 py-0.5 rounded border border-amber-400/50">
+    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-300 text-amber-900 font-mono font-bold shadow-xs">
+      <Clock className="w-4 h-4 text-[#FF6500] animate-spin" />
+      <span className="font-sans text-xs font-bold text-slate-700">5-मिनट अप्रूवल टाइमर:</span>
+      <span className="text-sm font-black text-amber-900 tracking-wider bg-white px-2.5 py-0.5 rounded-full border border-amber-300 shadow-inner">
         {formatted}
       </span>
     </div>
@@ -591,23 +591,23 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-24 select-none">
+    <div className="min-h-screen bg-[#F5F7FB] text-slate-900 font-sans pb-32 select-none">
       
       {/* ============================================================== */}
-      {/* TOP HEADER: CLEAN ULTRA TERMINAL                               */}
+      {/* TOP HEADER: 100% JIO ROYAL BLUE TERMINAL HEADER                */}
       {/* ============================================================== */}
-      <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-xl border-b border-amber-400/40 px-3 sm:px-6 py-2.5 sm:py-3 shadow-2xl">
+      <header className="sticky top-0 z-40 bg-[#0A2885] border-b border-[#05184B] px-3 sm:px-6 py-2.5 sm:py-3 shadow-md text-white">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           
-          {/* Left: 3D GO Terminal Logo & Agent Badges */}
+          {/* Left: 3D GO Terminal Logo & Official Agent Badges */}
           <div className="flex items-center gap-2 sm:gap-3">
             <Go3DUltraLogo size="sm" showBadge={false} />
-            <div className="border-l border-slate-700 pl-2.5 sm:pl-3">
-              <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 flex items-center gap-1">
-                <Award className="w-3 h-3 text-amber-400" />
+            <div className="border-l border-white/20 pl-2.5 sm:pl-3">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#FFB703] flex items-center gap-1">
+                <Award className="w-3 h-3 text-[#FFB703]" />
                 <span>GO AGENT TERMINAL</span>
               </span>
-              <p className="text-xs sm:text-sm font-black text-white truncate max-w-[130px] sm:max-w-xs">
+              <p className="text-xs sm:text-sm font-bold text-white truncate max-w-[130px] sm:max-w-xs">
                 {currentUser?.shop_name || currentUser?.full_name || 'एजेंट टर्मिनल'}
               </p>
             </div>
@@ -620,13 +620,13 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
             <button
               type="button"
               onClick={() => setIsWithdrawalModalOpen(true)}
-              className="py-1.5 px-3 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-slate-900 to-amber-500/20 border border-emerald-400/60 hover:border-emerald-300 transition flex items-center gap-2 cursor-pointer shadow-md group"
+              className="py-1.5 px-3.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/25 text-white transition flex items-center gap-2 cursor-pointer shadow-sm group backdrop-blur-sm"
               title="Go Wallet बैलेंस व निकासी"
             >
-              <Wallet className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+              <Wallet className="w-4 h-4 text-[#FFB703] group-hover:scale-110 transition-transform" />
               <div className="text-left">
-                <span className="text-[9px] font-bold text-slate-400 block leading-none">Go Wallet</span>
-                <span className="text-xs font-black text-emerald-400 font-mono">
+                <span className="text-[9px] font-bold text-blue-200 block leading-none">Go Wallet</span>
+                <span className="text-xs font-black text-white font-mono">
                   ₹{(agentWalletBalance || 0).toLocaleString('en-IN')}
                 </span>
               </div>
@@ -640,10 +640,10 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                 if (onNavigateHome) onNavigateHome();
                 else window.location.href = '/';
               }}
-              className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/80 border border-slate-700 hover:border-rose-500/60 text-slate-300 hover:text-rose-300 transition text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+              className="p-2 sm:px-3.5 sm:py-1.5 rounded-full bg-white/10 hover:bg-rose-600/30 border border-white/25 text-white transition text-xs font-bold flex items-center gap-1.5 cursor-pointer"
               title="लॉगआउट करें"
             >
-              <LogOut className="w-4 h-4 text-rose-400" />
+              <LogOut className="w-4 h-4 text-rose-300" />
               <span className="hidden sm:inline">लॉगआउट</span>
             </button>
 
@@ -655,7 +655,40 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
       {/* ============================================================== */}
       {/* MAIN CONTAINER: 4 EXCLUSIVE CORE TABS                          */}
       {/* ============================================================== */}
-      <main className="max-w-5xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6">
+      <main className="max-w-5xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6 space-y-6">
+
+        {/* JIO QUICK ACTIONS CIRCULAR STRIP (8 Category Buttons) */}
+        <section className="bg-white rounded-3xl border border-slate-200/90 p-3 sm:p-4 shadow-xs">
+          <div className="flex items-center justify-between gap-3 overflow-x-auto no-scrollbar py-1">
+            {[
+              { label: 'नई बुकिंग', icon: Bus, action: () => setActiveTab('booking'), color: 'bg-blue-50 text-[#0A2885] border-blue-200' },
+              { label: 'पैसे जोड़ें', icon: Zap, action: () => setIsRechargeModalOpen(true), color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+              { label: 'रविवार निकासी', icon: Wallet, action: () => setIsWithdrawalModalOpen(true), color: 'bg-amber-50 text-amber-600 border-amber-200' },
+              { label: 'खाता-बही', icon: History, action: () => setActiveTab('history'), color: 'bg-indigo-50 text-indigo-600 border-indigo-200' },
+              { label: 'Uber कैब', icon: Car, action: () => { setUberDefaultDestination('Bhopal ISBT Stand'); setIsUberModalOpen(true); }, color: 'bg-slate-100 text-slate-800 border-slate-300' },
+              { label: 'सपोर्ट डेस्क', icon: MessageSquare, action: () => setIsSupportFormOpen(true), color: 'bg-cyan-50 text-cyan-600 border-cyan-200' },
+              { label: 'लाइव रिफ्रेश', icon: RefreshCw, action: handleManualRefreshStatus, color: 'bg-orange-50 text-[#FF6500] border-orange-200' },
+              { label: 'प्रोफाइल / KYC', icon: User, action: () => setActiveTab('account'), color: 'bg-purple-50 text-purple-600 border-purple-200' },
+            ].map((item, idx) => {
+              const IconComponent = item.icon;
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={item.action}
+                  className="flex flex-col items-center gap-1.5 shrink-0 group min-w-[68px] cursor-pointer"
+                >
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center border shadow-xs group-hover:scale-110 group-hover:shadow-md transition-all ${item.color}`}>
+                    <IconComponent className="w-5 h-5" />
+                  </div>
+                  <span className="text-[11px] font-bold text-slate-700 group-hover:text-[#0A2885] transition-colors whitespace-nowrap">
+                    {item.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
 
         {/* ============================================================ */}
         {/* TAB 1: ⚡ DASHBOARD (डैशबोर्ड)                                 */}
@@ -663,64 +696,64 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
         {activeTab === 'dashboard' && (
           <div className="space-y-6 animate-fadeIn">
             
-            {/* 1. TOP SOLITARY GO WALLET CARD */}
-            <div className="relative rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border-2 border-amber-400 p-6 sm:p-8 shadow-[0_20px_50px_rgba(245,158,11,0.2)] overflow-hidden">
-              <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+            {/* 1. TOP SOLITARY GO WALLET CARD (JIO SPOTLIGHT HERO CARD) */}
+            <div className="relative rounded-3xl bg-gradient-to-r from-[#0A2885] via-[#0D38A5] to-[#071E66] text-white p-6 sm:p-8 shadow-[0_16px_40px_rgba(10,40,133,0.22)] overflow-hidden border border-blue-900/50">
+              <div className="absolute top-0 right-0 w-80 h-80 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
               
               <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                 
                 {/* Balance & Earnings Information */}
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 flex items-center gap-1 shadow-sm">
-                      <Wallet className="w-3 h-3" />
+                    <span className="px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-white text-[#0A2885] flex items-center gap-1 shadow-sm">
+                      <Wallet className="w-3.5 h-3.5" />
                       GO WALLET
                     </span>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-500/40 flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" />
+                    <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
                       प्रत्येक कन्फर्म टिकट पर फ्लैट ₹20 नकद कमाई
                     </span>
                   </div>
 
                   <div>
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                    <span className="text-xs font-bold text-blue-200 uppercase tracking-wider block">
                       कुल उपलब्ध Go Wallet बैलेंस
                     </span>
-                    <div className="text-3xl sm:text-4xl font-black text-emerald-400 font-mono tracking-tight flex items-baseline gap-2">
+                    <div className="text-3xl sm:text-4xl font-extrabold text-white font-mono tracking-tight flex items-baseline gap-2">
                       <span>₹{(agentWalletBalance || 0).toLocaleString('en-IN')}</span>
-                      <span className="text-xs font-sans text-slate-400 font-normal">
+                      <span className="text-xs font-sans text-blue-200 font-normal">
                         ({confirmedCount} टिकट × ₹20 = ₹{totalCommissionEarned.toLocaleString('en-IN')} अर्जित)
                       </span>
                     </div>
                   </div>
 
-                  <p className="text-xs text-slate-300 max-w-lg leading-relaxed">
+                  <p className="text-xs text-blue-100 max-w-lg leading-relaxed">
                     आपकी समस्त टिकट बुकिंग की कमाई सीधे Go Wallet में जमा होती है। <strong>हर रविवार साप्ताहिक सेटलमेंट</strong> के तहत आप इसे बिना किसी कटौती के सीधे अपने बैंक या UPI में निकाल सकते हैं।
                   </p>
                 </div>
 
-                {/* Instant Actions */}
+                {/* Instant Actions (Pill Buttons) */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
                   <button
                     type="button"
                     onClick={() => setIsWithdrawalModalOpen(true)}
-                    className="py-3 px-5 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-xs shadow-xl transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                    className="py-3 px-6 rounded-full bg-[#FF6500] hover:bg-[#e05800] text-white font-extrabold text-xs shadow-lg transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Wallet className="w-4 h-4" />
                     <span>
                       {activePendingPayout
                         ? '⏳ निकासी प्रक्रियाधीन देखें'
-                        : 'साप्ताहिक निकासी अनुरोध (Every Sunday)'}
+                        : 'साप्ताहिक निकासी (Sunday Payout)'}
                     </span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setIsRechargeModalOpen(true)}
-                    className="py-3 px-4 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-emerald-500/50 text-emerald-400 font-black text-xs shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                    className="py-3 px-5 rounded-full bg-white text-[#0A2885] hover:bg-slate-100 font-extrabold text-xs shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <Zap className="w-4 h-4 fill-emerald-400" />
-                    <span>वॉलेट में पैसे जोड़ें</span>
+                    <Zap className="w-4 h-4 fill-[#0A2885]" />
+                    <span>पैसे जोड़ें</span>
                   </button>
 
                   <button
@@ -729,10 +762,10 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                       setUberDefaultDestination('Bhopal ISBT Stand');
                       setIsUberModalOpen(true);
                     }}
-                    className="py-3 px-4 rounded-2xl bg-black hover:bg-slate-900 border border-slate-700 text-white font-black text-xs shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                    className="py-3 px-5 rounded-full bg-black/40 hover:bg-black/60 border border-white/25 text-white font-bold text-xs shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                     title="यात्रियों के लिए बस स्टैंड व स्टेशन तक Uber ऑटो/कैब सेवा"
                   >
-                    <Car className="w-4 h-4 text-amber-400" />
+                    <Car className="w-4 h-4 text-[#FFB703]" />
                     <span>🛺 Uber ऑटो / कैब</span>
                   </button>
                 </div>
@@ -741,9 +774,9 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
 
               {/* Pending Payout Persistent Banner */}
               {activePendingPayout && (
-                <div className="mt-5 p-3.5 rounded-2xl bg-amber-950/80 border border-amber-400/80 text-amber-200 text-xs flex items-center justify-between gap-3 animate-pulse">
+                <div className="mt-5 p-3.5 rounded-2xl bg-amber-500/20 border border-amber-300/40 text-amber-100 text-xs flex items-center justify-between gap-3 backdrop-blur-sm animate-pulse">
                   <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                    <Clock className="w-4 h-4 text-[#FFB703] shrink-0" />
                     <span>
                       <strong>निकासी प्रक्रियाधीन:</strong> ₹{activePendingPayout.amount} का सेटलमेंट अनुरोध एडमिन के पास समीक्षाधीन है। रविवार को भुगतान होगा।
                     </span>
@@ -751,7 +784,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsWithdrawalModalOpen(true)}
-                    className="px-3 py-1 bg-amber-400 text-slate-950 font-bold rounded-lg text-[10px] shrink-0"
+                    className="px-3.5 py-1 bg-white text-[#0A2885] font-black rounded-full text-[10px] shrink-0 shadow-xs"
                   >
                     विवरण देखें
                   </button>
@@ -759,61 +792,61 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
               )}
             </div>
 
-            {/* 2. STATS QUICK TILES */}
+            {/* 2. STATS QUICK TILES (JIO CLEAN WHITE CARDS) */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">कुल GO टिकटें</span>
-                <div className="text-2xl font-black text-white font-mono">{myGoBookings.length}</div>
-                <span className="text-[10px] text-emerald-400">{confirmedCount} कन्फर्म</span>
+              <div className="p-5 rounded-3xl bg-white border border-slate-200/90 shadow-xs hover:shadow-md transition space-y-1">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">कुल GO टिकटें</span>
+                <div className="text-2xl font-black text-[#0A2885] font-mono">{myGoBookings.length}</div>
+                <span className="text-[11px] font-bold text-emerald-600">{confirmedCount} कन्फर्म</span>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">कमीशन कमाई</span>
-                <div className="text-2xl font-black text-amber-400 font-mono">₹{totalCommissionEarned}</div>
-                <span className="text-[10px] text-slate-400">फ्लैट ₹20 / सीट</span>
+              <div className="p-5 rounded-3xl bg-white border border-slate-200/90 shadow-xs hover:shadow-md transition space-y-1">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">कमीशन कमाई</span>
+                <div className="text-2xl font-black text-[#FF6500] font-mono">₹{totalCommissionEarned}</div>
+                <span className="text-[11px] font-medium text-slate-500">फ्लैट ₹20 / सीट</span>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">KYC सत्यापन</span>
-                <div className="text-sm font-black text-white pt-1">
+              <div className="p-5 rounded-3xl bg-white border border-slate-200/90 shadow-xs hover:shadow-md transition space-y-1">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">KYC सत्यापन</span>
+                <div className="text-sm font-black text-slate-900 pt-1">
                   {currentUser?.kyc_status === 'verified' ? (
-                    <span className="text-emerald-400 flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> 100% सत्यापित
+                    <span className="text-emerald-600 flex items-center gap-1 font-bold">
+                      <CheckCircle2 className="w-4 h-4" /> 100% सत्यापित
                     </span>
                   ) : currentUser?.kyc_status === 'pending' ? (
-                    <span className="text-amber-400 flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" /> 24h प्रक्रियाधीन
+                    <span className="text-[#FF6500] flex items-center gap-1 font-bold">
+                      <Clock className="w-4 h-4" /> 24h प्रक्रियाधीन
                     </span>
                   ) : (
-                    <span className="text-slate-400 flex items-center gap-1">
-                      <AlertCircle className="w-3.5 h-3.5 text-amber-400" /> बाकी है
+                    <span className="text-slate-500 flex items-center gap-1 font-bold">
+                      <AlertCircle className="w-4 h-4 text-amber-500" /> बाकी है
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] text-slate-400">ऑफिशियल बैज</span>
+                <span className="text-[11px] font-medium text-slate-500">ऑफिशियल बैज</span>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">सपोर्ट डेस्क SLA</span>
-                <div className="text-sm font-black text-cyan-400 pt-1 flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" /> 24h समाधान
+              <div className="p-5 rounded-3xl bg-white border border-slate-200/90 shadow-xs hover:shadow-md transition space-y-1">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">सपोर्ट डेस्क SLA</span>
+                <div className="text-sm font-black text-[#0A2885] pt-1 flex items-center gap-1">
+                  <ShieldCheck className="w-4 h-4 text-blue-600" /> 24h समाधान
                 </div>
-                <span className="text-[10px] text-slate-400">{pendingSupportCount} लंबित टिकट</span>
+                <span className="text-[11px] font-medium text-slate-500">{pendingSupportCount} लंबित टिकट</span>
               </div>
             </div>
 
             {/* 3. TICKET DESK & 24-HOUR RESOLUTION GUARANTEE (In-Wallet System) */}
-            <div className="p-5 sm:p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div id="support-section" className="p-6 sm:p-7 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-4 text-slate-800">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                    <h3 className="text-base font-black text-white flex items-center gap-2">
-                      <MessageSquare className="w-4 h-4 text-amber-400" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
+                      <MessageSquare className="w-5 h-5 text-[#0A2885]" />
                       <span>एजेंट सहायता व सपोर्ट डेस्क</span>
                     </h3>
                   </div>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500">
                     <strong>24 घंटे में समाधान गारंटी (24-Hour SLA Guarantee)</strong> • बस ऑपरेटर, टिकट रिफंड या वॉलेट से संबंधित किसी भी समस्या का त्वरित समाधान।
                   </p>
                 </div>
@@ -823,47 +856,47 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                     href="https://help.safargo.in"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center gap-1.5 transition"
+                    className="py-2 px-3.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition"
                   >
                     <span>help.safargo.in</span>
-                    <ExternalLink className="w-3 h-3" />
+                    <ExternalLink className="w-3.5 h-3.5" />
                   </a>
 
                   <button
                     type="button"
                     onClick={() => setIsSupportFormOpen(!isSupportFormOpen)}
-                    className="py-2 px-3.5 rounded-xl bg-amber-400 text-slate-950 font-black text-xs hover:bg-amber-300 transition flex items-center gap-1.5 cursor-pointer"
+                    className="py-2 px-4 rounded-full bg-[#0A2885] hover:bg-[#071E66] text-white font-bold text-xs transition flex items-center gap-1.5 cursor-pointer shadow-sm"
                   >
-                    <PlusCircle className="w-3.5 h-3.5" />
+                    <PlusCircle className="w-4 h-4" />
                     <span>नया टिकट बनाएं</span>
                   </button>
                 </div>
               </div>
 
               {/* Status Counters */}
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <div className="p-3 bg-slate-950/70 rounded-2xl border border-amber-500/30 flex items-center justify-between">
-                  <span className="text-xs text-slate-300 font-bold">प्रतीक्षारत टिकट (Pending)</span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-xs font-mono">
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="p-3.5 bg-amber-50/70 rounded-2xl border border-amber-200 flex items-center justify-between">
+                  <span className="text-xs text-amber-900 font-bold">प्रतीक्षारत टिकट (Pending)</span>
+                  <span className="px-3 py-0.5 rounded-full bg-[#FF6500] text-white font-black text-xs font-mono">
                     {pendingSupportCount}
                   </span>
                 </div>
-                <div className="p-3 bg-slate-950/70 rounded-2xl border border-emerald-500/30 flex items-center justify-between">
-                  <span className="text-xs text-slate-300 font-bold">समाधान किए गए (Solved)</span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-400 text-slate-950 font-black text-xs font-mono">
+                <div className="p-3.5 bg-emerald-50/70 rounded-2xl border border-emerald-200 flex items-center justify-between">
+                  <span className="text-xs text-emerald-900 font-bold">समाधान किए गए (Solved)</span>
+                  <span className="px-3 py-0.5 rounded-full bg-emerald-600 text-white font-black text-xs font-mono">
                     {resolvedSupportCount}
                   </span>
                 </div>
               </div>
 
-              {/* Create Ticket Modal / Inline Form */}
+              {/* Create Ticket Inline Form */}
               {isSupportFormOpen && (
-                <form onSubmit={handleSupportTicketSubmit} className="p-4 bg-slate-950 rounded-2xl border border-amber-400/50 space-y-3 animate-fadeIn">
-                  <h4 className="text-xs font-black text-amber-400 uppercase tracking-wider">
+                <form onSubmit={handleSupportTicketSubmit} className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 animate-fadeIn">
+                  <h4 className="text-xs font-black text-[#0A2885] uppercase tracking-wider">
                     नया हेल्प टिकट दर्ज करें (24-Hour Guaranteed Desk)
                   </h4>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
                       समस्या का विषय (Subject) *
                     </label>
                     <input
@@ -871,12 +904,12 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                       value={supportSubject}
                       onChange={(e) => setSupportSubject(e.target.value)}
                       placeholder="उदा. टिकट बुकिंग अप्रूवल या रिफंड समस्या"
-                      className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                      className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs outline-none focus:border-[#0A2885] shadow-xs"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
                       समस्या का संपूर्ण विवरण (Description) *
                     </label>
                     <textarea
@@ -884,7 +917,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                       value={supportDescription}
                       onChange={(e) => setSupportDescription(e.target.value)}
                       placeholder="विस्तार से अपनी समस्या बताएं..."
-                      className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                      className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs outline-none focus:border-[#0A2885] shadow-xs"
                       required
                     />
                   </div>
@@ -892,14 +925,14 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                     <button
                       type="button"
                       onClick={() => setIsSupportFormOpen(false)}
-                      className="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-400 text-xs font-bold"
+                      className="px-4 py-2 rounded-full bg-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-300"
                     >
                       रद्द करें
                     </button>
                     <button
                       type="submit"
                       disabled={isSubmittingSupportTicket}
-                      className="px-4 py-1.5 rounded-xl bg-amber-400 text-slate-950 text-xs font-black hover:bg-amber-300 disabled:opacity-50"
+                      className="px-5 py-2 rounded-full bg-[#0A2885] text-white text-xs font-bold hover:bg-[#071E66] disabled:opacity-50 shadow-sm"
                     >
                       {isSubmittingSupportTicket ? 'सबमिट हो रहा है...' : 'सबमिट करें'}
                     </button>
@@ -909,24 +942,24 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
 
               {/* Recent Support Tickets List */}
               {(agentSupportTickets || []).length > 0 && (
-                <div className="space-y-2 pt-2 border-t border-slate-800">
-                  <span className="text-[11px] font-bold text-slate-400 block">हाल के सपोर्ट टिकट</span>
+                <div className="space-y-2 pt-2 border-t border-slate-100">
+                  <span className="text-[11px] font-bold text-slate-500 block">हाल के सपोर्ट टिकट</span>
                   {(agentSupportTickets || []).slice(0, 3).map((t) => (
                     <div
                       key={t.id}
-                      className="p-3 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center justify-between text-xs"
+                      className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between text-xs"
                     >
                       <div>
                         <div className="flex items-center gap-2">
-                          <strong className="text-white">{t.subject}</strong>
+                          <strong className="text-slate-900">{t.subject}</strong>
                           <span className="font-mono text-[10px] text-slate-500">#{t.ticket_code || t.id.slice(-6)}</span>
                         </div>
-                        <p className="text-[11px] text-slate-400 truncate max-w-sm">{t.description}</p>
+                        <p className="text-[11px] text-slate-500 truncate max-w-sm">{t.description}</p>
                       </div>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
                         t.status === 'resolved' || t.status === 'closed'
-                          ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/40'
-                          : 'bg-amber-950 text-amber-300 border border-amber-500/40'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-300'
+                          : 'bg-amber-50 text-amber-800 border border-amber-300'
                       }`}>
                         {t.status === 'resolved' || t.status === 'closed' ? 'हल हुआ ✓' : 'प्रक्रियाधीन ⏳'}
                       </span>
@@ -936,22 +969,22 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
               )}
             </div>
 
-            {/* 4. GO WALLET TRANSACTIONS & MONEY ORIGIN HUB (कहाँ-कहाँ से पैसा आया - स्रोत ब्योरा) */}
-            <div className="p-5 sm:p-7 rounded-3xl bg-slate-900 border border-slate-800 space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+            {/* 4. GO WALLET TRANSACTIONS & MONEY ORIGIN HUB (JIO WHITE ROUNDED-3XL CARD) */}
+            <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-5 text-slate-800">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black">
+                    <div className="w-8 h-8 rounded-full bg-blue-50 text-[#0A2885] flex items-center justify-center font-black border border-blue-200">
                       <History className="w-4 h-4" />
                     </div>
-                    <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
                       <span>Go Wallet खाता-बही व पैसे का स्रोत</span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-[#0A2885] border border-blue-200">
                         लाइव अपडेट्स
                       </span>
                     </h3>
                   </div>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500">
                     कहाँ-कहाँ से पैसा आया और कहाँ खर्च हुआ — टिकट कमीशन, रेफरल बोनस, वॉलेट रिचार्ज, सैलरी व निकासी का संपूर्ण ब्योरा
                   </p>
                 </div>
@@ -960,32 +993,32 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsRechargeModalOpen(true)}
-                    className="py-2 px-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer"
+                    className="py-2 px-4 rounded-full bg-[#0A2885] hover:bg-[#071E66] text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Zap className="w-3.5 h-3.5 fill-slate-950" />
+                    <Zap className="w-3.5 h-3.5 fill-white" />
                     <span>पैसे जोड़ें</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setIsWithdrawalModalOpen(true)}
-                    className="py-2 px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
+                    className="py-2 px-4 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Wallet className="w-3.5 h-3.5" />
+                    <Wallet className="w-3.5 h-3.5 text-[#0A2885]" />
                     <span>निकासी</span>
                   </button>
                 </div>
               </div>
 
-              {/* Source Filter Chips */}
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs">
+              {/* Source Filter Chips - Jio Rounded-Full Pills */}
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 text-xs">
                 <button
                   type="button"
                   onClick={() => setWalletSourceFilter('all')}
-                  className={`py-1.5 px-3 rounded-xl font-bold whitespace-nowrap transition cursor-pointer shrink-0 ${
+                  className={`py-2 px-4 rounded-full font-bold whitespace-nowrap transition cursor-pointer shrink-0 ${
                     walletSourceFilter === 'all'
-                      ? 'bg-amber-400 text-slate-950 font-black shadow-md'
-                      : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                      ? 'bg-[#0A2885] text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
                   }`}
                 >
                   🌟 सभी स्रोत ({enrichedWalletTransactions.length})
@@ -1002,10 +1035,10 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                       key={catKey}
                       type="button"
                       onClick={() => setWalletSourceFilter(catKey)}
-                      className={`py-1.5 px-3 rounded-xl font-bold whitespace-nowrap transition cursor-pointer shrink-0 flex items-center gap-1.5 ${
+                      className={`py-2 px-4 rounded-full font-bold whitespace-nowrap transition cursor-pointer shrink-0 flex items-center gap-1.5 ${
                         walletSourceFilter === catKey
-                          ? 'bg-amber-400 text-slate-950 font-black shadow-md'
-                          : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                          ? 'bg-[#0A2885] text-white shadow-sm'
+                          : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
                       }`}
                     >
                       <span>{meta.icon}</span>
@@ -1018,20 +1051,20 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
 
               {/* Search Filter Bar */}
               <div className="relative">
-                <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                <Search className="w-4 h-4 text-slate-400 absolute left-4 top-3" />
                 <input
                   type="text"
                   value={walletSearchTerm}
                   onChange={(e) => setWalletSearchTerm(e.target.value)}
                   placeholder="स्रोत, लेन-देन नाम, UTR, PNR या विवरण से खोजें..."
-                  className="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs outline-none focus:border-amber-400 placeholder:text-slate-600"
+                  className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-full text-slate-900 text-xs outline-none focus:bg-white focus:border-[#0A2885] placeholder:text-slate-400 transition"
                 />
               </div>
 
               {/* Transactions List */}
               {filteredWalletTransactions.length === 0 ? (
-                <div className="p-8 text-center text-slate-500 space-y-2 bg-slate-950/60 rounded-2xl border border-slate-800">
-                  <History className="w-8 h-8 text-slate-600 mx-auto opacity-50" />
+                <div className="p-8 text-center text-slate-400 space-y-2 bg-slate-50 rounded-2xl border border-slate-200">
+                  <History className="w-8 h-8 text-slate-300 mx-auto" />
                   <p className="text-xs">चयनित फ़िल्टर के अनुसार कोई लेन-देन नहीं मिला।</p>
                 </div>
               ) : (
@@ -1042,14 +1075,14 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                     return (
                       <div
                         key={tx.id}
-                        className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800/90 hover:border-slate-700 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                        className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200 hover:border-slate-300 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                       >
                         <div className="flex items-start gap-3">
                           <div
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center font-black shrink-0 ${
+                            className={`w-10 h-10 rounded-full flex items-center justify-center font-black shrink-0 ${
                               isPositive
-                                ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/30'
-                                : 'bg-rose-950 text-rose-400 border border-rose-500/30'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-rose-100 text-rose-700'
                             }`}
                           >
                             {isPositive ? (
@@ -1061,12 +1094,12 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
 
                           <div className="space-y-1">
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-black text-white text-sm">
+                              <span className="font-extrabold text-slate-900 text-sm">
                                 {tx.transaction_name || (isPositive ? 'जमा राशि' : 'निकासी राशि')}
                               </span>
                               {meta && (
                                 <span
-                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${meta.badgeBg} ${meta.badgeText} border ${meta.borderClass}`}
+                                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${meta.badgeBg} ${meta.badgeText} border ${meta.borderClass}`}
                                 >
                                   {meta.shortLabel}
                                 </span>
@@ -1074,37 +1107,37 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                             </div>
 
                             {/* Source of Funds (कहाँ-कहाँ से पैसा आया) */}
-                            <div className="text-[11px] text-amber-300/90 flex items-center gap-1 font-medium">
+                            <div className="text-[11px] text-slate-600 flex items-center gap-1 font-medium">
                               <span className="text-slate-400">स्रोत:</span>
-                              <span>{tx.source_name || tx.description}</span>
+                              <span className="font-bold text-[#0A2885]">{tx.source_name || tx.description}</span>
                             </div>
 
                             {/* Details / Booking Code */}
                             {tx.source_details && tx.source_details !== tx.source_name && (
-                              <p className="text-[10px] text-slate-400 line-clamp-1">
+                              <p className="text-[10px] text-slate-500 line-clamp-1">
                                 {tx.source_details}
                               </p>
                             )}
                           </div>
                         </div>
 
-                        <div className="text-left sm:text-right shrink-0 flex sm:flex-col justify-between sm:justify-center items-end border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-800">
+                        <div className="text-left sm:text-right shrink-0 flex sm:flex-col justify-between sm:justify-center items-end border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-200">
                           <span
                             className={`text-base font-black font-mono ${
-                              isPositive ? 'text-emerald-400' : 'text-rose-400'
+                              isPositive ? 'text-emerald-600' : 'text-rose-600'
                             }`}
                           >
                             {isPositive ? `+₹${tx.amount.toLocaleString('en-IN')}` : `-₹${Math.abs(tx.amount).toLocaleString('en-IN')}`}
                           </span>
 
-                          <div className="text-[10px] text-slate-500 space-x-1">
+                          <div className="text-[10px] text-slate-400 space-x-1">
                             <span>{new Date(tx.created_at).toLocaleDateString('hi-IN', { day: 'numeric', month: 'short' })}</span>
                             <span>•</span>
                             <span>{new Date(tx.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
 
                           {tx.balance_after !== undefined && (
-                            <span className="text-[10px] font-mono text-slate-400">
+                            <span className="text-[10px] font-mono text-slate-500">
                               शेष: ₹{tx.balance_after.toLocaleString('en-IN')}
                             </span>
                           )}
@@ -1119,22 +1152,22 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
             {/* Quick Action to New Booking */}
             <div
               onClick={() => setActiveTab('booking')}
-              className="p-5 rounded-3xl bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-amber-500/20 border-2 border-amber-400/80 flex items-center justify-between gap-4 cursor-pointer hover:border-amber-300 transition group"
+              className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-blue-50 via-white to-amber-50 border border-blue-200/80 flex items-center justify-between gap-4 cursor-pointer hover:border-[#0A2885] shadow-xs hover:shadow-md transition group"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-black shrink-0 shadow-lg group-hover:scale-105 transition-transform">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-full bg-[#0A2885] text-white flex items-center justify-center font-black shrink-0 shadow-md group-hover:scale-105 transition-transform">
                   <Bus className="w-6 h-6" />
                 </div>
                 <div>
-                  <h4 className="text-base font-black text-white group-hover:text-amber-300 transition">
+                  <h4 className="text-base font-extrabold text-[#0A2885] group-hover:text-[#071E66] transition">
                     नई बस टिकट बुक करें (New Bus Booking)
                   </h4>
-                  <p className="text-xs text-slate-300">
+                  <p className="text-xs text-slate-600">
                     मध्य प्रदेश के सभी मुख्य रूटों पर 5 मिनट में टिकट अप्रूवल व तुरंत ₹20 कमीशन
                   </p>
                 </div>
               </div>
-              <ArrowRight className="w-5 h-5 text-amber-400 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-5 h-5 text-[#0A2885] group-hover:translate-x-1 transition-transform" />
             </div>
 
           </div>
@@ -1148,7 +1181,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
             
             {/* If there is an Active Pending Booking: Show 5-Min Timer Screen */}
             {activePendingBooking && activePendingBooking.status !== 'confirmed' && activePendingBooking.status !== 'cancelled' ? (
-              <div className="p-6 sm:p-8 rounded-3xl bg-slate-900 border-2 border-amber-400 shadow-[0_20px_50px_rgba(245,158,11,0.2)] text-center space-y-6 animate-fadeIn">
+              <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-amber-400 shadow-xl text-center space-y-6 text-slate-800 animate-fadeIn">
                 
                 {/* 5-Min Live Timer Banner */}
                 <div className="space-y-3">
@@ -1158,49 +1191,49 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                       deadlineAt={activePendingBooking.deadline_at}
                     />
                   </div>
-                  <h3 className="text-2xl font-black text-white">
+                  <h3 className="text-2xl font-black text-slate-900">
                     बुकिंग एडमिन स्वीकृति प्रक्रियाधीन है
                   </h3>
-                  <p className="text-xs sm:text-sm text-slate-300 max-w-md mx-auto">
+                  <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto">
                     कृपया इस पेज पर बने रहें और बैक बटन न दबाएं। एडमिन द्वारा अप्रूव होते ही यह पेज स्वतः रिफ्रेश होकर आपकी कन्फर्म टिकट प्रदर्शित करेगा।
                   </p>
                 </div>
 
                 {/* Ticket Details Card */}
-                <div className="p-5 bg-slate-950 rounded-2xl border border-slate-800 text-left space-y-3 max-w-lg mx-auto">
-                  <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                    <span className="text-xs text-slate-400">बुकिंग कोड:</span>
-                    <span className="font-mono font-black text-amber-400">{activePendingBooking.booking_code}</span>
+                <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 text-left space-y-3 max-w-lg mx-auto">
+                  <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                    <span className="text-xs text-slate-500 font-bold">बुकिंग कोड:</span>
+                    <span className="font-mono font-black text-[#0A2885]">{activePendingBooking.booking_code}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-slate-400">रूट:</span>
-                    <span className="font-bold text-white">
+                    <span className="text-xs text-slate-500 font-bold">रूट:</span>
+                    <span className="font-bold text-slate-900">
                       {getBookingRoute(activePendingBooking).from} ➔ {getBookingRoute(activePendingBooking).to}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-slate-400">यात्री:</span>
-                    <span className="font-bold text-white">{activePendingBooking.customer_name}</span>
+                    <span className="text-xs text-slate-500 font-bold">यात्री:</span>
+                    <span className="font-bold text-slate-900">{activePendingBooking.customer_name}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-slate-400">सीट संख्या:</span>
-                    <span className="font-bold text-emerald-400">{getBookingSeats(activePendingBooking)}</span>
+                    <span className="text-xs text-slate-500 font-bold">सीट संख्या:</span>
+                    <span className="font-bold text-emerald-600">{getBookingSeats(activePendingBooking)}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-slate-400">कुल किराया:</span>
-                    <span className="font-mono font-black text-white">
+                    <span className="text-xs text-slate-500 font-bold">कुल किराया:</span>
+                    <span className="font-mono font-black text-slate-900">
                       ₹{getBookingFare(activePendingBooking).toLocaleString('en-IN')}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-slate-800">
-                    <span className="text-xs text-slate-400">एजेंट कमीशन:</span>
-                    <span className="text-xs font-black text-amber-400">+₹20.00 Go Wallet में</span>
+                  <div className="flex justify-between items-center pt-2 border-t border-slate-200">
+                    <span className="text-xs text-slate-500 font-bold">एजेंट कमीशन:</span>
+                    <span className="text-xs font-black text-[#FF6500]">+₹20.00 Go Wallet में</span>
                   </div>
                 </div>
 
                 {/* Safety Back-Trap Warning */}
-                <div className="p-3 bg-amber-500/10 rounded-2xl border border-amber-500/30 text-xs text-amber-300 max-w-lg mx-auto flex items-center justify-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-800 max-w-lg mx-auto flex items-center justify-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
                   <span>
                     सुरक्षा गार्ड सक्रिय: ब्राउज़र का बैक बटन दबाने पर भी आप इसी स्क्रीन पर सुरक्षित रहेंगे।
                   </span>
@@ -1211,7 +1244,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                     type="button"
                     onClick={handleManualRefreshStatus}
                     disabled={isRefreshingStatus}
-                    className="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-lg active:scale-95"
+                    className="w-full py-3.5 px-5 rounded-full bg-[#FF6500] hover:bg-[#e05800] text-white font-black text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-95"
                   >
                     <RefreshCw className={`w-4 h-4 ${isRefreshingStatus ? 'animate-spin' : ''}`} />
                     <span>{isRefreshingStatus ? 'जांच जारी है...' : '🔄 स्थिति रिफ्रेश करें'}</span>
@@ -1225,7 +1258,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                         localStorage.removeItem(`safargo_pending_booking_${currentUser?.id}`);
                       } catch {}
                     }}
-                    className="w-full py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition"
+                    className="w-full py-3.5 px-5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition"
                   >
                     नया फॉर्म खोलें
                   </button>
@@ -1233,48 +1266,48 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
               </div>
             ) : activePendingBooking && activePendingBooking.status === 'confirmed' ? (
               /* Confirmed Ticket Green Screen */
-              <div className="p-6 sm:p-8 rounded-3xl bg-slate-900 border-2 border-emerald-400 shadow-[0_20px_50px_rgba(16,185,129,0.25)] text-center space-y-6 animate-fadeIn">
-                <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 text-emerald-400 mx-auto flex items-center justify-center animate-bounce">
+              <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-emerald-500 shadow-xl text-center space-y-6 animate-fadeIn">
+                <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center animate-bounce">
                   <CheckCircle2 className="w-10 h-10" />
                 </div>
 
                 <div className="space-y-1">
-                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-400 text-slate-950">
+                  <span className="px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-600 text-white shadow-xs">
                     कन्फर्म (CONFIRMED)
                   </span>
-                  <h3 className="text-2xl font-black text-white pt-2">
+                  <h3 className="text-2xl font-black text-slate-900 pt-2">
                     🎉 बस टिकट सफलतापूर्वक कन्फर्म हो गई!
                   </h3>
-                  <p className="text-xs text-emerald-300 font-bold">
-                    PNR नंबर: <span className="font-mono text-base text-white">{activePendingBooking.ticket_pnr || 'CONFIRMED'}</span> • ₹20 कमीशन Go Wallet में क्रेडिट हुआ!
+                  <p className="text-xs text-emerald-700 font-bold">
+                    PNR नंबर: <span className="font-mono text-base text-slate-900">{activePendingBooking.ticket_pnr || 'CONFIRMED'}</span> • ₹20 कमीशन Go Wallet में क्रेडिट हुआ!
                   </p>
                 </div>
 
                 {/* Ticket Details */}
-                <div className="p-5 bg-slate-950 rounded-2xl border border-emerald-500/40 text-left space-y-2.5 max-w-lg mx-auto text-xs">
+                <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 text-left space-y-2.5 max-w-lg mx-auto text-xs">
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-400">रूट:</span>
-                    <span className="font-bold text-white text-sm">
+                    <span className="text-slate-500 font-bold">रूट:</span>
+                    <span className="font-bold text-slate-900 text-sm">
                       {getBookingRoute(activePendingBooking).from} ➔ {getBookingRoute(activePendingBooking).to}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-400">यात्री का नाम:</span>
-                    <span className="font-bold text-white">{activePendingBooking.customer_name}</span>
+                    <span className="text-slate-500 font-bold">यात्री का नाम:</span>
+                    <span className="font-bold text-slate-900">{activePendingBooking.customer_name}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-400">सीट संख्या:</span>
-                    <span className="font-bold text-emerald-400 font-mono text-sm">
+                    <span className="text-slate-500 font-bold">सीट संख्या:</span>
+                    <span className="font-bold text-emerald-600 font-mono text-sm">
                       {getBookingSeats(activePendingBooking)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-400">ऑपरेटर:</span>
-                    <span className="text-slate-300">{getBookingRoute(activePendingBooking).operator}</span>
+                    <span className="text-slate-500 font-bold">ऑपरेटर:</span>
+                    <span className="text-slate-700">{getBookingRoute(activePendingBooking).operator}</span>
                   </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-slate-800">
-                    <span className="text-slate-400">कुल भुगतान:</span>
-                    <span className="font-mono font-black text-white text-base">
+                  <div className="flex justify-between items-center pt-2 border-t border-slate-200">
+                    <span className="text-slate-500 font-bold">कुल भुगतान:</span>
+                    <span className="font-mono font-black text-slate-900 text-base">
                       ₹{getBookingFare(activePendingBooking).toLocaleString('en-IN')}
                     </span>
                   </div>
@@ -1288,7 +1321,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                       const msg = getWhatsAppTicketMessage(activePendingBooking);
                       window.open(`https://wa.me/91${activePendingBooking.customer_mobile}?text=${encodeURIComponent(msg)}`, '_blank');
                     }}
-                    className="w-full py-3.5 px-6 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-xl transition flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full py-3.5 px-6 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Send className="w-4 h-4" />
                     <span>WhatsApp पर टिकट भेजें</span>
@@ -1300,10 +1333,10 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                       setUberDefaultDestination(`${getBookingRoute(activePendingBooking).to} Bus Stand`);
                       setIsUberModalOpen(true);
                     }}
-                    className="w-full py-3.5 px-5 rounded-2xl bg-black hover:bg-slate-900 border border-slate-700 text-white font-black text-xs shadow-xl transition flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full py-3.5 px-5 rounded-full bg-black hover:bg-slate-800 border border-slate-700 text-white font-extrabold text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
                     title="यात्री के लिए Uber ऑटो / कैब लिंक"
                   >
-                    <Car className="w-4 h-4 text-amber-400" />
+                    <Car className="w-4 h-4 text-[#FFB703]" />
                     <span>🛺 Uber राइड सहायता</span>
                   </button>
 
@@ -1315,7 +1348,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                         localStorage.removeItem(`safargo_pending_booking_${currentUser?.id}`);
                       } catch {}
                     }}
-                    className="w-full py-3.5 px-6 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black text-xs transition cursor-pointer"
+                    className="w-full py-3.5 px-6 rounded-full bg-[#0A2885] hover:bg-[#071E66] text-white font-extrabold text-xs transition cursor-pointer shadow-md"
                   >
                     नई टिकट बुक करें ➔
                   </button>
@@ -1323,20 +1356,20 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
               </div>
             ) : (
               <div className="space-y-6">
-                {/* 1. TOP BOOKING MODE SWITCHER */}
-                <div className="bg-slate-950 p-1.5 rounded-2xl border border-slate-800 flex items-center gap-2">
+                {/* 1. TOP BOOKING MODE SWITCHER (JIO ROUNDED-FULL PILL BAR) */}
+                <div className="bg-slate-100 p-1.5 rounded-full border border-slate-200 flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setBookingMode('auto')}
-                    className={`flex-1 py-3 px-4 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer ${
+                    className={`flex-1 py-3 px-4 rounded-full text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer ${
                       bookingMode === 'auto'
-                        ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-slate-950 shadow-lg shadow-amber-500/20'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                        ? 'bg-[#0A2885] text-white shadow-md'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                     }`}
                   >
                     <Bus className="w-4 h-4" />
                     <span>🚌 ऑटोमैटिक बस सर्च व सीट मैप (Live Bus Booking)</span>
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-slate-950 text-amber-300 border border-amber-400/40">
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-white text-[#0A2885] shadow-xs">
                       पसंदीदा
                     </span>
                   </button>
@@ -1344,10 +1377,10 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                   <button
                     type="button"
                     onClick={() => setBookingMode('manual')}
-                    className={`flex-1 py-3 px-4 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer ${
+                    className={`flex-1 py-3 px-4 rounded-full text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer ${
                       bookingMode === 'manual'
-                        ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-slate-950 shadow-lg shadow-amber-500/20'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                        ? 'bg-[#0A2885] text-white shadow-md'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                     }`}
                   >
                     <Zap className="w-4 h-4" />
@@ -1372,19 +1405,19 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                     onSwitchToManual={() => setBookingMode('manual')}
                   />
                 ) : (
-                  /* NEW BUS BOOKING FORM */
-                  <div className="p-5 sm:p-7 rounded-3xl bg-slate-900 border border-slate-800 space-y-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-4">
+                  /* NEW BUS BOOKING FORM (JIO CLEAN WHITE CARD) */
+                  <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-6 text-slate-800">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
                       <div>
-                        <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
-                          <Bus className="w-5 h-5 text-amber-400" />
+                        <h3 className="text-lg sm:text-xl font-black text-slate-900 flex items-center gap-2">
+                          <Bus className="w-5 h-5 text-[#0A2885]" />
                           <span>त्वरित बस टिकट फॉर्म (Fast Track Booking)</span>
                         </h3>
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-slate-500">
                           सीट चुनें और कन्फर्म करें • प्रत्येक टिकट पर फ्लैट ₹20 नकद कमीशन Go Wallet में जुड़ेगा
                         </p>
                       </div>
-                      <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-950 text-emerald-400 border border-emerald-500/40 shrink-0">
+                      <span className="px-3.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
                         ⚡ 5-Min Fast Track
                       </span>
                     </div>
@@ -1394,13 +1427,13 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                   {/* Origin & Destination */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-slate-400 font-bold mb-1">
+                      <label className="block text-slate-600 font-bold mb-1">
                         कहाँ से (Source City) *
                       </label>
                       <select
                         value={bookingSource}
                         onChange={(e) => setBookingSource(e.target.value)}
-                        className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-xs focus:border-amber-400 outline-none"
+                        className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-bold text-xs focus:bg-white focus:border-[#0A2885] outline-none transition"
                       >
                         {MP_NETWORK_CITIES.map((c) => (
                           <option key={`src-${c}`} value={c}>{c}</option>
@@ -1409,13 +1442,13 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-slate-400 font-bold mb-1">
+                      <label className="block text-slate-600 font-bold mb-1">
                         कहाँ तक (Destination City) *
                       </label>
                       <select
                         value={bookingDestination}
                         onChange={(e) => setBookingDestination(e.target.value)}
-                        className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-xs focus:border-amber-400 outline-none"
+                        className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-bold text-xs focus:bg-white focus:border-[#0A2885] outline-none transition"
                       >
                         {MP_NETWORK_CITIES.map((c) => (
                           <option key={`dest-${c}`} value={c}>{c}</option>
@@ -1427,20 +1460,20 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                   {/* Date & Bus Operator */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-slate-400 font-bold mb-1">
+                      <label className="block text-slate-600 font-bold mb-1">
                         यात्रा की तारीख (Journey Date) *
                       </label>
                       <input
                         type="date"
                         value={bookingDate}
                         onChange={(e) => setBookingDate(e.target.value)}
-                        className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-xs focus:border-amber-400 outline-none"
+                        className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-bold text-xs focus:bg-white focus:border-[#0A2885] outline-none transition"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-slate-400 font-bold mb-1">
+                      <label className="block text-slate-600 font-bold mb-1">
                         बस ऑपरेटर / सर्विस प्रकार *
                       </label>
                       <select
@@ -1452,7 +1485,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                           else if (e.target.value.includes('Gramin')) setBaseFarePerSeat(350);
                           else setBaseFarePerSeat(450);
                         }}
-                        className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-xs focus:border-amber-400 outline-none"
+                        className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-bold text-xs focus:bg-white focus:border-[#0A2885] outline-none transition"
                       >
                         <option value="SafarGo Superfast Express (AC)">SafarGo Superfast Express (AC) - ₹450</option>
                         <option value="Royal AC Sleeper Deluxe">Royal AC Sleeper Deluxe - ₹650</option>
@@ -1464,7 +1497,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
 
                   {/* Visual Bus Fleet Selection Cards */}
                   <div className="space-y-1.5 pt-1">
-                    <span className="text-[11px] font-bold text-slate-400 block">
+                    <span className="text-[11px] font-bold text-slate-600 block">
                       उपलब्ध बस प्रकार (क्लिक करके चुनें):
                     </span>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -1506,26 +1539,26 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                               setSelectedBusOperator(busOpt.name);
                               setBaseFarePerSeat(busOpt.fare);
                             }}
-                            className={`p-2.5 rounded-2xl border transition-all cursor-pointer flex flex-col items-center text-center space-y-1 ${
+                            className={`p-3 rounded-2xl border transition-all cursor-pointer flex flex-col items-center text-center space-y-1 ${
                               isChosen
-                                ? 'bg-amber-400/15 border-2 border-amber-400 shadow-md scale-[1.02]'
-                                : 'bg-slate-950/70 border-slate-800 hover:border-slate-700'
+                                ? 'bg-blue-50/70 border-2 border-[#0A2885] shadow-sm scale-[1.02]'
+                                : 'bg-slate-50 border-slate-200 hover:border-slate-300'
                             }`}
                           >
                             <div className="h-12 w-full flex items-center justify-center p-1 relative">
                               <img src={busOpt.img} alt={busOpt.label} className="max-h-full object-contain" />
-                              <span className="absolute top-0 right-0 px-1 py-0.2 rounded bg-amber-400 text-slate-950 font-black text-[7px] leading-tight">
+                              <span className="absolute top-0 right-0 px-1 py-0.2 rounded bg-[#0A2885] text-white font-black text-[7px] leading-tight">
                                 SafarGo ✓
                               </span>
                             </div>
-                            <span className="text-[11px] font-black text-white leading-tight block">
+                            <span className="text-[11px] font-black text-slate-900 leading-tight block">
                               {busOpt.label}
                             </span>
-                            <span className="text-[8px] text-emerald-400 font-bold block">
+                            <span className="text-[8px] text-emerald-600 font-bold block">
                               🛡️ SafarGo Verified Bus
                             </span>
-                            <span className="text-[9px] text-slate-400 block">{busOpt.sub}</span>
-                            <span className="text-xs font-black text-amber-400 font-mono">
+                            <span className="text-[9px] text-slate-500 block">{busOpt.sub}</span>
+                            <span className="text-xs font-black text-[#0A2885] font-mono">
                               ₹{busOpt.fare}
                             </span>
                           </div>
@@ -1535,13 +1568,13 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                   </div>
 
                   {/* Passenger Details */}
-                  <div className="p-4 bg-slate-950/70 rounded-2xl border border-slate-800 space-y-3">
-                    <span className="text-[11px] font-black text-amber-400 uppercase tracking-wider block">
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                    <span className="text-[11px] font-black text-[#0A2885] uppercase tracking-wider block">
                       यात्री विवरण (Passenger Information)
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div className="sm:col-span-2">
-                        <label className="block text-slate-400 text-[11px] font-bold mb-1">
+                        <label className="block text-slate-600 text-[11px] font-bold mb-1">
                           यात्री का पूरा नाम *
                         </label>
                         <input
@@ -1549,13 +1582,13 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                           value={passengerName}
                           onChange={(e) => setPassengerName(e.target.value)}
                           placeholder="उदा. राहुल शर्मा"
-                          className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                          className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-slate-900 text-xs outline-none focus:border-[#0A2885]"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="block text-slate-400 text-[11px] font-bold mb-1">
+                        <label className="block text-slate-600 text-[11px] font-bold mb-1">
                           उम्र (Age) *
                         </label>
                         <input
@@ -1564,7 +1597,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                           max="120"
                           value={passengerAge}
                           onChange={(e) => setPassengerAge(e.target.value)}
-                          className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                          className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-slate-900 text-xs outline-none focus:border-[#0A2885]"
                           required
                         />
                       </div>
@@ -1572,7 +1605,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-slate-400 text-[11px] font-bold mb-1">
+                        <label className="block text-slate-600 text-[11px] font-bold mb-1">
                           यात्री का मोबाइल नंबर (WhatsApp Ticket) *
                         </label>
                         <input
@@ -1581,19 +1614,19 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                           value={passengerMobile}
                           onChange={(e) => setPassengerMobile(e.target.value.replace(/\D/g, ''))}
                           placeholder="10-अंकीय मोबाइल नंबर"
-                          className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400 font-mono"
+                          className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-slate-900 text-xs outline-none focus:border-[#0A2885] font-mono"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="block text-slate-400 text-[11px] font-bold mb-1">
+                        <label className="block text-slate-600 text-[11px] font-bold mb-1">
                           सीटों की संख्या (Seats) *
                         </label>
                         <select
                           value={selectedSeatCount}
                           onChange={(e) => setSelectedSeatCount(parseInt(e.target.value) || 1)}
-                          className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400 font-bold"
+                          className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-slate-900 text-xs outline-none focus:border-[#0A2885] font-bold"
                         >
                           <option value={1}>1 सीट</option>
                           <option value={2}>2 सीटें</option>
@@ -1607,17 +1640,17 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                   </div>
 
                   {/* Fare & Commission Summary Banner */}
-                  <div className="p-4 bg-gradient-to-r from-emerald-950/70 via-slate-900 to-amber-950/70 rounded-2xl border border-emerald-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="p-4 bg-gradient-to-r from-blue-50 via-slate-50 to-amber-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div>
-                      <span className="text-[10px] text-slate-400 block">कुल टिकट किराया</span>
-                      <span className="text-2xl font-black text-white font-mono">
+                      <span className="text-[10px] text-slate-500 block">कुल टिकट किराया</span>
+                      <span className="text-2xl font-black text-slate-900 font-mono">
                         ₹{(baseFarePerSeat * selectedSeatCount).toLocaleString('en-IN')}
                       </span>
                     </div>
 
                     <div className="text-right">
-                      <span className="text-[10px] text-slate-400 block">आपकी शुद्ध कमाई (Commission)</span>
-                      <span className="text-lg font-black text-amber-400 font-mono">
+                      <span className="text-[10px] text-slate-500 block">आपकी शुद्ध कमाई (Commission)</span>
+                      <span className="text-lg font-black text-[#FF6500] font-mono">
                         +₹20.00 नकद
                       </span>
                     </div>
@@ -1627,7 +1660,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                   <button
                     type="submit"
                     disabled={isSubmittingBooking}
-                    className="w-full py-4 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black rounded-2xl text-sm shadow-xl transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full py-4 bg-gradient-to-r from-[#0A2885] via-[#0D38A5] to-[#0A2885] hover:from-[#071E66] hover:to-[#0A2885] text-white font-extrabold rounded-full text-sm shadow-xl transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95"
                   >
                     <Bus className="w-5 h-5" />
                     <span>
@@ -1636,7 +1669,6 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                         : `कन्फर्म बुकिंग सबमिट करें (₹${(baseFarePerSeat * selectedSeatCount).toLocaleString('en-IN')})`}
                     </span>
                   </button>
-
                 </form>
               </div>
             )}
@@ -1646,37 +1678,37 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
     )}
 
         {/* ============================================================ */}
-        {/* TAB 3: 📜 HISTORY (माई टिकट्स व हिस्ट्री)                    */}
+        {/* TAB 3: 📜 HISTORY (माई टिकट्स व हिस्ट्री — JIO WHITE STYLE)   */}
         {/* ============================================================ */}
         {activeTab === 'history' && (
           <div className="space-y-6 animate-fadeIn">
             
-            {/* Header & Filter Bar */}
-            <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 space-y-4">
+            {/* Header & Filter Bar (Jio Clean White Card) */}
+            <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-4 text-slate-800">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-amber-400" />
+                  <h3 className="text-lg sm:text-xl font-black text-slate-900 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-[#0A2885]" />
                     <span>बुकिंग हिस्ट्री व टिकट्स (Booking History)</span>
                   </h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500">
                     आपकी सभी बस टिकटों की लाइव स्थिति, PNR एवं WhatsApp टिकट प्रेषण
                   </p>
                 </div>
-                <span className="text-xs font-bold text-slate-400 font-mono">
+                <span className="text-xs font-bold text-slate-500 font-mono">
                   कुल टिकटें: {myGoBookings.length}
                 </span>
               </div>
 
-              {/* 4 Core Filter Buttons: All, Pending, Confirmed, Cancelled */}
+              {/* 4 Core Filter Buttons: All, Pending, Confirmed, Cancelled (Jio Rounded-Full Pills) */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button
                   type="button"
                   onClick={() => setHistoryFilter('all')}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`py-2 px-3 rounded-full text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                     historyFilter === 'all'
-                      ? 'bg-amber-400 text-slate-950 font-black shadow-md'
-                      : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                      ? 'bg-[#0A2885] text-white font-black shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
                   }`}
                 >
                   <span>सभी (All)</span>
@@ -1686,10 +1718,10 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                 <button
                   type="button"
                   onClick={() => setHistoryFilter('pending')}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`py-2 px-3 rounded-full text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                     historyFilter === 'pending'
-                      ? 'bg-amber-400 text-slate-950 font-black shadow-md'
-                      : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                      ? 'bg-[#FF6500] text-white font-black shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
                   }`}
                 >
                   <Clock className="w-3.5 h-3.5" />
@@ -1702,10 +1734,10 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                 <button
                   type="button"
                   onClick={() => setHistoryFilter('confirmed')}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`py-2 px-3 rounded-full text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                     historyFilter === 'confirmed'
-                      ? 'bg-emerald-400 text-slate-950 font-black shadow-md'
-                      : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                      ? 'bg-emerald-600 text-white font-black shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
                   }`}
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
@@ -1716,10 +1748,10 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                 <button
                   type="button"
                   onClick={() => setHistoryFilter('cancelled')}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`py-2 px-3 rounded-full text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                     historyFilter === 'cancelled'
-                      ? 'bg-rose-500 text-white font-black shadow-md'
-                      : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                      ? 'bg-rose-600 text-white font-black shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
                   }`}
                 >
                   <X className="w-3.5 h-3.5" />
@@ -1732,26 +1764,26 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
 
               {/* Search Bar */}
               <div className="relative">
-                <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                <Search className="w-4 h-4 text-slate-400 absolute left-4 top-3" />
                 <input
                   type="text"
                   value={historySearchTerm}
                   onChange={(e) => setHistorySearchTerm(e.target.value)}
                   placeholder="PNR, यात्री का नाम, मोबाइल या शहर से खोजें..."
-                  className="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                  className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-full text-slate-900 text-xs outline-none focus:bg-white focus:border-[#0A2885] transition"
                 />
               </div>
             </div>
 
             {/* Bookings List */}
             {filteredHistoryBookings.length === 0 ? (
-              <div className="p-12 text-center text-slate-500 space-y-3 bg-slate-900/50 rounded-3xl border border-slate-800">
-                <Bus className="w-12 h-12 mx-auto text-slate-600 opacity-50" />
-                <p className="text-sm font-bold text-slate-400">कोई टिकट नहीं मिली।</p>
+              <div className="p-12 text-center text-slate-400 space-y-3 bg-white rounded-3xl border border-slate-200/90 shadow-xs">
+                <Bus className="w-12 h-12 mx-auto text-slate-300" />
+                <p className="text-sm font-bold text-slate-600">कोई टिकट नहीं मिली।</p>
                 <button
                   type="button"
                   onClick={() => setActiveTab('booking')}
-                  className="py-2.5 px-4 bg-amber-400 text-slate-950 font-black rounded-xl text-xs cursor-pointer inline-block"
+                  className="py-2.5 px-5 bg-[#0A2885] hover:bg-[#071E66] text-white font-extrabold rounded-full text-xs cursor-pointer inline-block shadow-sm"
                 >
                   नई बस टिकट बुक करें ➔
                 </button>
@@ -1761,46 +1793,46 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                 {filteredHistoryBookings.map((b) => (
                   <div
                     key={b.id}
-                    className="p-4 sm:p-5 rounded-2xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition space-y-3"
+                    className="p-5 rounded-3xl bg-white border border-slate-200/90 hover:border-slate-300 shadow-xs hover:shadow-md transition space-y-3 text-slate-800"
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <strong className="text-white text-sm font-mono">{b.booking_code}</strong>
+                          <strong className="text-slate-900 text-sm font-mono">{b.booking_code}</strong>
                           {b.status === 'confirmed' ? (
-                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-500/40 text-[10px] font-black">
+                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-black">
                               PNR: {b.ticket_pnr || 'OK'} ✓
                             </span>
                           ) : b.status === 'cancelled' || b.status === 'refund_processed' ? (
-                            <span className="px-2.5 py-0.5 rounded-full bg-rose-950 text-rose-400 border border-rose-500/40 text-[10px] font-black">
+                            <span className="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-black">
                               रद्द / रिफंड
                             </span>
                           ) : (
-                            <span className="px-2.5 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-500/40 text-[10px] font-black flex items-center gap-1">
-                              <Clock className="w-3 h-3 animate-spin" />
+                            <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-black flex items-center gap-1">
+                              <Clock className="w-3 h-3 animate-spin text-[#FF6500]" />
                               सत्यापन प्रक्रियाधीन
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-slate-300 font-bold mt-1">
+                        <p className="text-xs text-slate-600 font-bold mt-1">
                           {getBookingRoute(b).from} ➔ {getBookingRoute(b).to} • यात्रा: {b.journey_date}
                         </p>
                       </div>
 
-                      <div className="text-right">
-                        <span className="text-lg font-black text-white font-mono block">
+                      <div className="text-left sm:text-right">
+                        <span className="text-lg font-black text-slate-900 font-mono block">
                           ₹{getBookingFare(b).toLocaleString('en-IN')}
                         </span>
-                        <span className="text-[10px] font-bold text-amber-400">+₹20 कमीशन</span>
+                        <span className="text-[10px] font-bold text-[#FF6500]">+₹20 कमीशन</span>
                       </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-400">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-500">
                       <div>
-                        यात्री: <strong className="text-white">{b.customer_name}</strong> (+91 {b.customer_mobile}) • सीट: <span className="text-emerald-400 font-mono font-bold">{getBookingSeats(b)}</span>
+                        यात्री: <strong className="text-slate-900">{b.customer_name}</strong> (+91 {b.customer_mobile}) • सीट: <span className="text-emerald-600 font-mono font-bold">{getBookingSeats(b)}</span>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         {b.status === 'confirmed' && (
                           <button
                             type="button"
@@ -1808,7 +1840,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                               const msg = getWhatsAppTicketMessage(b);
                               window.open(`https://wa.me/91${b.customer_mobile}?text=${encodeURIComponent(msg)}`, '_blank');
                             }}
-                            className="py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+                            className="py-1.5 px-3.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 transition cursor-pointer shadow-xs"
                           >
                             <Send className="w-3.5 h-3.5" />
                             <span>WhatsApp पर भेजें</span>
@@ -1818,7 +1850,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                         <button
                           type="button"
                           onClick={() => setSelectedPrintBooking(b)}
-                          className="py-1.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+                          className="py-1.5 px-3.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1 transition cursor-pointer"
                         >
                           <Printer className="w-3.5 h-3.5" />
                           <span>प्रिंट</span>
@@ -1828,7 +1860,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                           <button
                             type="button"
                             onClick={() => setSelectedGreenCardBooking(b)}
-                            className="py-1.5 px-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+                            className="py-1.5 px-3.5 rounded-full bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs flex items-center gap-1 transition cursor-pointer shadow-xs"
                           >
                             <span>ग्रीन कार्ड</span>
                           </button>
@@ -1841,10 +1873,10 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                               setUberDefaultDestination(`${getBookingRoute(b).to} Bus Stand`);
                               setIsUberModalOpen(true);
                             }}
-                            className="py-1.5 px-3 rounded-xl bg-black hover:bg-slate-800 border border-slate-700 text-white font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+                            className="py-1.5 px-3.5 rounded-full bg-black hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1 transition cursor-pointer shadow-xs"
                             title="यात्री के लिए Uber कैब/ऑटो राइड लिंक"
                           >
-                            <Car className="w-3.5 h-3.5 text-amber-400" />
+                            <Car className="w-3.5 h-3.5 text-[#FFB703]" />
                             <span>Uber राइड</span>
                           </button>
                         )}
@@ -1854,7 +1886,6 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                 ))}
               </div>
             )}
-
           </div>
         )}
 
@@ -1865,39 +1896,39 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
           <div className="space-y-6 animate-fadeIn">
             
             {/* 1. AGENT PROFILE & EDIT FORM */}
-            <div className="p-5 sm:p-7 rounded-3xl bg-slate-900 border border-slate-800 space-y-6">
+            <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-6 text-slate-800">
               
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
                 <div className="flex items-center gap-4">
                   <div className="relative">
                     <img
                       src={profileAvatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'}
                       alt="Avatar"
-                      className="w-16 h-16 rounded-2xl object-cover border-2 border-amber-400"
+                      className="w-16 h-16 rounded-2xl object-cover border-2 border-[#0A2885]"
                     />
-                    <label className="absolute -bottom-1 -right-1 p-1.5 bg-amber-400 text-slate-950 rounded-lg cursor-pointer shadow hover:bg-amber-300">
+                    <label className="absolute -bottom-1 -right-1 p-1.5 bg-[#0A2885] text-white rounded-lg cursor-pointer shadow hover:bg-[#071E66]">
                       <Camera className="w-3.5 h-3.5" />
                       <input type="file" accept="image/*" className="hidden" onChange={handleProfilePicUpload} />
                     </label>
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-white">{currentUser?.full_name || 'GO एजेंट'}</h3>
-                    <p className="text-xs text-slate-400">{currentUser?.shop_name || 'अधिकृत केंद्र'} • ID: {currentUser?.id?.slice(-6).toUpperCase()}</p>
-                    <span className="text-[10px] text-emerald-400 font-bold block mt-0.5">अधिकृत GO एजेंट नेटवर्क</span>
+                    <h3 className="text-lg font-black text-slate-900">{currentUser?.full_name || 'GO एजेंट'}</h3>
+                    <p className="text-xs text-slate-500">{currentUser?.shop_name || 'अधिकृत केंद्र'} • ID: {currentUser?.id?.slice(-6).toUpperCase()}</p>
+                    <span className="text-[10px] text-emerald-600 font-bold block mt-0.5">अधिकृत GO एजेंट नेटवर्क</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                   {currentUser?.kyc_status === 'verified' ? (
-                    <span className="px-3 py-1 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-500/40 text-xs font-bold flex items-center gap-1">
+                    <span className="px-3.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1 shadow-xs">
                       <CheckCircle2 className="w-3.5 h-3.5" /> KYC सत्यापित
                     </span>
                   ) : currentUser?.kyc_status === 'pending' ? (
-                    <span className="px-3 py-1 rounded-full bg-amber-950 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" /> KYC समीक्षाधीन (24h)
+                    <span className="px-3.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1 shadow-xs">
+                      <Clock className="w-3.5 h-3.5 text-[#FF6500]" /> KYC समीक्षाधीन (24h)
                     </span>
                   ) : (
-                    <span className="px-3 py-1 rounded-full bg-rose-950 text-rose-400 border border-rose-500/40 text-xs font-bold">
+                    <span className="px-3.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold shadow-xs">
                       KYC लंबित
                     </span>
                   )}
@@ -1908,55 +1939,55 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
               <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-slate-400 font-bold mb-1">पूरा नाम (Full Name) *</label>
+                    <label className="block text-slate-600 font-bold mb-1">पूरा नाम (Full Name) *</label>
                     <input
                       type="text"
                       value={profileName}
                       onChange={(e) => setProfileName(e.target.value)}
-                      className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs outline-none focus:bg-white focus:border-[#0A2885]"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-slate-400 font-bold mb-1">दुकान / केंद्र का नाम (Shop Name)</label>
+                    <label className="block text-slate-600 font-bold mb-1">दुकान / केंद्र का नाम (Shop Name)</label>
                     <input
                       type="text"
                       value={profileShopName}
                       onChange={(e) => setProfileShopName(e.target.value)}
-                      className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs outline-none focus:bg-white focus:border-[#0A2885]"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-slate-400 font-bold mb-1">पता (Address)</label>
+                    <label className="block text-slate-600 font-bold mb-1">पता (Address)</label>
                     <input
                       type="text"
                       value={profileAddress}
                       onChange={(e) => setProfileAddress(e.target.value)}
-                      className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs outline-none focus:bg-white focus:border-[#0A2885]"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-slate-400 font-bold mb-1">शहर (City)</label>
+                    <label className="block text-slate-600 font-bold mb-1">शहर (City)</label>
                     <input
                       type="text"
                       value={profileCity}
                       onChange={(e) => setProfileCity(e.target.value)}
-                      className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs outline-none focus:bg-white focus:border-[#0A2885]"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-slate-400 font-bold mb-1">जिला (District)</label>
+                    <label className="block text-slate-600 font-bold mb-1">जिला (District)</label>
                     <input
                       type="text"
                       value={profileDistrict}
                       onChange={(e) => setProfileDistrict(e.target.value)}
-                      className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs outline-none focus:bg-white focus:border-[#0A2885]"
                     />
                   </div>
                 </div>
@@ -1969,7 +2000,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                       type="text"
                       disabled
                       value={currentUser?.mobile || ''}
-                      className="w-full p-2.5 bg-slate-950/50 border border-slate-800 rounded-xl text-slate-400 text-xs cursor-not-allowed font-mono"
+                      className="w-full p-2.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 text-xs cursor-not-allowed font-mono"
                     />
                   </div>
 
@@ -1979,7 +2010,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                       type="text"
                       disabled
                       value={currentUser?.email || ''}
-                      className="w-full p-2.5 bg-slate-950/50 border border-slate-800 rounded-xl text-slate-400 text-xs cursor-not-allowed"
+                      className="w-full p-2.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 text-xs cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -1988,7 +2019,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                   <button
                     type="submit"
                     disabled={isSavingProfile}
-                    className="py-2.5 px-6 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs transition cursor-pointer flex items-center gap-1.5"
+                    className="py-2.5 px-6 rounded-full bg-[#0A2885] hover:bg-[#071E66] text-white font-bold text-xs transition cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95"
                   >
                     <Save className="w-4 h-4" />
                     <span>{isSavingProfile ? 'सेव हो रहा है...' : 'प्रोफाइल सेव करें'}</span>
@@ -1999,79 +2030,79 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
             </div>
 
             {/* 2. KYC VERIFICATION SECTION */}
-            <div className="p-5 sm:p-7 rounded-3xl bg-slate-900 border border-slate-800 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-4 text-slate-800">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-amber-400" />
-                  <h3 className="text-base sm:text-lg font-black text-white">KYC सत्यापन डेस्क</h3>
+                  <ShieldCheck className="w-5 h-5 text-[#0A2885]" />
+                  <h3 className="text-base sm:text-lg font-black text-slate-900">KYC सत्यापन डेस्क</h3>
                 </div>
-                <span className="text-xs text-slate-400">सुरक्षा मानक • 24 घंटे में अप्रूवल</span>
+                <span className="text-xs text-slate-500">सुरक्षा मानक • 24 घंटे में अप्रूवल</span>
               </div>
 
               {/* CASE A: KYC SUBMITTED & PENDING (User CANNOT edit or view upload form again) */}
               {currentUser?.kyc_status === 'pending' ? (
-                <div className="p-6 rounded-2xl bg-gradient-to-br from-amber-950/60 via-slate-950 to-slate-900 border-2 border-amber-400 text-center space-y-4 animate-fadeIn">
-                  <div className="w-14 h-14 rounded-full bg-amber-400/20 border-2 border-amber-400 text-amber-300 mx-auto flex items-center justify-center animate-pulse">
+                <div className="p-6 rounded-2xl bg-amber-50 border-2 border-amber-300 text-center space-y-4 text-amber-900 animate-fadeIn">
+                  <div className="w-14 h-14 rounded-full bg-amber-100 border border-amber-300 text-[#FF6500] mx-auto flex items-center justify-center animate-pulse">
                     <Clock className="w-7 h-7" />
                   </div>
 
                   <div className="space-y-1.5">
-                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950">
+                    <span className="px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#FF6500] text-white shadow-xs">
                       KYC VERIFICATION PENDING (24 HOURS)
                     </span>
-                    <h4 className="text-lg font-black text-white pt-2">
+                    <h4 className="text-lg font-black text-slate-900 pt-2">
                       KYC सत्यापन प्रक्रियाधीन (24 घंटे का समय)
                     </h4>
-                    <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
+                    <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
                       आपके आधार कार्ड एवं पैन कार्ड के विवरण सुरक्षित रूप से हमारे सत्यापन डेस्क को प्राप्त हो चुके हैं। SafarGo एडमिन डेस्क द्वारा 24 घंटे के भीतर आपका सत्यापन पूर्ण कर दिया जाएगा।
                     </p>
                   </div>
 
-                  <div className="p-3 bg-slate-950/80 rounded-xl border border-amber-500/30 text-[11px] text-amber-300/90 max-w-sm mx-auto">
+                  <div className="p-3 bg-white rounded-xl border border-amber-200 text-[11px] text-amber-800 max-w-sm mx-auto shadow-xs">
                     🔒 सुरक्षा कारणों से सबमिट किए गए दस्तावेजों में परिवर्तन लॉक कर दिया गया है।
                   </div>
                 </div>
               ) : currentUser?.kyc_status === 'verified' ? (
                 /* CASE B: KYC VERIFIED */
-                <div className="p-6 rounded-2xl bg-gradient-to-br from-emerald-950/70 via-slate-950 to-teal-950 border-2 border-emerald-400 text-center space-y-3 animate-fadeIn">
-                  <div className="w-14 h-14 rounded-full bg-emerald-400 text-slate-950 mx-auto flex items-center justify-center font-black shadow-[0_0_20px_#10b981]">
+                <div className="p-6 rounded-2xl bg-emerald-50 border-2 border-emerald-400 text-center space-y-3 text-emerald-900 animate-fadeIn">
+                  <div className="w-14 h-14 rounded-full bg-emerald-500 text-white mx-auto flex items-center justify-center font-black shadow-md">
                     <CheckCircle2 className="w-8 h-8" />
                   </div>
-                  <h4 className="text-lg font-black text-white">100% KYC सत्यापित अधिकृत GO एजेंट</h4>
-                  <p className="text-xs text-emerald-300">
+                  <h4 className="text-lg font-black text-slate-900">100% KYC सत्यापित अधिकृत GO एजेंट</h4>
+                  <p className="text-xs text-emerald-700">
                     आपका खाता पूरी तरह सत्यापित है। सभी साप्ताहिक पेआउट्स व लाइव बस टिकटिंग सक्रिय हैं।
                   </p>
                 </div>
               ) : (
                 /* CASE C: KYC NOT SUBMITTED (Show Form) */
                 <form onSubmit={handleKycSubmit} className="space-y-4 text-xs">
-                  <div className="p-3 bg-amber-500/10 border border-amber-500/40 rounded-xl text-xs text-amber-300">
+                  <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
                     कृपया अपना 12-अंकीय आधार कार्ड एवं 10-अंकीय पैन कार्ड दर्ज करें। सबमिट करने के बाद 24 घंटे के अंदर एडमिन द्वारा सत्यापन पूरा किया जाएगा।
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-slate-400 font-bold mb-1">आधार कार्ड नंबर (12 अंक) *</label>
+                      <label className="block text-slate-600 font-bold mb-1">आधार कार्ड नंबर (12 अंक) *</label>
                       <input
                         type="text"
                         maxLength={12}
                         value={kycAadhaar}
                         onChange={(e) => setKycAadhaar(e.target.value.replace(/\D/g, ''))}
                         placeholder="1234 5678 9012"
-                        className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400 font-mono"
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs outline-none focus:bg-white focus:border-[#0A2885] font-mono"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-slate-400 font-bold mb-1">पैन कार्ड नंबर (10 अक्षर/अंक) *</label>
+                      <label className="block text-slate-600 font-bold mb-1">पैन कार्ड नंबर (10 अक्षर/अंक) *</label>
                       <input
                         type="text"
                         maxLength={10}
                         value={kycPan}
                         onChange={(e) => setKycPan(e.target.value.toUpperCase())}
                         placeholder="ABCDE1234F"
-                        className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs outline-none focus:border-amber-400 font-mono uppercase"
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs outline-none focus:bg-white focus:border-[#0A2885] font-mono uppercase"
                         required
                       />
                     </div>
@@ -2080,7 +2111,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                   <button
                     type="submit"
                     disabled={isSubmittingKyc}
-                    className="w-full py-3 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full py-3.5 bg-[#0A2885] hover:bg-[#071E66] text-white font-extrabold rounded-full text-xs transition cursor-pointer flex items-center justify-center gap-2 shadow-md active:scale-95"
                   >
                     <ShieldCheck className="w-4 h-4" />
                     <span>{isSubmittingKyc ? 'सबमिट हो रहा है...' : 'KYC सत्यापन हेतु सबमिट करें (24-Hour SLA)'}</span>
@@ -2090,24 +2121,24 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
 
             </div>
 
-            {/* 3. REFER & EARN ₹100 PER 5 BOOKINGS (At bottom of Account Tab) */}
-            <div className="p-6 rounded-3xl bg-gradient-to-r from-indigo-950 via-slate-900 to-purple-950 border-2 border-indigo-400/80 shadow-2xl space-y-4">
+            {/* 3. REFER & EARN ₹100 PER 5 BOOKINGS (Jio Royal Blue Spotlight Card) */}
+            <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-[#0A2885] via-[#0D38A5] to-[#071E66] text-white shadow-xl space-y-4 border border-blue-900/50">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-1">
-                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500 text-white">
+                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-white text-[#0A2885] shadow-xs">
                     REFER & EARN ₹100
                   </span>
-                  <h3 className="text-lg font-black text-white">
+                  <h3 className="text-lg font-black text-white pt-1">
                     साथी एजेंटों को जोड़ें और कमाएं ₹100 सीधा कैश
                   </h3>
-                  <p className="text-xs text-slate-300 max-w-lg leading-relaxed">
+                  <p className="text-xs text-blue-100 max-w-lg leading-relaxed">
                     अपने रेफरल लिंक से नए बस एजेंटों या दुकानदारों को जोड़ें। आपके रेफर किए गए एजेंट की पहली <strong>5 सफल बुकिंग</strong> होते ही आपको ₹100 का नकद बोनस सीधे Go Wallet में प्राप्त होगा!
                   </p>
                 </div>
 
-                <div className="bg-slate-950/90 border border-indigo-500/40 rounded-2xl p-4 text-center shrink-0">
-                  <span className="text-[10px] text-slate-400 font-bold block">रेफरल कोड</span>
-                  <span className="text-xl font-black text-amber-400 font-mono">
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 text-center shrink-0">
+                  <span className="text-[10px] text-blue-200 font-bold block">रेफरल कोड</span>
+                  <span className="text-xl font-black text-[#FFB703] font-mono">
                     {currentUser?.referral_code || `GO${currentUser?.mobile?.slice(-4) || '2026'}`}
                   </span>
                 </div>
@@ -2122,13 +2153,13 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                     const shareText = `नमस्ते! SafarGo GO Agent नेटवर्क से जुड़ें और बस टिकट बुकिंग पर तुरंत ₹20 कमीशन व साप्ताहिक पेआउट पाएं। मेरा रेफरल कोड है: ${refCode}। अभी रजिस्टर करें: https://safargo.in/`;
                     window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
                   }}
-                  className="w-full sm:w-auto py-3 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-lg transition flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full sm:w-auto py-3 px-6 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-lg transition flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                 >
                   <Send className="w-4 h-4" />
                   <span>WhatsApp पर रेफरल लिंक भेजें</span>
                 </button>
 
-                <span className="text-[11px] text-slate-400 text-center sm:text-left">
+                <span className="text-[11px] text-blue-100 text-center sm:text-left">
                   प्रत्येक 5 बुकिंग पर ₹100 स्वतः Go Wallet में जुड़ता है।
                 </span>
               </div>
@@ -2140,22 +2171,22 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
       </main>
 
       {/* ============================================================== */}
-      {/* 4 EXCLUSIVE BOTTOM NAVIGATION OPTIONS                          */}
+      {/* 4 EXCLUSIVE JIO BOTTOM FLOATING DOCK NAVIGATION                */}
       {/* ============================================================== */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/95 backdrop-blur-xl border-t-2 border-amber-400/60 shadow-[0_-10px_25px_rgba(0,0,0,0.6)] py-2 px-3 sm:px-6">
-        <div className="max-w-md mx-auto grid grid-cols-4 gap-2 text-center items-center">
+      <nav className="fixed bottom-4 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
+        <div className="pointer-events-auto w-full max-w-md bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-full shadow-[0_12px_40px_rgba(10,40,133,0.18)] py-2 px-3 flex items-center justify-around">
           
           {/* Option 1: Dashboard */}
           <button
             type="button"
             onClick={() => setActiveTab('dashboard')}
-            className={`flex flex-col items-center justify-center py-1.5 rounded-2xl transition cursor-pointer ${
+            className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-full transition-all cursor-pointer ${
               activeTab === 'dashboard'
-                ? 'text-amber-400 font-black bg-amber-400/15'
-                : 'text-slate-400 hover:text-white font-bold'
+                ? 'bg-[#0A2885] text-white font-black shadow-md scale-105'
+                : 'text-slate-600 hover:text-[#0A2885] font-bold'
             }`}
           >
-            <LayoutDashboard className="w-5 h-5 mb-0.5" />
+            <LayoutDashboard className="w-4 h-4 mb-0.5" />
             <span className="text-[10px]">डैशबोर्ड</span>
           </button>
 
@@ -2163,13 +2194,13 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('booking')}
-            className={`flex flex-col items-center justify-center py-1.5 rounded-2xl transition cursor-pointer ${
+            className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-full transition-all cursor-pointer ${
               activeTab === 'booking'
-                ? 'text-amber-400 font-black bg-amber-400/15'
-                : 'text-slate-400 hover:text-white font-bold'
+                ? 'bg-[#0A2885] text-white font-black shadow-md scale-105'
+                : 'text-slate-600 hover:text-[#0A2885] font-bold'
             }`}
           >
-            <Bus className="w-5 h-5 mb-0.5" />
+            <Bus className="w-4 h-4 mb-0.5" />
             <span className="text-[10px]">बुकिंग</span>
           </button>
 
@@ -2177,13 +2208,13 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('history')}
-            className={`flex flex-col items-center justify-center py-1.5 rounded-2xl transition cursor-pointer ${
+            className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-full transition-all cursor-pointer ${
               activeTab === 'history'
-                ? 'text-amber-400 font-black bg-amber-400/15'
-                : 'text-slate-400 hover:text-white font-bold'
+                ? 'bg-[#0A2885] text-white font-black shadow-md scale-105'
+                : 'text-slate-600 hover:text-[#0A2885] font-bold'
             }`}
           >
-            <FileText className="w-5 h-5 mb-0.5" />
+            <FileText className="w-4 h-4 mb-0.5" />
             <span className="text-[10px]">हिस्ट्री</span>
           </button>
 
@@ -2191,13 +2222,13 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('account')}
-            className={`flex flex-col items-center justify-center py-1.5 rounded-2xl transition cursor-pointer ${
+            className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-full transition-all cursor-pointer ${
               activeTab === 'account'
-                ? 'text-amber-400 font-black bg-amber-400/15'
-                : 'text-slate-400 hover:text-white font-bold'
+                ? 'bg-[#0A2885] text-white font-black shadow-md scale-105'
+                : 'text-slate-600 hover:text-[#0A2885] font-bold'
             }`}
           >
-            <User className="w-5 h-5 mb-0.5" />
+            <User className="w-4 h-4 mb-0.5" />
             <span className="text-[10px]">अकाउंट</span>
           </button>
 

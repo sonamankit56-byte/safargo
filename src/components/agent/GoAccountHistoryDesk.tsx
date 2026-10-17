@@ -60,24 +60,24 @@ export const GoAccountHistoryDesk: React.FC = () => {
     <div className="space-y-6">
       {/* Top Balance & History Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-5 rounded-3xl bg-gradient-to-br from-orange-500 to-amber-600 text-white shadow-md space-y-1">
+        <div className="p-5 rounded-3xl bg-gradient-to-r from-[#0A2885] via-[#0D38A5] to-[#071E66] text-white shadow-md space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-orange-100 flex items-center gap-1.5">
-              <Wallet className="w-4 h-4" />
+            <span className="text-xs font-bold text-blue-100 flex items-center gap-1.5">
+              <Wallet className="w-4 h-4 text-amber-300" />
               वर्तमान Go Wallet बैलेंस
             </span>
           </div>
           <div className="text-2xl font-black">
             ₹{agentWalletBalance.toLocaleString('en-IN')}
           </div>
-          <p className="text-[11px] text-orange-100">
+          <p className="text-[11px] text-blue-100">
             कन्फर्म टिकट पर फ्लैट ₹20 इंस्टेंट कमीशन प्राप्त
           </p>
         </div>
 
-        <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-2xs space-y-1">
+        <div className="p-5 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-1">
           <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
-            <Clock className="w-4 h-4 text-amber-500" />
+            <Clock className="w-4 h-4 text-[#FF6500]" />
             3-मिनट ऐड मनी अनुरोध
           </span>
           <div className="text-2xl font-black text-slate-900">
@@ -88,9 +88,9 @@ export const GoAccountHistoryDesk: React.FC = () => {
           </p>
         </div>
 
-        <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-2xs space-y-1">
+        <div className="p-5 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-1">
           <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
-            <TrendingUp className="w-4 h-4 text-emerald-500" />
+            <TrendingUp className="w-4 h-4 text-emerald-600" />
             कुल अर्जित कमीशन (₹20/टिकट)
           </span>
           <div className="text-2xl font-black text-emerald-600">
@@ -102,58 +102,58 @@ export const GoAccountHistoryDesk: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs Switcher */}
+      {/* Tabs Switcher - Jio Rounded-Full Pills */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
-        <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-2xl border border-slate-200">
+        <div className="flex items-center gap-2 p-1.5 bg-slate-100 rounded-full border border-slate-200 overflow-x-auto no-scrollbar">
           <button
             type="button"
             onClick={() => setActiveTab('recharges')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+            className={`px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
               activeTab === 'recharges'
-                ? 'bg-orange-600 text-white shadow-xs'
+                ? 'bg-[#0A2885] text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Clock className="w-4 h-4" />
-            <span>ऐड मनी अनुरोध व 3-मिनट टाइमर ({agentWalletRecharges.length})</span>
+            <span>ऐड मनी अनुरोध ({agentWalletRecharges.length})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('commissions')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+            className={`px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
               activeTab === 'commissions'
-                ? 'bg-orange-600 text-white shadow-xs'
+                ? 'bg-[#0A2885] text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Sparkles className="w-4 h-4" />
-            <span>कमीशन लेज़र (+₹20 इंस्टेंट) ({bookingCommissions.length})</span>
+            <span>कमीशन लेज़र (+₹20) ({bookingCommissions.length})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('transactions')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+            className={`px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
               activeTab === 'transactions'
-                ? 'bg-orange-600 text-white shadow-xs'
+                ? 'bg-[#0A2885] text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <History className="w-4 h-4" />
-            <span>सम्पूर्ण खाता-बही ({agentWalletTransactions.length})</span>
+            <span>खाता-बही ({agentWalletTransactions.length})</span>
           </button>
         </div>
 
         {/* Search */}
         <div className="relative w-full sm:w-64">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="खोजें (UTR, Booking ID)..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-orange-500 outline-none"
+            className="w-full pl-9 pr-3 py-2 rounded-full border border-slate-200 text-xs focus:ring-2 focus:ring-[#0A2885] outline-none bg-white"
           />
         </div>
       </div>
@@ -303,12 +303,12 @@ export const GoAccountHistoryDesk: React.FC = () => {
       {/* TAB 2: COMMISSION LEDGER (+₹20 INSTANT PER BOOKING) */}
       {activeTab === 'commissions' && (
         <div className="space-y-3">
-          <div className="p-4 rounded-2xl bg-orange-50 border border-orange-200 flex items-center justify-between">
-            <span className="text-xs font-black text-orange-900 flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-orange-600" />
+          <div className="p-4 rounded-3xl bg-blue-50/70 border border-blue-200 flex items-center justify-between">
+            <span className="text-xs font-bold text-[#0A2885] flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-[#FF6500]" />
               GO Agent गारंटी: प्रत्येक कन्फर्म बस टिकट पर फ्लैट ₹20 इंस्टेंट क्रेडिट
             </span>
-            <span className="text-xs font-bold text-orange-700 font-mono">
+            <span className="text-xs font-black text-[#0A2885] font-mono bg-white px-3 py-1 rounded-full border border-blue-200">
               ₹20.00 / टिकट
             </span>
           </div>
@@ -323,10 +323,10 @@ export const GoAccountHistoryDesk: React.FC = () => {
               .map((c) => (
                 <div
                   key={c.id}
-                  className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs flex items-center justify-between gap-3"
+                  className="p-4 rounded-3xl bg-white border border-slate-200/90 shadow-xs flex items-center justify-between gap-3"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">
+                    <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
                       <ArrowDownLeft className="w-5 h-5" />
                     </div>
                     <div>
@@ -334,7 +334,7 @@ export const GoAccountHistoryDesk: React.FC = () => {
                         <span className="text-sm font-black text-emerald-600 font-mono">
                           +₹{c.amount.toFixed(2)}
                         </span>
-                        <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-200">
                           इंस्टेंट कमीशन
                         </span>
                       </div>
@@ -362,9 +362,9 @@ export const GoAccountHistoryDesk: React.FC = () => {
             <button
               type="button"
               onClick={() => setTxSourceFilter('all')}
-              className={`py-1.5 px-3 rounded-xl font-bold whitespace-nowrap transition cursor-pointer shrink-0 ${
+              className={`py-1.5 px-3.5 rounded-full font-bold whitespace-nowrap transition cursor-pointer shrink-0 ${
                 txSourceFilter === 'all'
-                  ? 'bg-orange-600 text-white shadow-xs'
+                  ? 'bg-[#0A2885] text-white shadow-xs'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -384,9 +384,9 @@ export const GoAccountHistoryDesk: React.FC = () => {
                   key={catKey}
                   type="button"
                   onClick={() => setTxSourceFilter(catKey)}
-                  className={`py-1.5 px-3 rounded-xl font-bold whitespace-nowrap transition cursor-pointer shrink-0 flex items-center gap-1.5 ${
+                  className={`py-1.5 px-3.5 rounded-full font-bold whitespace-nowrap transition cursor-pointer shrink-0 flex items-center gap-1.5 ${
                     txSourceFilter === catKey
-                      ? 'bg-orange-600 text-white shadow-xs'
+                      ? 'bg-[#0A2885] text-white shadow-xs'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >

@@ -125,25 +125,25 @@ export const GoInstantAddMoneyModal: React.FC<GoInstantAddMoneyModalProps> = ({ 
   const formattedCountdown = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in">
-      <div className="bg-slate-900 border-2 border-amber-400 rounded-3xl max-w-lg w-full text-white shadow-2xl overflow-hidden my-4">
+    <div className="fixed inset-0 z-50 bg-[#05184B]/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in">
+      <div className="bg-white border border-slate-200/90 rounded-3xl max-w-lg w-full text-slate-900 shadow-2xl overflow-hidden my-4">
         
-        {/* Header */}
-        <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 border-b border-amber-400/40 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-500 text-slate-950 flex items-center justify-center font-black shadow-lg">
-              <Zap className="w-5 h-5 fill-slate-950" />
+        {/* Header - Jio Royal Blue */}
+        <div className="p-4 sm:p-5 bg-[#0A2885] border-b border-[#05184B] text-white flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white/10 text-amber-300 border border-white/20 flex items-center justify-center font-black shadow-xs">
+              <Zap className="w-5 h-5 fill-amber-400 text-amber-400" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-black text-sm sm:text-base text-white">
+                <h3 className="font-bold text-sm sm:text-base text-white">
                   GO 3-Minute Auto Add Money
                 </h3>
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 animate-pulse">
-                  ⏳ 3-Min Timer
+                <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-[#FF6500] text-white">
+                  3-Min Timer
                 </span>
               </div>
-              <p className="text-[11px] text-amber-300 font-medium">
+              <p className="text-[11px] text-blue-100 font-medium">
                 स्वचालित AI व बैंकिंग सत्यापन — 3 मिनट में स्वतः वॉलेट में जमा!
               </p>
             </div>
@@ -151,7 +151,8 @@ export const GoInstantAddMoneyModal: React.FC<GoInstantAddMoneyModalProps> = ({ 
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-2 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition cursor-pointer"
+            aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>
@@ -161,46 +162,46 @@ export const GoInstantAddMoneyModal: React.FC<GoInstantAddMoneyModalProps> = ({ 
         {isSuccess ? (
           <div className="p-6 sm:p-8 text-center space-y-5 animate-in zoom-in-95">
             <div className="relative w-28 h-28 mx-auto flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full border-4 border-amber-500/20 animate-ping" />
-              <div className="w-24 h-24 rounded-full bg-amber-500/10 border-4 border-amber-400 flex flex-col items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.3)]">
-                <span className="font-mono text-2xl font-black text-amber-400 tracking-wider">
+              <div className="absolute inset-0 rounded-full border-4 border-[#0A2885]/20 animate-ping" />
+              <div className="w-24 h-24 rounded-full bg-[#0A2885]/5 border-4 border-[#0A2885] flex flex-col items-center justify-center shadow-inner">
+                <span className="font-mono text-2xl font-black text-[#0A2885] tracking-wider">
                   {formattedCountdown}
                 </span>
-                <span className="text-[9px] font-black uppercase tracking-widest text-amber-300">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
                   सत्यापन टाइमर
                 </span>
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <span className="text-xs uppercase font-black tracking-widest text-amber-400">
+              <span className="text-xs uppercase font-bold tracking-widest text-[#FF6500] bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
                 ⏳ 3-मिनट बैंकिंग सत्यापन टाइमर चालू!
               </span>
-              <h2 className="text-2xl sm:text-3xl font-black text-white font-mono">
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-mono">
                 +₹{creditedAmount.toLocaleString('en-IN')}
               </h2>
-              <p className="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
-                आपका अनुरोध दर्ज हो चुका है (UTR: <span className="font-mono font-bold text-amber-300">{utrNumber}</span>)।
+              <p className="text-xs text-slate-600 max-w-sm mx-auto leading-relaxed">
+                आपका अनुरोध दर्ज हो चुका है (UTR: <span className="font-mono font-bold text-[#0A2885]">{utrNumber}</span>)।
                 जैसे ही 3 मिनट पूरे होंगे या एडमिन स्वीकृति देंगे, यह राशि स्वतः आपके Go Wallet में क्रेडिट हो जाएगी!
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-left space-y-2">
+            <div className="p-4 rounded-2xl bg-[#F5F7FB] border border-slate-200 text-xs text-left space-y-2">
               <div className="flex justify-between items-center font-mono">
-                <span className="text-slate-400">वर्तमान वॉलेट बैलेंस:</span>
-                <strong className="text-amber-400 text-sm font-black">
+                <span className="text-slate-500">वर्तमान वॉलेट बैलेंस:</span>
+                <strong className="text-[#0A2885] text-sm font-black">
                   ₹{(agentWalletBalance || 0).toLocaleString('en-IN')}.00
                 </strong>
               </div>
-              <div className="text-[11px] text-slate-400 flex items-center gap-1.5 pt-1 border-t border-slate-800/80">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <div className="text-[11px] text-slate-500 flex items-center gap-1.5 pt-1 border-t border-slate-200">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                 <span>आप इस लाइव टाइमर को अपने <strong>Go अकाउंट ➔ 'हिस्ट्री'</strong> टैब में भी कभी भी देख सकते हैं।</span>
               </div>
             </div>
 
             <button
               onClick={onClose}
-              className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black rounded-xl text-sm transition shadow-lg cursor-pointer"
+              className="w-full py-3.5 bg-[#0A2885] hover:bg-[#071E66] text-white font-bold rounded-full text-sm transition shadow-md cursor-pointer"
             >
               समझ गया / विंडो बंद करें ➔
             </button>
@@ -210,7 +211,7 @@ export const GoInstantAddMoneyModal: React.FC<GoInstantAddMoneyModalProps> = ({ 
             
             {/* Quick Amount Pills */}
             <div className="space-y-1.5">
-              <label className="block font-bold text-slate-300 text-[11px]">
+              <label className="block font-bold text-slate-700 text-[11px]">
                 रिचार्ज राशि चुनें (Select Amount) *
               </label>
               <div className="grid grid-cols-4 gap-2">
@@ -219,10 +220,10 @@ export const GoInstantAddMoneyModal: React.FC<GoInstantAddMoneyModalProps> = ({ 
                     key={val}
                     type="button"
                     onClick={() => setAmount(val)}
-                    className={`py-2 rounded-xl font-black text-xs transition border cursor-pointer ${
+                    className={`py-2 rounded-full font-bold text-xs transition border cursor-pointer ${
                       amount === val
-                        ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-md scale-102'
-                        : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700'
+                        ? 'bg-[#0A2885] text-white border-[#0A2885] shadow-xs'
+                        : 'bg-[#F5F7FB] text-slate-700 border-slate-200 hover:border-slate-300'
                     }`}
                   >
                     ₹{val}
@@ -231,7 +232,7 @@ export const GoInstantAddMoneyModal: React.FC<GoInstantAddMoneyModalProps> = ({ 
               </div>
 
               <div className="relative mt-2">
-                <span className="absolute left-3 top-2.5 text-base font-black text-amber-400">₹</span>
+                <span className="absolute left-3 top-2.5 text-base font-bold text-slate-400">₹</span>
                 <input
                   type="number"
                   min={100}
@@ -240,14 +241,14 @@ export const GoInstantAddMoneyModal: React.FC<GoInstantAddMoneyModalProps> = ({ 
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="कस्टम राशि (उदा. 1500)"
-                  className="w-full pl-8 pr-3 py-2.5 rounded-xl bg-slate-950 border-2 border-slate-700 text-white font-mono font-black text-sm outline-none focus:border-amber-400"
+                  className="w-full pl-8 pr-3 py-2.5 rounded-2xl bg-[#F5F7FB] border border-slate-200 text-slate-900 font-mono font-bold text-sm outline-none focus:border-[#0A2885] focus:bg-white"
                 />
               </div>
             </div>
 
             {/* QR Code & UPI Deep Link */}
-            <div className="p-4 rounded-2xl bg-slate-950/90 border border-amber-400/40 flex flex-col sm:flex-row items-center gap-4">
-              <div className="w-36 h-36 bg-white p-2 rounded-2xl shrink-0 flex items-center justify-center shadow-md">
+            <div className="p-4 rounded-3xl bg-[#F5F7FB] border border-slate-200 flex flex-col sm:flex-row items-center gap-4">
+              <div className="w-36 h-36 bg-white p-2 rounded-2xl shrink-0 border border-slate-200 flex items-center justify-center shadow-xs">
                 <img
                   src={qrCodeApiUrl}
                   alt="SafarGo QR Code"
@@ -257,25 +258,25 @@ export const GoInstantAddMoneyModal: React.FC<GoInstantAddMoneyModalProps> = ({ 
 
               <div className="space-y-2 text-center sm:text-left flex-1">
                 <div className="space-y-0.5">
-                  <span className="text-[10px] font-bold uppercase text-amber-400">
+                  <span className="text-[10px] font-bold uppercase text-[#0A2885]">
                     SafarGo अधिकृत QR कोड
                   </span>
-                  <p className="text-[11px] text-slate-300">
+                  <p className="text-[11px] text-slate-600">
                     PhonePe / GPay / Paytm से स्कैन करें और <strong>₹{parsedAmount || 500}</strong> का भुगतान करें।
                   </p>
                 </div>
 
-                <div className="p-2 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2">
-                  <span className="font-mono text-[11px] text-slate-200 truncate">
+                <div className="p-2 rounded-full bg-white border border-slate-200 flex items-center justify-between gap-2 px-3">
+                  <span className="font-mono text-[11px] text-slate-700 truncate">
                     {upiId}
                   </span>
                   <button
                     type="button"
                     onClick={handleCopyUpi}
-                    className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 shrink-0"
+                    className="p-1 rounded-full bg-slate-100 hover:bg-slate-200 text-[#0A2885] shrink-0"
                     title="कॉपी करें"
                   >
-                    {copiedUpi ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedUpi ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
                 </div>
               </div>
@@ -283,7 +284,7 @@ export const GoInstantAddMoneyModal: React.FC<GoInstantAddMoneyModalProps> = ({ 
 
             {/* UTR Input with Advance Validation */}
             <div className="space-y-1">
-              <label className="block font-bold text-slate-300 text-[11px]">
+              <label className="block font-bold text-slate-700 text-[11px]">
                 12-अंकों का UPI Ref / UTR नंबर दर्ज करें *
               </label>
               <input
@@ -293,22 +294,22 @@ export const GoInstantAddMoneyModal: React.FC<GoInstantAddMoneyModalProps> = ({ 
                 value={utrNumber}
                 onChange={(e) => setUtrNumber(e.target.value.toUpperCase())}
                 placeholder="उदा. 428901234567"
-                className="w-full p-3 rounded-xl bg-slate-950 border-2 border-slate-700 text-white font-mono font-bold text-xs uppercase tracking-wider outline-none focus:border-amber-400"
+                className="w-full p-3 rounded-2xl bg-[#F5F7FB] border border-slate-200 text-slate-900 font-mono font-bold text-xs uppercase tracking-wider outline-none focus:border-[#0A2885] focus:bg-white"
               />
-              <p className="text-[10px] text-slate-400">
+              <p className="text-[10px] text-slate-500">
                 पेमेंट ऐप की रसीद में <strong>UPI Ref No. / UTR No.</strong> लिखा होता है।
               </p>
             </div>
 
             {/* Screenshot Upload */}
             <div className="space-y-1">
-              <label className="block font-bold text-slate-300 text-[11px]">
+              <label className="block font-bold text-slate-700 text-[11px]">
                 पेमेंट स्क्रीनशॉट (वैकल्पिक परंतु सुरक्षित)
               </label>
               <div className="flex items-center gap-2">
-                <label className="flex-1 p-2.5 rounded-xl bg-slate-950 border border-dashed border-slate-700 hover:border-amber-400 text-slate-300 cursor-pointer flex items-center justify-center gap-2 transition">
-                  <Upload className="w-4 h-4 text-amber-400" />
-                  <span className="text-[11px]">
+                <label className="flex-1 p-2.5 rounded-2xl bg-[#F5F7FB] border border-dashed border-slate-300 hover:border-[#0A2885] text-slate-600 cursor-pointer flex items-center justify-center gap-2 transition">
+                  <Upload className="w-4 h-4 text-[#0A2885]" />
+                  <span className="text-[11px] font-medium">
                     {screenshotPreview ? 'स्क्रीनशॉट बदलें' : 'स्क्रीनशॉट अपलोड करें'}
                   </span>
                   <input
@@ -319,7 +320,7 @@ export const GoInstantAddMoneyModal: React.FC<GoInstantAddMoneyModalProps> = ({ 
                   />
                 </label>
                 {screenshotPreview && (
-                  <div className="w-10 h-10 rounded-xl overflow-hidden border border-amber-400 shrink-0">
+                  <div className="w-10 h-10 rounded-xl overflow-hidden border border-[#0A2885] shrink-0">
                     <img src={screenshotPreview} alt="Preview" className="w-full h-full object-cover" />
                   </div>
                 )}
@@ -327,28 +328,28 @@ export const GoInstantAddMoneyModal: React.FC<GoInstantAddMoneyModalProps> = ({ 
             </div>
 
             {/* Anti-Fraud Security Shield Note */}
-            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2 text-[10px] text-amber-200 leading-snug">
-              <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-2 text-[10px] text-amber-900 leading-snug">
+              <ShieldAlert className="w-4 h-4 text-[#FF6500] shrink-0 mt-0.5" />
               <span>
-                <strong>एडवांस सुरक्षा प्रणाली:</strong> सिस्टम में डुप्लीकेट UTR व फर्जी स्क्रीनशॉट स्वतः ब्लॉक होते हैं। गलत UTR पाए जाने पर एडमिन द्वारा राशि वापस काटी जा सकती है।
+                <strong>सुरक्षा प्रणाली:</strong> सिस्टम में डुप्लीकेट UTR व फर्जी स्क्रीनशॉट स्वतः ब्लॉक होते हैं। गलत UTR पाए जाने पर एडमिन द्वारा राशि वापस काटी जा सकती है।
               </span>
             </div>
 
-            {/* Submit Button */}
+            {/* Submit Button - Electric Amber Pill */}
             <button
               type="submit"
               disabled={isSubmitting || !utrNumber.trim()}
-              className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-400 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-sm rounded-2xl shadow-xl transition active:scale-98 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3.5 bg-[#FF6500] hover:bg-[#E05900] text-white font-bold text-sm rounded-full shadow-md transition active:scale-98 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
             >
               {isSubmitting ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   <span>AI सुरक्षा सत्यापन जारी...</span>
                 </>
               ) : (
                 <>
-                  <Zap className="w-4 h-4 fill-slate-950" />
-                  <span>⚡ तुरंत वॉलेट में पैसे जोड़ें (₹{parsedAmount || 500})</span>
+                  <Zap className="w-4 h-4 fill-white" />
+                  <span>तुरंत वॉलेट में पैसे जोड़ें (₹{parsedAmount || 500})</span>
                 </>
               )}
             </button>
@@ -360,3 +361,4 @@ export const GoInstantAddMoneyModal: React.FC<GoInstantAddMoneyModalProps> = ({ 
     </div>
   );
 };
+

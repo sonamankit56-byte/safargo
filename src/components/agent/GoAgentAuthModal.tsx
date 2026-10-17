@@ -134,27 +134,11 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
       z: Math.random() * 800 + 100,
       size: Math.random() * 2.2 + 0.8,
       speed: Math.random() * 2 + 1.2,
-      color: Math.random() > 0.4 ? '#F59E0B' : '#06B6D4',
+      color: Math.random() > 0.4 ? '#0A2885' : '#FF6500',
     }));
 
     const render = () => {
-      ctx.fillStyle = '#030712';
-      ctx.fillRect(0, 0, width, height);
-
-      // Radial glowing core
-      const gradient = ctx.createRadialGradient(
-        width / 2,
-        height / 2,
-        20,
-        width / 2,
-        height / 2,
-        width * 0.7
-      );
-      gradient.addColorStop(0, 'rgba(245, 158, 11, 0.12)');
-      gradient.addColorStop(0.5, 'rgba(6, 182, 212, 0.06)');
-      gradient.addColorStop(1, 'rgba(3, 7, 18, 0.95)');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, width, height);
+      ctx.clearRect(0, 0, width, height);
 
       // Render 3D flying particle trails
       particles.forEach((p) => {
@@ -421,25 +405,25 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-fadeIn">
-      {/* 3D Container with Cyber Depth */}
-      <div className="relative w-full max-w-xl bg-slate-900/95 border-2 border-amber-400/70 rounded-3xl shadow-[0_0_50px_rgba(245,158,11,0.25)] overflow-hidden flex flex-col max-h-[92vh] animate-scaleUp">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#05184B]/60 backdrop-blur-sm animate-fadeIn">
+      {/* Jio Container */}
+      <div className="relative w-full max-w-xl bg-white border border-slate-200/90 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-scaleUp">
         
-        {/* Dynamic 3D Canvas Video-Style Background */}
+        {/* Dynamic Canvas Particle Background (Subtle) */}
         <canvas
           ref={canvasRef}
-          className="absolute inset-0 w-full h-full pointer-events-none opacity-40"
+          className="absolute inset-0 w-full h-full pointer-events-none opacity-20"
         />
 
-        {/* Ambient Top Glow Bar */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-amber-400 via-orange-500 to-cyan-400 shrink-0" />
+        {/* Ambient Top Royal Bar */}
+        <div className="h-1.5 w-full bg-[#0A2885] shrink-0" />
 
         {/* Modal Header */}
-        <div className="relative p-5 sm:p-6 pb-3 text-white shrink-0 z-10 flex flex-col items-center text-center">
+        <div className="relative p-5 sm:p-6 pb-3 text-slate-900 shrink-0 z-10 flex flex-col items-center text-center">
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-700 p-2 rounded-full transition cursor-pointer"
+            className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 p-2 rounded-full transition cursor-pointer"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
@@ -450,20 +434,20 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
             <Go3DUltraLogo size="lg" showBadge={true} badgeText="ULTRA 3D SPECIAL AGENT" />
           </div>
 
-          <p className="text-xs text-slate-300 max-w-md mt-1 leading-relaxed">
+          <p className="text-xs text-slate-600 max-w-md mt-1 leading-relaxed">
             विशेष अधिकृत GO स्पेशल एजेंट टर्मिनल — <strong>प्रत्येक टिकट पर फ्लैट ₹20 नकद कमीशन</strong> एवं 3D अल्ट्रा डैशबोर्ड एक्सेस!
           </p>
 
-          {/* Dedicated Dual Mode Switcher (NO OTHER CLUTTER!) */}
+          {/* Dedicated Dual Mode Switcher - Jio Rounded-Full Pills */}
           {mode !== 'confirm_gmail' && mode !== 'forgot_password' && (
-            <div className="grid grid-cols-2 p-1 bg-slate-950/90 rounded-2xl border border-amber-400/40 w-full max-w-sm mt-4 gap-1">
+            <div className="grid grid-cols-2 p-1.5 bg-[#F5F7FB] rounded-full border border-slate-200 w-full max-w-sm mt-4 gap-1">
               <button
                 type="button"
                 onClick={() => setMode('login')}
-                className={`py-2 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                className={`py-2 px-3 rounded-full text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                   mode === 'login'
-                    ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-slate-950 shadow-md'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-[#0A2885] text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <Crown className="w-3.5 h-3.5" />
@@ -473,10 +457,10 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
               <button
                 type="button"
                 onClick={() => setMode('register')}
-                className={`py-2 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                className={`py-2 px-3 rounded-full text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                   mode === 'register'
-                    ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-[#0A2885] text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5" />
@@ -487,7 +471,7 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
         </div>
 
         {/* Modal Scrollable Body */}
-        <div className="p-5 sm:p-6 pt-2 overflow-y-auto space-y-4 flex-1 relative z-10 text-white text-xs">
+        <div className="p-5 sm:p-6 pt-2 overflow-y-auto space-y-4 flex-1 relative z-10 text-slate-900 text-xs">
           
           {/* ========================================================== */}
           {/* 1. GO SPECIAL AGENT LOGIN FORM                              */}
@@ -496,17 +480,17 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
             <div className="space-y-4 animate-fadeIn">
               
               {/* Highlight Perks Banner */}
-              <div className="p-3 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-cyan-500/15 border border-amber-400/50 rounded-2xl flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black">
+              <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-3xl flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-full bg-[#0A2885] text-white flex items-center justify-center font-bold text-xs shadow-xs">
                     ₹20
                   </div>
                   <div>
-                    <h4 className="font-black text-amber-300 text-xs">फ्लैट ₹20 कमीशन प्रति टिकट</h4>
-                    <p className="text-[10px] text-slate-300">बिना किसी देरी सीधे Go Wallet में क्रेडिट</p>
+                    <h4 className="font-bold text-[#0A2885] text-xs">फ्लैट ₹20 कमीशन प्रति टिकट</h4>
+                    <p className="text-[10px] text-slate-500">बिना किसी देरी सीधे Go Wallet में क्रेडिट</p>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
                   100% Real
                 </span>
               </div>
@@ -514,25 +498,25 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
               {/* Verified Gmail & Password Form */}
               <form onSubmit={handleLoginSubmit} className="space-y-3.5">
                 <div>
-                  <label className="block font-bold text-slate-300 mb-1 text-xs">
+                  <label className="block font-bold text-slate-700 mb-1 text-xs">
                     सत्यापित Gmail या मोबाइल नंबर *
                   </label>
                   <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                     <input
                       type="text"
                       required
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
                       placeholder="उदा. agent.pawan@gmail.com"
-                      className="w-full pl-10 pr-3 py-3 rounded-xl bg-slate-800/90 border border-slate-700 text-white placeholder-slate-500 text-xs focus:ring-2 focus:ring-amber-400 outline-none font-mono"
+                      className="w-full pl-10 pr-3 py-2.5 rounded-2xl bg-[#F5F7FB] border border-slate-200 text-slate-900 placeholder-slate-400 text-xs focus:border-[#0A2885] focus:bg-white outline-none font-mono"
                     />
                   </div>
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block font-bold text-slate-300 text-xs">
+                    <label className="block font-bold text-slate-700 text-xs">
                       पासवर्ड (Password) *
                     </label>
                     <button
@@ -541,20 +525,20 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                         setForgotEmail(loginEmail.includes('@') ? loginEmail : '');
                         setMode('forgot_password');
                       }}
-                      className="text-[11px] text-amber-400 hover:underline cursor-pointer font-bold"
+                      className="text-[11px] text-[#0A2885] hover:underline cursor-pointer font-bold"
                     >
-                      पासवर्ड भूल गए? (Forgot Password)
+                      पासवर्ड भूल गए?
                     </button>
                   </div>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                     <input
                       type="password"
                       required
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
                       placeholder="पासवर्ड दर्ज करें"
-                      className="w-full pl-10 pr-3 py-3 rounded-xl bg-slate-800/90 border border-slate-700 text-white placeholder-slate-500 text-xs focus:ring-2 focus:ring-amber-400 outline-none font-mono"
+                      className="w-full pl-10 pr-3 py-2.5 rounded-2xl bg-[#F5F7FB] border border-slate-200 text-slate-900 placeholder-slate-400 text-xs focus:border-[#0A2885] focus:bg-white outline-none font-mono"
                     />
                   </div>
                 </div>
@@ -562,19 +546,19 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black rounded-xl shadow-lg transition active:scale-98 disabled:opacity-50 text-xs flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3.5 bg-[#FF6500] hover:bg-[#E05900] text-white font-bold rounded-full shadow-md transition active:scale-98 disabled:opacity-50 text-xs flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <Crown className="w-4 h-4 text-slate-950" />
-                  <span>{isSubmitting ? 'लॉगिन हो रहा है...' : '🚀 GO स्पेशल एजेंट 3D डैशबोर्ड खोलें'}</span>
+                  <Crown className="w-4 h-4 text-white" />
+                  <span>{isSubmitting ? 'लॉगिन हो रहा है...' : '🚀 GO स्पेशल एजेंट डैशबोर्ड खोलें'}</span>
                 </button>
               </form>
 
-              <div className="pt-2 text-center text-xs text-slate-400">
+              <div className="pt-2 text-center text-xs text-slate-500">
                 नया GO एजेंट बनना चाहते हैं?{' '}
                 <button
                   type="button"
                   onClick={() => setMode('register')}
-                  className="text-amber-400 font-bold hover:underline cursor-pointer"
+                  className="text-[#0A2885] font-bold hover:underline cursor-pointer"
                 >
                   यहाँ 1 मिनट में रजिस्टर करें ➔
                 </button>
@@ -587,28 +571,28 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
           {/* ========================================================== */}
           {mode === 'forgot_password' && (
             <div className="space-y-4 animate-fadeIn">
-              <div className="p-3 bg-red-950/40 border border-red-500/40 rounded-2xl flex items-start gap-2.5">
-                <KeyRound className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                <p className="text-[11px] text-red-200 leading-snug">
-                  <strong>पासवर्ड रीसेट सुरक्षा सत्यापन:</strong> अपने पंजीकृत Gmail पर 6-अंकीय पासवर्ड रीसेट कोड प्राप्त करके नया पासवर्ड सेट करें।
+              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-2.5">
+                <KeyRound className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-rose-900 leading-snug">
+                  <strong>सुरक्षा सत्यापन:</strong> अपने पंजीकृत Gmail पर 6-अंकीय पासवर्ड रीसेट कोड प्राप्त करके नया पासवर्ड सेट करें।
                 </p>
               </div>
 
               {!forgotResetCodeSent ? (
                 <form onSubmit={handleSendForgotPasswordOtp} className="space-y-3.5">
                   <div>
-                    <label className="block font-bold text-slate-300 mb-1 text-xs">
+                    <label className="block font-bold text-slate-700 mb-1 text-xs">
                       पंजीकृत Gmail पता *
                     </label>
                     <div className="relative">
-                      <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                       <input
                         type="email"
                         required
                         value={forgotEmail}
                         onChange={(e) => setForgotEmail(e.target.value)}
                         placeholder="उदा. agent.pawan@gmail.com"
-                        className="w-full pl-10 pr-3 py-3 rounded-xl bg-slate-800/90 border border-slate-700 text-white placeholder-slate-500 text-xs focus:ring-2 focus:ring-red-400 outline-none font-mono"
+                        className="w-full pl-10 pr-3 py-2.5 rounded-2xl bg-[#F5F7FB] border border-slate-200 text-slate-900 placeholder-slate-400 text-xs focus:border-[#0A2885] focus:bg-white outline-none font-mono"
                       />
                     </div>
                   </div>
@@ -616,7 +600,7 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-3.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 text-white font-black rounded-xl shadow-lg transition active:scale-98 disabled:opacity-50 text-xs flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full py-3.5 bg-[#0A2885] hover:bg-[#071E66] text-white font-bold rounded-full shadow-md transition active:scale-98 disabled:opacity-50 text-xs flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Mail className="w-4 h-4" />
                     <span>{isSubmitting ? 'OTP भेजा जा रहा है...' : 'पासवर्ड रीसेट OTP भेजें ➔'}</span>
@@ -624,13 +608,13 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                 </form>
               ) : (
                 <form onSubmit={handleCompleteForgotPassword} className="space-y-3.5">
-                  <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs">
-                    <span className="text-slate-400">सत्यापन कोड भेजा गया: </span>
-                    <strong className="text-amber-300 font-mono">{forgotEmail}</strong>
+                  <div className="p-3 bg-[#F5F7FB] rounded-2xl border border-slate-200 text-xs">
+                    <span className="text-slate-500">सत्यापन कोड भेजा गया: </span>
+                    <strong className="text-[#0A2885] font-mono">{forgotEmail}</strong>
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-300 mb-1 text-xs">
+                    <label className="block font-bold text-slate-700 mb-1 text-xs">
                       Gmail पर प्राप्त 6-अंकीय OTP कोड *
                     </label>
                     <input
@@ -640,13 +624,13 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                       value={enteredResetOtp}
                       onChange={(e) => setEnteredResetOtp(e.target.value.replace(/\D/g, ''))}
                       placeholder="123456"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-800 border border-amber-400 text-amber-300 text-center font-mono text-lg font-black tracking-widest outline-none"
+                      className="w-full px-4 py-2.5 rounded-2xl bg-[#F5F7FB] border border-[#0A2885] text-[#0A2885] text-center font-mono text-lg font-black tracking-widest outline-none focus:bg-white"
                     />
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block font-bold text-slate-300 mb-1 text-xs">
+                      <label className="block font-bold text-slate-700 mb-1 text-xs">
                         नया पासवर्ड बनाएं *
                       </label>
                       <input
@@ -655,12 +639,12 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="न्यूनतम 4 अक्षर"
-                        className="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs outline-none font-mono"
+                        className="w-full px-3 py-2.5 rounded-2xl bg-[#F5F7FB] border border-slate-200 text-slate-900 text-xs outline-none font-mono focus:border-[#0A2885] focus:bg-white"
                       />
                     </div>
 
                     <div>
-                      <label className="block font-bold text-slate-300 mb-1 text-xs">
+                      <label className="block font-bold text-slate-700 mb-1 text-xs">
                         पासवर्ड दोबारा पुष्टि करें *
                       </label>
                       <input
@@ -669,7 +653,7 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                         value={confirmNewPassword}
                         onChange={(e) => setConfirmNewPassword(e.target.value)}
                         placeholder="दोबारा पासवर्ड डालें"
-                        className="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs outline-none font-mono"
+                        className="w-full px-3 py-2.5 rounded-2xl bg-[#F5F7FB] border border-slate-200 text-slate-900 text-xs outline-none font-mono focus:border-[#0A2885] focus:bg-white"
                       />
                     </div>
                   </div>
@@ -677,7 +661,7 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-slate-950 font-black rounded-xl shadow-lg transition active:scale-98 disabled:opacity-50 text-xs flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-full shadow-md transition active:scale-98 disabled:opacity-50 text-xs flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     <span>{isSubmitting ? 'पासवर्ड अपडेट हो रहा है...' : 'नया पासवर्ड सेव करें व डैशबोर्ड खोलें ➔'}</span>
@@ -692,7 +676,7 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                     setMode('login');
                     setForgotResetCodeSent(false);
                   }}
-                  className="text-xs text-slate-400 hover:text-white cursor-pointer"
+                  className="text-xs text-[#0A2885] font-bold hover:underline cursor-pointer"
                 >
                   ← वापस लॉगिन पर लौटें
                 </button>
@@ -701,42 +685,42 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
           )}
 
           {/* ========================================================== */}
-          {/* 2. GO SPECIAL AGENT ULTRA REGISTRATION FORM                */}
+          {/* 2. GO SPECIAL AGENT REGISTRATION FORM                      */}
           {/* ========================================================== */}
           {mode === 'register' && (
             <form onSubmit={handleRegisterSubmit} className="space-y-3.5 animate-fadeIn">
               
-              <div className="p-3 bg-cyan-950/40 border border-cyan-500/40 rounded-2xl flex items-start gap-2.5">
-                <Sparkles className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-                <p className="text-[11px] text-cyan-200 leading-snug">
-                  <strong>सख्त GO सुरक्षा नियम:</strong> रजिस्ट्रेशन सबमिट होने के बाद आपके Gmail पते पर कन्फर्मेशन लिंक व 6-अंकीय कोड भेजा जाएगा। ईमेल सत्यापन के बाद ही आपका एजेंट अकाउंट चालू होगा।
+              <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-2xl flex items-start gap-2.5">
+                <Sparkles className="w-4 h-4 text-[#0A2885] shrink-0 mt-0.5" />
+                <p className="text-[11px] text-blue-900 leading-snug">
+                  <strong>सत्यापन नियम:</strong> रजिस्ट्रेशन सबमिट होने के बाद आपके Gmail पते पर कन्फर्मेशन लिंक व 6-अंकीय कोड भेजा जाएगा। ईमेल सत्यापन के बाद ही आपका एजेंट अकाउंट चालू होगा।
                 </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-300 mb-1 text-xs">
+                  <label className="block font-bold text-slate-700 mb-1 text-xs">
                     पूरा नाम (Full Name) *
                   </label>
                   <div className="relative">
-                    <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                    <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                     <input
                       type="text"
                       required
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="उदा. पवन कुमार"
-                      className="w-full pl-10 pr-3 py-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-white placeholder-slate-500 text-xs focus:ring-2 focus:ring-cyan-400 outline-none"
+                      className="w-full pl-10 pr-3 py-2.5 rounded-2xl bg-[#F5F7FB] border border-slate-200 text-slate-900 placeholder-slate-400 text-xs focus:border-[#0A2885] focus:bg-white outline-none"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-300 mb-1 text-xs">
+                  <label className="block font-bold text-slate-700 mb-1 text-xs">
                     मोबाइल नंबर (10 अंक) *
                   </label>
                   <div className="relative">
-                    <Phone className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                    <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                     <input
                       type="tel"
                       required
@@ -744,63 +728,63 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                       value={mobile}
                       onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
                       placeholder="98260XXXXX"
-                      className="w-full pl-10 pr-3 py-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-white placeholder-slate-500 text-xs focus:ring-2 focus:ring-cyan-400 outline-none font-mono"
+                      className="w-full pl-10 pr-3 py-2.5 rounded-2xl bg-[#F5F7FB] border border-slate-200 text-slate-900 placeholder-slate-400 text-xs focus:border-[#0A2885] focus:bg-white outline-none font-mono"
                     />
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-300 mb-1 text-xs">
+                <label className="block font-bold text-slate-700 mb-1 text-xs">
                   असली Gmail पता (Real Gmail for Verification) *
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="उदा. aapka_naam@gmail.com"
-                    className="w-full pl-10 pr-3 py-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-white placeholder-slate-500 text-xs focus:ring-2 focus:ring-cyan-400 outline-none font-mono"
+                    className="w-full pl-10 pr-3 py-2.5 rounded-2xl bg-[#F5F7FB] border border-slate-200 text-slate-900 placeholder-slate-400 text-xs focus:border-[#0A2885] focus:bg-white outline-none font-mono"
                   />
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1">
+                <p className="text-[10px] text-slate-500 mt-1">
                   इस Gmail पर खाता सक्रिय करने के लिए सत्यापन लिंक भेजा जाएगा।
                 </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-300 mb-1 text-xs">
+                  <label className="block font-bold text-slate-700 mb-1 text-xs">
                     एजेंसी / दुकान का नाम *
                   </label>
                   <div className="relative">
-                    <Building className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                    <Building className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                     <input
                       type="text"
                       required
                       value={agencyName}
                       onChange={(e) => setAgencyName(e.target.value)}
                       placeholder="उदा. पवन ऑनलाइन CSC सेन्टर"
-                      className="w-full pl-10 pr-3 py-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-white placeholder-slate-500 text-xs focus:ring-2 focus:ring-cyan-400 outline-none"
+                      className="w-full pl-10 pr-3 py-2.5 rounded-2xl bg-[#F5F7FB] border border-slate-200 text-slate-900 placeholder-slate-400 text-xs focus:border-[#0A2885] focus:bg-white outline-none"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-300 mb-1 text-xs">
+                  <label className="block font-bold text-slate-700 mb-1 text-xs">
                     पासवर्ड बनाएं *
                   </label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                     <input
                       type="password"
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="कम से कम 4 अक्षर"
-                      className="w-full pl-10 pr-3 py-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-white placeholder-slate-500 text-xs focus:ring-2 focus:ring-cyan-400 outline-none font-mono"
+                      className="w-full pl-10 pr-3 py-2.5 rounded-2xl bg-[#F5F7FB] border border-slate-200 text-slate-900 placeholder-slate-400 text-xs focus:border-[#0A2885] focus:bg-white outline-none font-mono"
                     />
                   </div>
                 </div>
@@ -808,7 +792,7 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-300 mb-1 text-xs">
+                  <label className="block font-bold text-slate-700 mb-1 text-xs">
                     शहर (City / Hub) *
                   </label>
                   <select
@@ -817,7 +801,7 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                       setCity(e.target.value);
                       setDistrict(e.target.value);
                     }}
-                    className="w-full p-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-white text-xs focus:ring-2 focus:ring-cyan-400 outline-none"
+                    className="w-full p-2.5 rounded-2xl bg-[#F5F7FB] border border-slate-200 text-slate-900 text-xs focus:border-[#0A2885] focus:bg-white outline-none"
                   >
                     {MP_NETWORK_CITIES.map((c) => (
                       <option key={c} value={c}>
@@ -828,7 +812,7 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-300 mb-1 text-xs">
+                  <label className="block font-bold text-slate-700 mb-1 text-xs">
                     दुकान / ब्लॉक का पता *
                   </label>
                   <input
@@ -837,7 +821,7 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="ब्लॉक ऑफिस के पास, मुख्य मार्ग"
-                    className="w-full p-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-white placeholder-slate-500 text-xs focus:ring-2 focus:ring-cyan-400 outline-none"
+                    className="w-full p-2.5 rounded-2xl bg-[#F5F7FB] border border-slate-200 text-slate-900 placeholder-slate-400 text-xs focus:border-[#0A2885] focus:bg-white outline-none"
                   />
                 </div>
               </div>
@@ -848,23 +832,23 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                   (p) => p.referral_code && p.referral_code.toUpperCase() === referralCode.trim().toUpperCase()
                 );
                 return (
-                  <div className="p-3 bg-slate-800/80 border border-slate-700/80 rounded-2xl space-y-2">
+                  <div className="p-3.5 bg-[#F5F7FB] border border-slate-200 rounded-2xl space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="font-bold text-slate-300 text-xs flex items-center gap-1.5">
-                        <Gift className="w-3.5 h-3.5 text-amber-400" />
+                      <label className="font-bold text-slate-700 text-xs flex items-center gap-1.5">
+                        <Gift className="w-3.5 h-3.5 text-[#FF6500]" />
                         <span>रेफरल कोड (Apply Referral Code)</span>
                       </label>
                       {matchedReferrer ? (
-                        <span className="text-[10px] font-black text-emerald-400 bg-emerald-950/80 border border-emerald-500/40 px-2 py-0.5 rounded-full flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                           सत्यापित रेफरल कोड ✓
                         </span>
                       ) : referralCode.trim() ? (
-                        <span className="text-[10px] font-medium text-amber-300">
+                        <span className="text-[10px] font-bold text-[#0A2885]">
                           रेफरल कोड दर्ज
                         </span>
                       ) : (
-                        <span className="text-[10px] text-slate-400">वैकल्पिक (Optional)</span>
+                        <span className="text-[10px] text-slate-500">वैकल्पिक (Optional)</span>
                       )}
                     </div>
 
@@ -881,7 +865,7 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                           } catch {}
                         }}
                         placeholder="उदा. SFG-REF-PAWAN50"
-                        className="flex-1 p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 text-xs font-mono font-bold uppercase focus:ring-2 focus:ring-amber-400 outline-none"
+                        className="flex-1 p-2.5 rounded-2xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 text-xs font-mono font-bold uppercase focus:border-[#0A2885] outline-none"
                       />
                       {referralCode.trim() && (
                         <button
@@ -892,7 +876,7 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                               localStorage.removeItem('safargo_active_ref_code');
                             } catch {}
                           }}
-                          className="px-2.5 py-2 text-slate-400 hover:text-white bg-slate-700/60 hover:bg-slate-700 rounded-xl text-xs transition cursor-pointer"
+                          className="px-2.5 py-2 text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs transition cursor-pointer"
                           title="हटाएं"
                         >
                           ✕
@@ -901,18 +885,18 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                     </div>
 
                     {matchedReferrer ? (
-                      <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-[11px] text-emerald-300 flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] text-emerald-800 flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                         <span>
                           रेफरल लिंक ऑटोमैटिक लागू: <strong>{matchedReferrer.full_name}</strong> ({matchedReferrer.shop_name || matchedReferrer.city}) के रेफरल से जुड़ रहे हैं।
                         </span>
                       </div>
                     ) : referralCode.trim() ? (
-                      <p className="text-[10px] text-slate-400">
+                      <p className="text-[10px] text-slate-500">
                         रेफरल कोड <strong>{referralCode}</strong> रजिस्ट्रेशन के साथ स्वतः लिंक हो जाएगा।
                       </p>
                     ) : (
-                      <p className="text-[10px] text-slate-400 leading-snug">
+                      <p className="text-[10px] text-slate-500 leading-snug">
                         💡 यदि किसी साथी एजेंट ने आपको लिंक भेजा है, तो रेफरल कोड ऑटोमैटिक भर जाएगा या यहाँ टाइप करें।
                       </p>
                     )}
@@ -923,18 +907,18 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-3.5 bg-gradient-to-r from-cyan-500 via-blue-600 to-cyan-500 hover:from-cyan-400 hover:to-blue-500 text-white font-black rounded-xl shadow-lg transition active:scale-98 disabled:opacity-50 text-xs flex items-center justify-center gap-2 cursor-pointer mt-2"
+                className="w-full py-3.5 bg-[#FF6500] hover:bg-[#E05900] text-white font-bold rounded-full shadow-md transition active:scale-98 disabled:opacity-50 text-xs flex items-center justify-center gap-2 cursor-pointer mt-2"
               >
                 <Send className="w-4 h-4" />
                 <span>{isSubmitting ? 'Gmail पर कोड भेजा जा रहा है...' : 'Gmail पर सत्यापन कोड भेजें ➔'}</span>
               </button>
 
-              <div className="pt-1 text-center text-xs text-slate-400">
+              <div className="pt-1 text-center text-xs text-slate-500">
                 पहले से GO एजेंट हैं?{' '}
                 <button
                   type="button"
                   onClick={() => setMode('login')}
-                  className="text-cyan-400 font-bold hover:underline cursor-pointer"
+                  className="text-[#0A2885] font-bold hover:underline cursor-pointer"
                 >
                   सीधे लॉगिन करें ➔
                 </button>
@@ -947,33 +931,33 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
           {/* ========================================================== */}
           {mode === 'confirm_gmail' && pendingConfirmation && (
             <div className="space-y-4 animate-fadeIn">
-              <div className="bg-gradient-to-r from-cyan-950/60 to-blue-950/60 border-2 border-cyan-400 rounded-2xl p-4 text-center space-y-2">
-                <div className="w-14 h-14 rounded-2xl bg-cyan-500 text-slate-950 flex items-center justify-center mx-auto shadow-lg animate-bounce">
+              <div className="bg-blue-50 border border-blue-200 rounded-3xl p-5 text-center space-y-2">
+                <div className="w-14 h-14 rounded-full bg-[#0A2885] text-white flex items-center justify-center mx-auto shadow-md">
                   <Mail className="w-7 h-7" />
                 </div>
-                <h3 className="text-base font-black text-cyan-300">
+                <h3 className="text-base font-bold text-[#0A2885]">
                   Gmail सत्यापन प्रतीक्षारत (Confirmation Pending)
                 </h3>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  हमने आपके Gmail पते <strong className="text-white font-mono">{pendingConfirmation.email}</strong> पर 6-अंकीय सुरक्षा कोड और सक्रियण लिंक भेज दिया है।
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  हमने आपके Gmail पते <strong className="text-slate-900 font-mono">{pendingConfirmation.email}</strong> पर 6-अंकीय सुरक्षा कोड और सक्रियण लिंक भेज दिया है।
                 </p>
               </div>
 
-              {/* Professional Real Gmail Security Notice (No OTP on screen) */}
-              <div className="bg-slate-800/90 border border-cyan-500/30 rounded-2xl p-4 text-left space-y-2 shadow-inner">
-                <div className="flex items-center gap-2 text-cyan-400 font-bold text-xs">
-                  <ShieldCheck className="w-4 h-4 shrink-0 text-cyan-400" />
+              {/* Real Gmail Security Notice */}
+              <div className="bg-[#F5F7FB] border border-slate-200 rounded-2xl p-4 text-left space-y-2">
+                <div className="flex items-center gap-2 text-[#0A2885] font-bold text-xs">
+                  <ShieldCheck className="w-4 h-4 shrink-0 text-[#0A2885]" />
                   <span>सख्त सुरक्षा नियम: Gmail से 6-अंकीय कोड प्राप्त करें</span>
                 </div>
-                <p className="text-xs text-slate-300 leading-relaxed font-normal">
-                  सुरक्षा कारणों से कोड स्क्रीन पर प्रदर्शित नहीं किया जाता। कृपया अपने Gmail ऐप अथवा ब्राउज़र में <strong className="text-white font-mono">{pendingConfirmation.email}</strong> खोलें और SafarGo द्वारा भेजा गया 6-अंकीय सत्यापन कोड यहाँ दर्ज करें।
+                <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                  सुरक्षा कारणों से कोड स्क्रीन पर प्रदर्शित नहीं किया जाता। कृपया अपने Gmail ऐप अथवा ब्राउज़र में <strong className="text-slate-900 font-mono">{pendingConfirmation.email}</strong> खोलें और SafarGo द्वारा भेजा गया 6-अंकीय सत्यापन कोड यहाँ दर्ज करें।
                 </p>
               </div>
 
               {/* Code input form */}
               <form onSubmit={handleConfirmGmailSubmit} className="space-y-3">
                 <div>
-                  <label className="block font-bold text-slate-300 mb-1 text-xs">
+                  <label className="block font-bold text-slate-700 mb-1 text-xs">
                     Gmail से 6-अंकीय कोड दर्ज करें *
                   </label>
                   <input
@@ -982,8 +966,8 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                     maxLength={6}
                     value={enteredConfirmCode}
                     onChange={(e) => setEnteredConfirmCode(e.target.value.replace(/\D/g, ''))}
-                    placeholder="6-Digit Code"
-                    className="w-full p-3.5 rounded-xl bg-slate-800/90 border border-cyan-400 text-center text-2xl font-mono font-black tracking-[0.4em] text-white focus:ring-2 focus:ring-cyan-400 outline-none"
+                    placeholder="123456"
+                    className="w-full p-3.5 rounded-2xl bg-[#F5F7FB] border-2 border-[#0A2885] text-center text-2xl font-mono font-black tracking-[0.4em] text-slate-900 focus:bg-white outline-none"
                     autoFocus
                   />
                 </div>
@@ -991,7 +975,7 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                 <button
                   type="submit"
                   disabled={isSubmitting || enteredConfirmCode.length !== 6}
-                  className="w-full py-3.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500 hover:from-emerald-400 text-slate-950 font-black rounded-xl shadow-lg transition active:scale-98 disabled:opacity-50 text-xs flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-full shadow-md transition active:scale-98 disabled:opacity-50 text-xs flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   <span>{isSubmitting ? 'सत्यापित हो रहा है...' : '✅ कोड सत्यापित कर GO एजेंट खाता खोलें'}</span>
@@ -1002,17 +986,17 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                 type="button"
                 onClick={handleCheckEmailLink}
                 disabled={isCheckingGmailLink}
-                className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/40 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-2.5 bg-[#F5F7FB] hover:bg-slate-200 text-[#0A2885] border border-slate-200 rounded-full text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 <RotateCw className={`w-3.5 h-3.5 ${isCheckingGmailLink ? 'animate-spin' : ''}`} />
                 <span>ईमेल लिंक स्टेटस जांचें</span>
               </button>
 
-              <div className="pt-2 flex items-center justify-between text-xs text-slate-400">
+              <div className="pt-2 flex items-center justify-between text-xs text-slate-500">
                 <button
                   type="button"
                   onClick={() => setMode('register')}
-                  className="hover:text-white"
+                  className="hover:text-slate-900"
                 >
                   ← वापस विवरण बदलें
                 </button>
@@ -1038,7 +1022,7 @@ export const GoAgentAuthModal: React.FC<GoAgentAuthModalProps> = ({
                       }
                     }
                   }}
-                  className="text-amber-400 hover:underline font-bold disabled:opacity-50"
+                  className="text-[#0A2885] hover:underline font-bold disabled:opacity-50"
                 >
                   पुनः ईमेल भेजें ➔
                 </button>

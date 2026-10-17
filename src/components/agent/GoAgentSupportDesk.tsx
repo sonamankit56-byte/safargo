@@ -117,45 +117,45 @@ export const GoAgentSupportDesk: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* 24-HOUR SLA GUARANTEE TOP BANNER */}
-      <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-rose-600 rounded-3xl p-5 text-white shadow-lg relative overflow-hidden">
+      {/* 24-HOUR SLA GUARANTEE TOP BANNER - Jio Royal Blue */}
+      <div className="bg-[#0A2885] rounded-3xl p-5 sm:p-6 text-white shadow-md relative overflow-hidden">
         <div className="absolute right-0 top-0 bottom-0 opacity-10 pointer-events-none flex items-center pr-6">
           <LifeBuoy className="w-48 h-48" />
         </div>
         <div className="relative z-10 space-y-2 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-black uppercase tracking-wider">
-            <ShieldCheck className="w-4 h-4 text-emerald-300" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-xs font-bold uppercase tracking-wider text-blue-100">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
             24 घंटे में गारंटीकृत समाधान (24-Hour SLA)
           </div>
           <h2 className="text-xl sm:text-2xl font-black leading-tight">
             GO Agent हेल्पडेस्क व टिकट सपोर्ट सिस्टम
           </h2>
-          <p className="text-xs sm:text-sm text-orange-100 font-medium">
+          <p className="text-xs sm:text-sm text-blue-100 font-medium">
             बुकिंग, 3-मिनट ऐड मनी, फ्लैट ₹20 इंस्टेंट कमीशन या 100% रिफंड संबंधी किसी भी समस्या का 24 घंटे में समाधान सुनिश्चित किया जाएगा।
           </p>
         </div>
       </div>
 
-      {/* NAVIGATION TABS */}
-      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200">
+      {/* NAVIGATION TABS - Jio Rounded-Full Pills */}
+      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100 rounded-full border border-slate-200 overflow-x-auto no-scrollbar">
         <button
           type="button"
           onClick={() => {
             setActiveTab('pending');
             setSelectedTicketId(null);
           }}
-          className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer ${
+          className={`px-4 py-2 rounded-full font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
             activeTab === 'pending'
-              ? 'bg-orange-600 text-white shadow-md'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              ? 'bg-[#0A2885] text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
           }`}
         >
           <Clock className="w-4 h-4" />
           <span>लंबित टिकट (Pending)</span>
           {pendingTickets.length > 0 && (
             <span
-              className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
-                activeTab === 'pending' ? 'bg-white text-orange-600' : 'bg-orange-500 text-white'
+              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                activeTab === 'pending' ? 'bg-[#FF6500] text-white' : 'bg-slate-200 text-slate-700'
               }`}
             >
               {pendingTickets.length}
@@ -169,14 +169,14 @@ export const GoAgentSupportDesk: React.FC = () => {
             setActiveTab('create');
             setSelectedTicketId(null);
           }}
-          className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer ${
+          className={`px-4 py-2 rounded-full font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
             activeTab === 'create'
-              ? 'bg-orange-600 text-white shadow-md'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              ? 'bg-[#0A2885] text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
           }`}
         >
           <PlusCircle className="w-4 h-4" />
-          <span>नया टिकट बनाएं (New Ticket)</span>
+          <span>नया टिकट बनाएं</span>
         </button>
 
         <button
@@ -185,18 +185,18 @@ export const GoAgentSupportDesk: React.FC = () => {
             setActiveTab('closed');
             setSelectedTicketId(null);
           }}
-          className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer ${
+          className={`px-4 py-2 rounded-full font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
             activeTab === 'closed'
-              ? 'bg-orange-600 text-white shadow-md'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              ? 'bg-[#0A2885] text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
           }`}
         >
           <CheckCircle2 className="w-4 h-4" />
           <span>हल हुए टिकट (Closed)</span>
           {closedTickets.length > 0 && (
             <span
-              className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
-                activeTab === 'closed' ? 'bg-white text-orange-600' : 'bg-emerald-600 text-white'
+              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                activeTab === 'closed' ? 'bg-[#FF6500] text-white' : 'bg-emerald-600 text-white'
               }`}
             >
               {closedTickets.length}
@@ -210,14 +210,14 @@ export const GoAgentSupportDesk: React.FC = () => {
             setActiveTab('policy_about');
             setSelectedTicketId(null);
           }}
-          className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer ${
+          className={`px-4 py-2 rounded-full font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
             activeTab === 'policy_about'
-              ? 'bg-orange-600 text-white shadow-md'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              ? 'bg-[#0A2885] text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
           }`}
         >
           <FileText className="w-4 h-4" />
-          <span>रिफंड नीति एवं SafarGo (Policy & About)</span>
+          <span>रिफंड नीति एवं SafarGo</span>
         </button>
       </div>
 
@@ -241,7 +241,7 @@ export const GoAgentSupportDesk: React.FC = () => {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as TicketCategory)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-orange-500 outline-none bg-white"
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 text-xs font-bold focus:border-[#0A2885] focus:bg-white outline-none bg-[#F5F7FB]"
               >
                 <option value="ticket_booking_issue">🚌 बस टिकट बुकिंग / PNR समस्या</option>
                 <option value="wallet_add_money">⚡ वॉलेट ऐड मनी / 3-मिनट सत्यापन समस्या</option>
@@ -258,7 +258,7 @@ export const GoAgentSupportDesk: React.FC = () => {
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as TicketPriority)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-orange-500 outline-none bg-white"
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 text-xs font-bold focus:border-[#0A2885] focus:bg-white outline-none bg-[#F5F7FB]"
               >
                 <option value="normal">🟢 सामान्य (Normal)</option>
                 <option value="high">🟡 उच्च (High - यात्रा आज ही है)</option>
@@ -277,7 +277,7 @@ export const GoAgentSupportDesk: React.FC = () => {
               placeholder="उदा. SFG-20261014-992 या 12-अंकों का बैंक UTR"
               value={relatedBookingCode}
               onChange={(e) => setRelatedBookingCode(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500 outline-none uppercase font-mono"
+              className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 text-xs focus:border-[#0A2885] focus:bg-white outline-none uppercase font-mono bg-[#F5F7FB]"
             />
           </div>
 
@@ -290,7 +290,7 @@ export const GoAgentSupportDesk: React.FC = () => {
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               required
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-orange-500 outline-none"
+              className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 text-xs font-bold focus:border-[#0A2885] focus:bg-white outline-none bg-[#F5F7FB]"
             />
           </div>
 
@@ -303,7 +303,7 @@ export const GoAgentSupportDesk: React.FC = () => {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               required
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500 outline-none resize-none"
+              className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 text-xs focus:border-[#0A2885] focus:bg-white outline-none resize-none bg-[#F5F7FB]"
             />
           </div>
 
@@ -315,14 +315,14 @@ export const GoAgentSupportDesk: React.FC = () => {
               placeholder="स्क्रीनशॉट इमेज URL या विवरण"
               value={screenshotUrl}
               onChange={(e) => setScreenshotUrl(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500 outline-none"
+              className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 text-xs focus:border-[#0A2885] focus:bg-white outline-none bg-[#F5F7FB]"
             />
           </div>
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3 bg-orange-600 hover:bg-orange-700 text-white font-black text-sm rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            className="w-full py-3.5 bg-[#FF6500] hover:bg-[#E05900] text-white font-bold text-sm rounded-full shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
             <Send className="w-4 h-4" />
             <span>{isSubmitting ? 'टिकट दर्ज हो रहा है...' : 'सपोर्ट टिकट सबमिट करें (24-घंटे समाधान)'}</span>
@@ -454,7 +454,7 @@ export const GoAgentSupportDesk: React.FC = () => {
                       <div
                         className={`max-w-[85%] rounded-2xl p-3 text-xs leading-relaxed ${
                           isAgent
-                            ? 'bg-orange-600 text-white rounded-tr-xs'
+                            ? 'bg-[#0A2885] text-white rounded-tr-xs shadow-xs'
                             : 'bg-white text-slate-800 border border-slate-200 rounded-tl-xs shadow-2xs'
                         }`}
                       >
@@ -465,7 +465,7 @@ export const GoAgentSupportDesk: React.FC = () => {
                               href={m.attachment_url}
                               target="_blank"
                               rel="noreferrer"
-                              className="underline flex items-center gap-1 text-orange-200 hover:text-white"
+                              className="underline flex items-center gap-1 text-blue-200 hover:text-white"
                             >
                               <ExternalLink className="w-3 h-3" />
                               संलग्न प्रमाण देखें
@@ -485,12 +485,12 @@ export const GoAgentSupportDesk: React.FC = () => {
                   placeholder="अपना जवाब या अतिरिक्त जानकारी लिखें..."
                   value={replyMessage}
                   onChange={(e) => setReplyMessage(e.target.value)}
-                  className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500 outline-none"
+                  className="flex-1 px-4 py-2.5 rounded-full border border-slate-200 text-xs focus:border-[#0A2885] outline-none bg-[#F5F7FB]"
                 />
                 <button
                   type="submit"
                   disabled={isReplying || !replyMessage.trim()}
-                  className="p-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl shadow-xs transition disabled:opacity-50 cursor-pointer"
+                  className="p-2.5 bg-[#0A2885] hover:bg-[#071E66] text-white rounded-full shadow-xs transition disabled:opacity-50 cursor-pointer"
                 >
                   <Send className="w-4 h-4" />
                 </button>
