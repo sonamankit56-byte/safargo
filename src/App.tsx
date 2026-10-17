@@ -48,6 +48,7 @@ import { ShopSubdomainGateway } from './components/shop/ShopSubdomainGateway';
 import { CreatorSubdomainGateway } from './components/creator/CreatorSubdomainGateway';
 import { CareersSubdomainGateway } from './components/careers/CareersSubdomainGateway';
 import { LoginSubdomainGateway } from './components/auth/LoginSubdomainGateway';
+import { AgentOnboardingGateway } from './components/auth/AgentOnboardingGateway';
 import { HelpSubdomainGateway } from './components/help/HelpSubdomainGateway';
 import { AdminJobsDesk } from './components/admin/AdminJobsDesk';
 import { AutoRedBusBookingView } from './components/bus/AutoRedBusBookingView';
@@ -220,9 +221,17 @@ const AppContent: React.FC = () => {
 
   if (
     !currentUser &&
-    (activeSubdomain === 'login' ||
-      location.pathname === '/login' ||
+    (activeSubdomain === 'onboarding' ||
+      location.pathname === '/onboarding' ||
       location.pathname === '/register')
+  ) {
+    return <AgentOnboardingGateway />;
+  }
+
+  if (
+    !currentUser &&
+    (activeSubdomain === 'login' ||
+      location.pathname === '/login')
   ) {
     return <LoginSubdomainGateway />;
   }
@@ -378,6 +387,8 @@ const AppContent: React.FC = () => {
           <CreatorSubdomainGateway />
         ) : currentTab === 'careers' ? (
           <CareersSubdomainGateway />
+        ) : currentTab === 'onboarding' ? (
+          <AgentOnboardingGateway />
         ) : currentTab === 'bus-booking' || currentTab === 'book' || currentTab === 'redbus' ? (
           <AutoRedBusBookingView
             onBookingSuccess={(b) => {

@@ -29,7 +29,8 @@ export type AppSubdomain =
   | 'creator'
   | 'careers'
   | 'login'
-  | 'help';
+  | 'help'
+  | 'onboarding';
 
 export interface SubdomainConfig {
   id: AppSubdomain;
@@ -186,6 +187,15 @@ export const SUBDOMAIN_CONFIGS: Record<AppSubdomain, SubdomainConfig> = {
     subdomainPrefix: 'help',
     themeColor: 'from-blue-600 via-indigo-600 to-slate-900',
   },
+  onboarding: {
+    id: 'onboarding',
+    title: 'SafarGo अधिकृत एजेंट ऑनबोर्डिंग पोर्टल',
+    badge: 'Agent Onboarding',
+    description: 'Razorpay-स्टाइल चरणबद्ध एजेंट पार्टनर ऑनबोर्डिंग, ई-KYC व बैंक सेटलमेंट सत्यापन',
+    pathFallback: '/onboarding',
+    subdomainPrefix: 'onboarding',
+    themeColor: 'from-red-600 via-rose-600 to-slate-900',
+  },
 };
 
 const STORAGE_KEY_CUSTOM_DOMAIN = 'safargo_custom_domain';
@@ -233,10 +243,17 @@ export function detectSubdomain(): AppSubdomain {
     'careers',
     'login',
     'help',
+    'onboarding',
     'main',
   ];
   if (querySub && validSubdomains.includes(querySub as AppSubdomain)) {
     return querySub as AppSubdomain;
+  }
+
+  // Check path priority for dedicated onboarding / registration
+  const pathname = window.location.pathname.toLowerCase();
+  if (pathname === '/onboarding' || pathname === '/register') {
+    return 'onboarding';
   }
 
   // 2. LocalStorage override if set manually by developer/admin switcher
@@ -249,6 +266,16 @@ export function detectSubdomain(): AppSubdomain {
 
   // 3. Hostname inspection (e.g. admin.safargo.in, agent.mysite.com, admin.localhost)
   const hostname = window.location.hostname.toLowerCase();
+
+  // Onboarding subdomains (onboarding.safargo.in, signup.safargo.in, onboarding.safar.in)
+  if (
+    hostname.startsWith('onboarding.') ||
+    hostname.startsWith('signup.') ||
+    hostname === 'onboarding.localhost' ||
+    hostname === 'signup.localhost'
+  ) {
+    return 'onboarding';
+  }
 
   // Admin subdomains
   if (hostname.startsWith('admin.') || hostname === 'admin.localhost') {

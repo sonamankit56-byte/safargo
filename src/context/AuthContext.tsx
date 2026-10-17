@@ -40,6 +40,13 @@ interface AuthContextType {
     shop_name?: string;
     referral_code?: string;
     password?: string;
+    aadhaar_number?: string;
+    pan_number?: string;
+    bank_account_holder?: string;
+    bank_account_number?: string;
+    bank_ifsc?: string;
+    bank_name?: string;
+    bank_upi_id?: string;
   }) => Promise<boolean>;
   registerCustomer: (details: {
     full_name: string;
@@ -947,6 +954,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     shop_name?: string;
     referral_code?: string;
     password?: string;
+    aadhaar_number?: string;
+    pan_number?: string;
+    bank_account_holder?: string;
+    bank_account_number?: string;
+    bank_ifsc?: string;
+    bank_name?: string;
+    bank_upi_id?: string;
   }): Promise<boolean> => {
     // Clean 10-digit mobile & lowercase email check
     const cleanMobile = details.mobile.replace(/\D/g, '').slice(-10);
@@ -982,6 +996,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const cleanNameTag = details.full_name.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 5) || 'AGENT';
     const myReferralCode = `SFG-REF-${cleanNameTag}${Math.floor(10 + Math.random() * 90)}`;
     const nowIso = new Date().toISOString();
+    const hasKyc = Boolean(details.pan_number?.trim() && details.aadhaar_number?.trim());
 
     const newAgent: Profile = {
       id: newId,
@@ -994,7 +1009,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       address: details.address.trim(),
       shop_name: details.shop_name?.trim() || 'SafarGo Kiosk Kendra',
       agent_status: 'approved', // Active immediately so agent can log in and work right away
-      kyc_status: 'not_submitted',
+      kyc_status: hasKyc ? 'verified' : 'not_submitted',
+      aadhaar_number: details.aadhaar_number?.trim(),
+      pan_number: details.pan_number?.trim(),
+      bank_account_holder: details.bank_account_holder?.trim() || details.full_name.trim(),
+      bank_account_number: details.bank_account_number?.trim(),
+      bank_ifsc: details.bank_ifsc?.trim(),
+      bank_name: details.bank_name?.trim(),
+      bank_upi_id: details.bank_upi_id?.trim(),
       wallet_balance: 0,
       referral_code: myReferralCode,
       referred_by_code: referrer?.referral_code,
