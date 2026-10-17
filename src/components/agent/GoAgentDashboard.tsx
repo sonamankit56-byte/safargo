@@ -68,6 +68,10 @@ import {
   MessageSquare,
   HelpCircle,
   ExternalLink,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Tag,
+  History,
 } from 'lucide-react';
 
 interface GoAgentDashboardProps {
@@ -155,6 +159,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
   const {
     agentBookings,
     agentWalletBalance,
+    agentWalletTransactions,
     createBooking,
     busTrips,
     agentSupportTickets,
@@ -166,6 +171,13 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
   // Exactly 4 Bottom Navigation Options:
   // 1: 'dashboard', 2: 'booking', 3: 'history', 4: 'account'
   const [activeTab, setActiveTab] = useState<'dashboard' | 'booking' | 'history' | 'account'>('dashboard');
+
+  // Booking Tab Mode: 'auto' (Interactive Bus Search & RedBus Seat Map) vs 'manual' (Fast Track Form)
+  const [bookingMode, setBookingMode] = useState<'auto' | 'manual'>('auto');
+
+  // Wallet History & Origin: Source Filter & Search
+  const [walletSourceFilter, setWalletSourceFilter] = useState<WalletTransactionSource | 'all'>('all');
+  const [walletSearchTerm, setWalletSearchTerm] = useState('');
 
   // Booking Tab: Active Pending Booking Id (for 5-min timer & auto-confirmation polling)
   const [activePendingBookingId, setActivePendingBookingId] = useState<string | null>(() => {
@@ -205,6 +217,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
   // Modals
   const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
   const [isInstantAddMoneyModalOpen, setIsInstantAddMoneyModalOpen] = useState(false);
+  const [isRechargeModalOpen, setIsRechargeModalOpen] = useState(false);
   const [isUberModalOpen, setIsUberModalOpen] = useState(false);
   const [uberDefaultDestination, setUberDefaultDestination] = useState('');
   const [selectedGreenCardBooking, setSelectedGreenCardBooking] = useState<Booking | null>(null);
@@ -359,6 +372,33 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
   const activePendingPayout = (agentPayoutRequests || []).find(
     (p) => p.status === 'pending' || p.status === 'processing'
   );
+
+  // Enriched and Filtered Wallet Transactions for Money Origin History
+  const enrichedWalletTransactions = useMemo(() => {
+    return (agentWalletTransactions || []).map(enrichWalletTransaction);
+  }, [agentWalletTransactions]);
+
+  const filteredWalletTransactions = useMemo(() => {
+    return enrichedWalletTransactions.filter((tx) => {
+      // 1. Source Filter
+      if (walletSourceFilter !== 'all' && tx.source_category !== walletSourceFilter) {
+        return false;
+      }
+      // 2. Search Filter
+      if (walletSearchTerm.trim()) {
+        const q = walletSearchTerm.toLowerCase().trim();
+        const matchName = tx.transaction_name?.toLowerCase().includes(q);
+        const matchSrc = tx.source_name?.toLowerCase().includes(q);
+        const matchDesc = tx.description?.toLowerCase().includes(q);
+        const matchCode = tx.booking_code?.toLowerCase().includes(q);
+        const matchDetails = tx.source_details?.toLowerCase().includes(q);
+        if (!matchName && !matchSrc && !matchDesc && !matchCode && !matchDetails) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [enrichedWalletTransactions, walletSourceFilter, walletSearchTerm]);
 
   // Filtered History
   const filteredHistoryBookings = useMemo(() => {
@@ -675,7 +715,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
 
                   <button
                     type="button"
-                    onClick={() => setIsInstantAddMoneyModalOpen(true)}
+                    onClick={() => setIsRechargeModalOpen(true)}
                     className="py-3 px-4 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-emerald-500/50 text-emerald-400 font-black text-xs shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Zap className="w-4 h-4 fill-emerald-400" />
@@ -895,6 +935,186 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
               )}
             </div>
 
+            {/* 4. GO WALLET TRANSACTIONS & MONEY ORIGIN HUB (कहाँ-कहाँ से पैसा आया - स्रोत ब्योरा) */}
+            <div className="p-5 sm:p-7 rounded-3xl bg-slate-900 border border-slate-800 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black">
+                      <History className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                      <span>Go Wallet खाता-बही व पैसे का स्रोत</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                        लाइव अपडेट्स
+                      </span>
+                    </h3>
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    कहाँ-कहाँ से पैसा आया और कहाँ खर्च हुआ — टिकट कमीशन, रेफरल बोनस, वॉलेट रिचार्ज, सैलरी व निकासी का संपूर्ण ब्योरा
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsRechargeModalOpen(true)}
+                    className="py-2 px-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Zap className="w-3.5 h-3.5 fill-slate-950" />
+                    <span>पैसे जोड़ें</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsWithdrawalModalOpen(true)}
+                    className="py-2 px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Wallet className="w-3.5 h-3.5" />
+                    <span>निकासी</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Source Filter Chips */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setWalletSourceFilter('all')}
+                  className={`py-1.5 px-3 rounded-xl font-bold whitespace-nowrap transition cursor-pointer shrink-0 ${
+                    walletSourceFilter === 'all'
+                      ? 'bg-amber-400 text-slate-950 font-black shadow-md'
+                      : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  🌟 सभी स्रोत ({enrichedWalletTransactions.length})
+                </button>
+
+                {(Object.keys(TRANSACTION_SOURCE_METAS) as WalletTransactionSource[]).map((catKey) => {
+                  const meta = TRANSACTION_SOURCE_METAS[catKey];
+                  const count = enrichedWalletTransactions.filter((t) => t.source_category === catKey).length;
+                  if (count === 0 && catKey !== 'bus_ticket_commission' && catKey !== 'referral_bonus' && catKey !== 'wallet_recharge') {
+                    return null;
+                  }
+                  return (
+                    <button
+                      key={catKey}
+                      type="button"
+                      onClick={() => setWalletSourceFilter(catKey)}
+                      className={`py-1.5 px-3 rounded-xl font-bold whitespace-nowrap transition cursor-pointer shrink-0 flex items-center gap-1.5 ${
+                        walletSourceFilter === catKey
+                          ? 'bg-amber-400 text-slate-950 font-black shadow-md'
+                          : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                      }`}
+                    >
+                      <span>{meta.icon}</span>
+                      <span>{meta.shortLabel}</span>
+                      <span className="text-[10px] opacity-75">({count})</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Search Filter Bar */}
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                <input
+                  type="text"
+                  value={walletSearchTerm}
+                  onChange={(e) => setWalletSearchTerm(e.target.value)}
+                  placeholder="स्रोत, लेन-देन नाम, UTR, PNR या विवरण से खोजें..."
+                  className="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs outline-none focus:border-amber-400 placeholder:text-slate-600"
+                />
+              </div>
+
+              {/* Transactions List */}
+              {filteredWalletTransactions.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 space-y-2 bg-slate-950/60 rounded-2xl border border-slate-800">
+                  <History className="w-8 h-8 text-slate-600 mx-auto opacity-50" />
+                  <p className="text-xs">चयनित फ़िल्टर के अनुसार कोई लेन-देन नहीं मिला।</p>
+                </div>
+              ) : (
+                <div className="space-y-2.5 max-h-[460px] overflow-y-auto pr-1">
+                  {filteredWalletTransactions.map((tx) => {
+                    const isPositive = Number(tx.amount) > 0;
+                    const meta = tx.source_category ? TRANSACTION_SOURCE_METAS[tx.source_category] : undefined;
+                    return (
+                      <div
+                        key={tx.id}
+                        className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800/90 hover:border-slate-700 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center font-black shrink-0 ${
+                              isPositive
+                                ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/30'
+                                : 'bg-rose-950 text-rose-400 border border-rose-500/30'
+                            }`}
+                          >
+                            {isPositive ? (
+                              <ArrowDownLeft className="w-5 h-5" />
+                            ) : (
+                              <ArrowUpRight className="w-5 h-5" />
+                            )}
+                          </div>
+
+                          <div className="space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-black text-white text-sm">
+                                {tx.transaction_name || (isPositive ? 'जमा राशि' : 'निकासी राशि')}
+                              </span>
+                              {meta && (
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${meta.badgeBg} ${meta.badgeText} border ${meta.borderClass}`}
+                                >
+                                  {meta.shortLabel}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Source of Funds (कहाँ-कहाँ से पैसा आया) */}
+                            <div className="text-[11px] text-amber-300/90 flex items-center gap-1 font-medium">
+                              <span className="text-slate-400">स्रोत:</span>
+                              <span>{tx.source_name || tx.description}</span>
+                            </div>
+
+                            {/* Details / Booking Code */}
+                            {tx.source_details && tx.source_details !== tx.source_name && (
+                              <p className="text-[10px] text-slate-400 line-clamp-1">
+                                {tx.source_details}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="text-left sm:text-right shrink-0 flex sm:flex-col justify-between sm:justify-center items-end border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-800">
+                          <span
+                            className={`text-base font-black font-mono ${
+                              isPositive ? 'text-emerald-400' : 'text-rose-400'
+                            }`}
+                          >
+                            {isPositive ? `+₹${tx.amount.toLocaleString('en-IN')}` : `-₹${Math.abs(tx.amount).toLocaleString('en-IN')}`}
+                          </span>
+
+                          <div className="text-[10px] text-slate-500 space-x-1">
+                            <span>{new Date(tx.created_at).toLocaleDateString('hi-IN', { day: 'numeric', month: 'short' })}</span>
+                            <span>•</span>
+                            <span>{new Date(tx.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+
+                          {tx.balance_after !== undefined && (
+                            <span className="text-[10px] font-mono text-slate-400">
+                              शेष: ₹{tx.balance_after.toLocaleString('en-IN')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {/* Quick Action to New Booking */}
             <div
               onClick={() => setActiveTab('booking')}
@@ -1101,25 +1321,74 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                 </div>
               </div>
             ) : (
-              /* NEW BUS BOOKING FORM */
-              <div className="p-5 sm:p-7 rounded-3xl bg-slate-900 border border-slate-800 space-y-6">
-                
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-4">
-                  <div>
-                    <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
-                      <Bus className="w-5 h-5 text-amber-400" />
-                      <span>नई बस टिकट बुक करें (New Bus Booking)</span>
-                    </h3>
-                    <p className="text-xs text-slate-400">
-                      सीट चुनें और कन्फर्म करें • प्रत्येक टिकट पर फ्लैट ₹20 नकद कमीशन Go Wallet में जुड़ेगा
-                    </p>
-                  </div>
-                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-950 text-emerald-400 border border-emerald-500/40 shrink-0">
-                    ⚡ 5-Min Fast Track
-                  </span>
+              <div className="space-y-6">
+                {/* 1. TOP BOOKING MODE SWITCHER */}
+                <div className="bg-slate-950 p-1.5 rounded-2xl border border-slate-800 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setBookingMode('auto')}
+                    className={`flex-1 py-3 px-4 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer ${
+                      bookingMode === 'auto'
+                        ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-slate-950 shadow-lg shadow-amber-500/20'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                    }`}
+                  >
+                    <Bus className="w-4 h-4" />
+                    <span>🚌 ऑटोमैटिक बस सर्च व सीट मैप (Live Bus Booking)</span>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-slate-950 text-amber-300 border border-amber-400/40">
+                      पसंदीदा
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setBookingMode('manual')}
+                    className={`flex-1 py-3 px-4 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer ${
+                      bookingMode === 'manual'
+                        ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-slate-950 shadow-lg shadow-amber-500/20'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                    }`}
+                  >
+                    <Zap className="w-4 h-4" />
+                    <span>⚡ त्वरित फॉर्म बुकिंग (Fast Track Form)</span>
+                  </button>
                 </div>
 
-                <form onSubmit={handleBookingSubmit} className="space-y-4 text-xs">
+                {/* 2. MODE CONTENT: AUTO SEARCH OR FAST TRACK FORM */}
+                {bookingMode === 'auto' ? (
+                  <AutoRedBusBookingView
+                    onBookingSuccess={(confirmed) => {
+                      setActivePendingBookingId(confirmed.id);
+                      setSelectedGreenCardBooking(confirmed);
+                      try {
+                        localStorage.setItem(`safargo_pending_booking_${currentUser?.id}`, confirmed.id);
+                      } catch {}
+                      success(
+                        '🎉 बस टिकट सफलतापूर्वक कन्फर्म हो गई!',
+                        `PNR: ${confirmed.ticket_pnr || 'CONFIRMED'} • ₹20 कमीशन Go Wallet में क्रेडिट हुआ!`
+                      );
+                    }}
+                    onSwitchToManual={() => setBookingMode('manual')}
+                  />
+                ) : (
+                  /* NEW BUS BOOKING FORM */
+                  <div className="p-5 sm:p-7 rounded-3xl bg-slate-900 border border-slate-800 space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-4">
+                      <div>
+                        <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+                          <Bus className="w-5 h-5 text-amber-400" />
+                          <span>त्वरित बस टिकट फॉर्म (Fast Track Booking)</span>
+                        </h3>
+                        <p className="text-xs text-slate-400">
+                          सीट चुनें और कन्फर्म करें • प्रत्येक टिकट पर फ्लैट ₹20 नकद कमीशन Go Wallet में जुड़ेगा
+                        </p>
+                      </div>
+                      <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-950 text-emerald-400 border border-emerald-500/40 shrink-0">
+                        ⚡ 5-Min Fast Track
+                      </span>
+                    </div>
+
+                    <form onSubmit={handleBookingSubmit} className="space-y-4 text-xs">
                   
                   {/* Origin & Destination */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1370,9 +1639,10 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                 </form>
               </div>
             )}
-
           </div>
         )}
+      </div>
+    )}
 
         {/* ============================================================ */}
         {/* TAB 3: 📜 HISTORY (माई टिकट्स व हिस्ट्री)                    */}
@@ -1938,6 +2208,10 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
       {/* ============================================================== */}
       {isWithdrawalModalOpen && (
         <GoAgentWithdrawalModal onClose={() => setIsWithdrawalModalOpen(false)} />
+      )}
+
+      {isRechargeModalOpen && (
+        <WalletRechargeModal onClose={() => setIsRechargeModalOpen(false)} />
       )}
 
       {isInstantAddMoneyModalOpen && (

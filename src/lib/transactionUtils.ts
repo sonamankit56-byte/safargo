@@ -121,17 +121,13 @@ export function inferTransactionCategory(tx: Partial<WalletTransaction>): {
   const desc = (tx.description || '').toLowerCase();
   const type = tx.type;
 
-  // 1. Bus ticket commission
-  if (
-    desc.includes('कमीशन') ||
-    desc.includes('commission') ||
-    (type === 'recharge' && (tx.booking_code || desc.includes('booking') || desc.includes('टिकट')))
-  ) {
+  // 1. Boarding sathi
+  if (desc.includes('बोर्डिंग') || desc.includes('boarding')) {
     return {
-      transaction_name: '🎟️ बस टिकट कमीशन (फ्लैट ₹20)',
-      source_name: tx.booking_code ? `सफरगो बस टिकट बुकिंग (${tx.booking_code})` : 'सफरगो अधिकृत बस टिकट बुकिंग',
-      source_category: 'bus_ticket_commission',
-      source_details: tx.booking_code ? `बुकिंग संदर्भ: ${tx.booking_code}` : 'प्रत्येक कन्फर्म टिकट पर त्वरित नकद कमीशन',
+      transaction_name: '🛡️ बोर्डिंग साथी मानदेय (+₹23)',
+      source_name: 'यात्री बस बोर्डिंग सहायता सेवा',
+      source_category: 'boarding_sathi',
+      source_details: 'यात्री को बस में सुरक्षित बैठाने का सेवा मानदेय',
     };
   }
 
@@ -145,13 +141,17 @@ export function inferTransactionCategory(tx: Partial<WalletTransaction>): {
     };
   }
 
-  // 3. Boarding sathi
-  if (desc.includes('बोर्डिंग') || desc.includes('boarding')) {
+  // 3. Bus ticket commission
+  if (
+    desc.includes('कमीशन') ||
+    desc.includes('commission') ||
+    (type === 'recharge' && (tx.booking_code || desc.includes('booking') || desc.includes('टिकट')))
+  ) {
     return {
-      transaction_name: '🛡️ बोर्डिंग साथी मानदेय (+₹23)',
-      source_name: 'यात्री बस बोर्डिंग सहायता सेवा',
-      source_category: 'boarding_sathi',
-      source_details: 'यात्री को बस में सुरक्षित बैठाने का सेवा मानदेय',
+      transaction_name: '🎟️ बस टिकट कमीशन (फ्लैट ₹20)',
+      source_name: tx.booking_code ? `सफरगो बस टिकट बुकिंग (${tx.booking_code})` : 'सफरगो अधिकृत बस टिकट बुकिंग',
+      source_category: 'bus_ticket_commission',
+      source_details: tx.booking_code ? `बुकिंग संदर्भ: ${tx.booking_code}` : 'प्रत्येक कन्फर्म टिकट पर त्वरित नकद कमीशन',
     };
   }
 

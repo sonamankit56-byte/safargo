@@ -16,8 +16,14 @@ import {
   Wallet,
   Sparkles,
   ShieldCheck,
-  Calendar
+  Calendar,
+  Tag
 } from 'lucide-react';
+import {
+  enrichWalletTransaction,
+  TRANSACTION_SOURCE_METAS,
+} from '../../lib/transactionUtils';
+import { WalletTransactionSource } from '../../types';
 
 export const GoAccountHistoryDesk: React.FC = () => {
   const {
@@ -30,6 +36,7 @@ export const GoAccountHistoryDesk: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'recharges' | 'commissions' | 'transactions'>('recharges');
   const [searchTerm, setSearchTerm] = useState('');
+  const [txSourceFilter, setTxSourceFilter] = useState<WalletTransactionSource | 'all'>('all');
   const [nowTime, setNowTime] = useState(Date.now());
 
   // Keep live second-by-second countdown for the 3-minute timers
@@ -347,31 +354,84 @@ export const GoAccountHistoryDesk: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 3: COMPLETE WALLET TRANSACTIONS LEDGER */}
+      {/* TAB 3: COMPLETE WALLET TRANSACTIONS LEDGER & SOURCE ORIGIN */}
       {activeTab === 'transactions' && (
-        <div className="space-y-3">
+        <div className="space-y-4">
+          {/* Source Filter Chips */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs">
+            <button
+              type="button"
+              onClick={() => setTxSourceFilter('all')}
+              className={`py-1.5 px-3 rounded-xl font-bold whitespace-nowrap transition cursor-pointer shrink-0 ${
+                txSourceFilter === 'all'
+                  ? 'bg-orange-600 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              🌟 सभी स्रोत ({agentWalletTransactions.length})
+            </button>
+
+            {(Object.keys(TRANSACTION_SOURCE_METAS) as WalletTransactionSource[]).map((catKey) => {
+              const meta = TRANSACTION_SOURCE_METAS[catKey];
+              const count = (agentWalletTransactions || [])
+                .map(enrichWalletTransaction)
+                .filter((t) => t.source_category === catKey).length;
+              if (count === 0 && catKey !== 'bus_ticket_commission' && catKey !== 'referral_bonus' && catKey !== 'wallet_recharge') {
+                return null;
+              }
+              return (
+                <button
+                  key={catKey}
+                  type="button"
+                  onClick={() => setTxSourceFilter(catKey)}
+                  className={`py-1.5 px-3 rounded-xl font-bold whitespace-nowrap transition cursor-pointer shrink-0 flex items-center gap-1.5 ${
+                    txSourceFilter === catKey
+                      ? 'bg-orange-600 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  <span>{meta.icon}</span>
+                  <span>{meta.shortLabel}</span>
+                  <span className="text-[10px] opacity-75">({count})</span>
+                </button>
+              );
+            })}
+          </div>
+
           {agentWalletTransactions.length === 0 ? (
             <div className="p-8 rounded-3xl bg-white border border-slate-200 text-center text-xs text-slate-400">
               कोई लेनदेन नहीं मिला।
             </div>
           ) : (
             agentWalletTransactions
-              .filter(
-                (t) =>
-                  !searchTerm ||
-                  t.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  t.booking_code?.toLowerCase().includes(searchTerm.toLowerCase())
-              )
+              .map(enrichWalletTransaction)
+              .filter((t) => {
+                if (txSourceFilter !== 'all' && t.source_category !== txSourceFilter) {
+                  return false;
+                }
+                if (searchTerm.trim()) {
+                  const q = searchTerm.toLowerCase().trim();
+                  const matchDesc = t.description?.toLowerCase().includes(q);
+                  const matchCode = t.booking_code?.toLowerCase().includes(q);
+                  const matchName = t.transaction_name?.toLowerCase().includes(q);
+                  const matchSrc = t.source_name?.toLowerCase().includes(q);
+                  if (!matchDesc && !matchCode && !matchName && !matchSrc) {
+                    return false;
+                  }
+                }
+                return true;
+              })
               .map((t) => {
                 const isPositive = Number(t.amount) > 0;
+                const meta = t.source_category ? TRANSACTION_SOURCE_METAS[t.source_category] : undefined;
                 return (
                   <div
                     key={t.id}
-                    className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs flex items-center justify-between gap-3"
+                    className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-start gap-3">
                       <div
-                        className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold ${
+                        className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${
                           isPositive
                             ? 'bg-emerald-100 text-emerald-600'
                             : 'bg-rose-100 text-rose-600'
@@ -383,27 +443,39 @@ export const GoAccountHistoryDesk: React.FC = () => {
                           <ArrowUpRight className="w-5 h-5" />
                         )}
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`text-sm font-black font-mono ${
-                              isPositive ? 'text-emerald-600' : 'text-rose-600'
-                            }`}
-                          >
-                            {isPositive ? `+₹${t.amount}` : `-₹${Math.abs(t.amount)}`}
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-slate-900 text-sm">
+                            {t.transaction_name || t.type.replace(/_/g, ' ')}
                           </span>
-                          <span className="text-[10px] font-bold uppercase bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full">
-                            {t.type.replace(/_/g, ' ')}
-                          </span>
+                          {meta && (
+                            <span className="text-[10px] font-bold uppercase bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full">
+                              {meta.shortLabel}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-[11px] text-slate-600 font-medium line-clamp-1">
-                          {t.description}
-                        </p>
+                        <div className="text-[11px] text-slate-600 font-medium">
+                          <span className="text-slate-400">स्रोत:</span> {t.source_name || t.description}
+                        </div>
+                        {t.source_details && t.source_details !== t.source_name && (
+                          <p className="text-[10px] text-slate-400">
+                            {t.source_details}
+                          </p>
+                        )}
                       </div>
                     </div>
 
-                    <div className="text-right text-[11px] text-slate-400">
-                      <div>{new Date(t.created_at).toLocaleDateString('hi-IN')}</div>
+                    <div className="text-left sm:text-right shrink-0 flex sm:flex-col justify-between sm:justify-center items-end border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-100">
+                      <span
+                        className={`text-sm font-black font-mono ${
+                          isPositive ? 'text-emerald-600' : 'text-rose-600'
+                        }`}
+                      >
+                        {isPositive ? `+₹${t.amount}` : `-₹${Math.abs(t.amount)}`}
+                      </span>
+                      <div className="text-[11px] text-slate-400">
+                        {new Date(t.created_at).toLocaleDateString('hi-IN')}
+                      </div>
                       {t.balance_after !== undefined && (
                         <div className="text-[10px] font-mono text-slate-500">
                           शेष: ₹{t.balance_after.toLocaleString('en-IN')}
