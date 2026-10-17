@@ -23,6 +23,9 @@ import {
   EyeOff,
   Clock,
   ShieldCheck,
+  Shield,
+  Award,
+  Heart,
   MapPin,
   ArrowLeftRight,
   RotateCcw,
@@ -32,6 +35,8 @@ import {
   Ticket,
   Star,
   Check,
+  LogOut,
+  User,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -46,7 +51,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   onOpenAuth,
   onNavigateTab,
 }) => {
-  const { registerAgent } = useAuth();
+  const { registerAgent, currentUser, logout } = useAuth();
   const { error, success } = useToast();
 
   // Search Box State
@@ -351,51 +356,132 @@ export const HomePage: React.FC<HomePageProps> = ({
   return (
     <div className="space-y-16 pb-16 font-sans">
       {/* ========================================================================= */}
-      {/* 1. TOP HEADER WITH CLEAN SAFARGO LOGO & BECOME AN AGENT BUTTON            */}
+      {/* 1. TOP HEADER WITH MICRO BANNER, CLEAN SAFARGO LOGO & UTILITIES           */}
       {/* ========================================================================= */}
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            {/* Clean Logo without 3D Live */}
-            <div className="flex items-center gap-2">
-              <SafarGoLogo size="md" showBadge={false} showTagline={true} />
+        {/* Top micro banner */}
+        <div className="bg-slate-900 text-slate-300 text-xs py-1.5 px-4 hidden md:block">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <span className="flex items-center gap-1.5 text-emerald-400">
+                <ShieldCheck className="w-3.5 h-3.5" /> 100% Safe & Sanitized Buses
+              </span>
+              <span>Primo Certified Operators</span>
+              <span>24x7 Customer Support</span>
             </div>
+            <div className="flex items-center gap-4 text-slate-400">
+              <span className="flex items-center gap-1">
+                <Phone className="w-3 h-3" /> Helpline: 1800-SAFAR-GO
+              </span>
+              <span>|</span>
+              <span className="text-white font-medium">India's Modern Bus Platform</span>
+            </div>
+          </div>
+        </div>
 
-            {/* Nav items */}
-            <nav className="hidden md:flex items-center gap-1">
+        {/* Main Navbar */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
+          {/* Brand Logo & Service Tabs */}
+          <div className="flex items-center gap-8">
+            <button
+              type="button"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="flex items-center gap-2.5 text-left group transition-transform active:scale-95 cursor-pointer"
+            >
+              <SafarGoLogo size="md" showBadge={false} showTagline={true} />
+            </button>
+
+            {/* Navigation Links */}
+            <nav className="hidden lg:flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => onNavigateTab('bus-booking')}
-                className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer"
               >
                 <Bus className="w-4 h-4" />
-                <span>बस टिकट (Bus Tickets)</span>
+                <span>Bus Tickets</span>
               </button>
-
               <button
                 type="button"
-                onClick={() => setIsAgentModalOpen(true)}
-                className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-bold text-slate-700 hover:text-red-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                onClick={() => alert('Cab Rentals launching soon on Safar Go!')}
+              >
+                Cab Rentals
+              </button>
+              <button
+                type="button"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                onClick={() => alert('Train Bookings feature coming in next release!')}
+              >
+                Train Tickets
+                <span className="bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded">NEW</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAgentAuthStep('form');
+                  setIsAgentModalOpen(true);
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <Briefcase className="w-4 h-4 text-red-600" />
                 <span>Become an Agent</span>
-                <span className="bg-amber-100 text-amber-800 text-[10px] font-black px-1.5 py-0.5 rounded-full">
-                  ₹20 / टिकट
+                <span className="bg-red-100 text-red-700 text-[10px] font-black px-1.5 py-0.5 rounded-full">
+                  ₹19.34
                 </span>
               </button>
             </nav>
           </div>
 
           {/* Right Utility Buttons */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => onOpenAuth('login')}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-black shadow-md transition-all cursor-pointer active:scale-95"
+              onClick={() => onNavigateTab('my-bookings')}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
             >
-              <Lock className="w-3.5 h-3.5" />
-              <span>लॉगिन (Sign In)</span>
+              <Ticket className="w-4 h-4" />
+              <span className="hidden sm:inline">My Bookings</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => alert('Safar Go 24/7 Helpline: 1800-SAFAR-GO\nEmail: support@safargo.in\nInstant Chat Support is Active.')}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 cursor-pointer"
+            >
+              <HelpCircle className="w-4 h-4" />
+              Help
+            </button>
+
+            {/* User Auth Profile / Login */}
+            {currentUser ? (
+              <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+                <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 font-bold text-sm flex items-center justify-center">
+                  {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <div className="hidden md:block text-left text-xs">
+                  <p className="font-bold text-slate-800 leading-tight">{currentUser.name}</p>
+                  <p className="text-slate-400">{currentUser.phone}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={logout}
+                  title="Log out"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 ml-1 cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onOpenAuth('login')}
+                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-sm shadow-red-200 transition-all active:scale-95 cursor-pointer"
+              >
+                <User className="w-4 h-4" />
+                <span>Login / Sign Up</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -403,7 +489,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* ========================================================================= */}
       {/* 2. HERO SECTION WITH RED/ROSE GRADIENT & SEARCH BOX                       */}
       {/* ========================================================================= */}
-      <section className="relative bg-gradient-to-b from-red-600 via-rose-600 to-red-700 text-white pt-10 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden rounded-b-3xl shadow-xl -mt-16">
+      <section className="relative bg-gradient-to-b from-red-600 via-rose-600 to-red-700 text-white pt-12 pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden rounded-b-3xl shadow-xl">
         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-96 h-96 rounded-full bg-white/5 pointer-events-none blur-2xl" />
         <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-80 h-80 rounded-full bg-black/10 pointer-events-none blur-xl" />
 
@@ -866,6 +952,125 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
         </div>
       </section>
+
+      {/* ========================================================================= */}
+      {/* 9. COMPLETE REDBUS-STYLE FOOTER                                           */}
+      {/* ========================================================================= */}
+      <footer className="bg-slate-900 text-slate-400 text-xs pt-16 pb-12 border-t border-slate-800 mt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          {/* Top Pillars */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pb-12 border-b border-slate-800 text-left">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center shrink-0 border border-red-500/20">
+                <Shield className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white mb-1">Safety First Guaranteed</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Emergency exit indicators, verified drivers, sanitized cabins, and real-time live GPS tracking on all Primo routes.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/20">
+                <Award className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white mb-1">Lowest Fare Promise</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Direct operator inventory rates with zero hidden charges. Use code SAFAR100 for instant ₹100 flat savings on first booking.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                <Heart className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white mb-1">24x7 Customer Support</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Dedicated travel helpline, instant automated cancellation refund processing, and WhatsApp trip updates.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Directory Links */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-left">
+            {/* Brand Info */}
+            <div className="space-y-4 col-span-2 md:col-span-1">
+              <div className="flex items-center gap-2">
+                <SafarGoLogo size="sm" variant="light" showBadge={false} showTagline={false} />
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                India's fastest and most reliable online bus ticketing reservation engine. Rebuilding travel with comfort, reliability, and precision.
+              </p>
+              <div className="space-y-1.5 pt-2 text-slate-300">
+                <div className="flex items-center gap-2">
+                  <Phone className="w-3.5 h-3.5 text-red-500" /> 1800-SAFAR-GO (Toll Free)
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="w-3.5 h-3.5 text-red-500" /> support@safargo.in
+                </div>
+              </div>
+            </div>
+
+            {/* Popular Routes */}
+            <div>
+              <h5 className="font-bold text-white text-xs uppercase tracking-wider mb-3">Popular Routes</h5>
+              <ul className="space-y-2">
+                {popularRoutes.map((r) => (
+                  <li key={`${r.from}-${r.to}`}>
+                    <button
+                      type="button"
+                      onClick={() => handleRouteSelect(r.from, r.to)}
+                      className="hover:text-red-400 text-left transition-colors cursor-pointer"
+                    >
+                      {r.from} to {r.to}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Top Bus Operators */}
+            <div>
+              <h5 className="font-bold text-white text-xs uppercase tracking-wider mb-3">Top Operators</h5>
+              <ul className="space-y-2">
+                <li><span className="hover:text-white cursor-pointer" onClick={() => onNavigateTab('bus-booking')}>IntrCity SmartBus</span></li>
+                <li><span className="hover:text-white cursor-pointer" onClick={() => onNavigateTab('bus-booking')}>Zingbus Plus</span></li>
+                <li><span className="hover:text-white cursor-pointer" onClick={() => onNavigateTab('bus-booking')}>NueGo Electric AC</span></li>
+                <li><span className="hover:text-white cursor-pointer" onClick={() => onNavigateTab('bus-booking')}>VRL Travels</span></li>
+                <li><span className="hover:text-white cursor-pointer" onClick={() => onNavigateTab('bus-booking')}>Orange Tours & Travels</span></li>
+                <li><span className="hover:text-white cursor-pointer" onClick={() => onNavigateTab('bus-booking')}>Hans Travels</span></li>
+              </ul>
+            </div>
+
+            {/* Company & Legal */}
+            <div>
+              <h5 className="font-bold text-white text-xs uppercase tracking-wider mb-3">About & Legal</h5>
+              <ul className="space-y-2">
+                <li><span className="hover:text-white cursor-pointer" onClick={() => alert('About Safar Go: India\'s modern bus platform.')}>About Safar Go</span></li>
+                <li><span className="hover:text-white cursor-pointer" onClick={() => onNavigateTab('bus-booking')}>Offers & Promo Codes</span></li>
+                <li><span className="hover:text-white cursor-pointer" onClick={() => alert('Safar Go Privacy Policy: Safe & 100% encrypted.')}>Privacy Policy</span></li>
+                <li><span className="hover:text-white cursor-pointer" onClick={() => alert('Safar Go Terms of Service: Standard travel booking guidelines.')}>Terms of Service</span></li>
+                <li><span className="hover:text-white cursor-pointer" onClick={() => setIsAgentModalOpen(true)}>Become Agent Partner</span></li>
+                <li><span className="hover:text-white cursor-pointer" onClick={() => window.scrollTo({ top: 1200, behavior: 'smooth' })}>Frequently Asked Questions</span></li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Bottom bar */}
+          <div className="pt-8 border-t border-slate-800 text-center text-slate-500 text-[11px] flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p>© 2026 Safar Go Technologies Private Limited. All rights reserved.</p>
+            <p className="text-slate-400">
+              Engineered with high fidelity & clean-room parity • Safar Go Travel Platform
+            </p>
+          </div>
+        </div>
+      </footer>
 
       {/* ========================================================================= */}
       {/* 9. BECOME AN AGENT MODAL: EXACT GORGEOUS UI FROM LOGIN (EXCLUSIVELY AGENT) */}

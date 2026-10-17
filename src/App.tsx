@@ -235,14 +235,15 @@ const AppContent: React.FC = () => {
 
   const isGoAgentView = !!currentUser && role === 'agent';
   const isAgentRoute = currentTab === 'go-agent';
+  const isHomeView = currentTab === 'home';
 
   return (
     <div className={`min-h-screen ${isGoAgentView || isAgentRoute ? 'bg-slate-950' : 'bg-slate-50'} flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950 overflow-x-hidden`}>
-      {/* Platform Live Announcement Broadcast Banner (Hidden for GO Agent to ensure clean isolated terminal) */}
-      {!isGoAgentView && !isAgentRoute && <AnnouncementBanner />}
+      {/* Platform Live Announcement Broadcast Banner (Hidden for GO Agent and Home view to ensure clean standalone views) */}
+      {!isGoAgentView && !isAgentRoute && !isHomeView && <AnnouncementBanner />}
 
-      {/* Navigation Header (Three-Dot / Main Menu hidden for GO Agent: GoAgentDashboard has its dedicated header) */}
-      {!isGoAgentView && !isAgentRoute && (
+      {/* Navigation Header (Hidden for GO Agent and Home view: HomePage has its dedicated RedBus Header) */}
+      {!isGoAgentView && !isAgentRoute && !isHomeView && (
         <Navbar
           currentTab={currentTab}
           setCurrentTab={setCurrentTab}
@@ -253,7 +254,7 @@ const AppContent: React.FC = () => {
       )}
 
       {/* Main Content View Container */}
-      <main className={`flex-1 ${isGoAgentView || isAgentRoute ? 'pb-0' : 'pb-16'}`}>
+      <main className={`flex-1 ${isGoAgentView || isAgentRoute || isHomeView ? 'pb-0' : 'pb-16'}`}>
         {isGoAgentView ? (
           <GoAgentDashboard
             onNavigateHome={() => navigate('/')}
@@ -426,8 +427,8 @@ const AppContent: React.FC = () => {
         />
       )}
 
-      {/* Footer (Hidden for GO Agent to ensure clean isolated terminal) */}
-      {!isGoAgentView && (
+      {/* Footer (Hidden for GO Agent and Home view: HomePage has its dedicated RedBus Footer) */}
+      {!isGoAgentView && !isHomeView && (
         <footer className="bg-slate-900 text-white border-t border-slate-800 py-10 mt-auto">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
@@ -593,8 +594,8 @@ const AppContent: React.FC = () => {
         </footer>
       )}
 
-      {/* Global Bottom Navigation Bar (Hidden for GO Agent: GoAgentDashboard has its dedicated 4-tab bar) */}
-      {!isGoAgentView && <BottomNav currentTab={currentTab} onNavigateTab={setCurrentTab} />}
+      {/* Global Bottom Navigation Bar (Hidden for GO Agent and Home view) */}
+      {!isGoAgentView && !isHomeView && <BottomNav currentTab={currentTab} onNavigateTab={setCurrentTab} />}
 
       {/* Dedicated Subdomain Directory & DNS Configuration Modal */}
       <SubdomainDirectoryModal
