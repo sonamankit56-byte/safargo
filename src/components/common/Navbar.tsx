@@ -129,9 +129,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
             >
               <Bus className="w-3.5 h-3.5" />
               <span>बस टिकटिंग (Book Bus)</span>
-              <span className="bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.2 rounded-full">
-                LIVE
-              </span>
             </button>
 
             {/* Nearby / Quick Delivery */}

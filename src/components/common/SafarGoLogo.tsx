@@ -192,18 +192,6 @@ export const SafarGoLogo: React.FC<SafarGoLogoProps> = ({
           >
             Go
           </span>
-
-          {showBadge && (
-            <span
-              className={`font-black tracking-wider uppercase rounded-full shrink-0 border ml-0.5 ${config.badgeSize} ${
-                isLight
-                  ? 'bg-gradient-to-r from-orange-500/20 to-amber-500/20 text-orange-400 border-orange-500/30 shadow-xs'
-                  : 'bg-orange-100 text-orange-700 border-orange-200'
-              }`}
-            >
-              3D Live
-            </span>
-          )}
         </div>
 
         {showTagline && (

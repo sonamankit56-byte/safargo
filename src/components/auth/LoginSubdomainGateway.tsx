@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { MP_NETWORK_CITIES } from '../../lib/mockData';
+import { SafarGoLogo } from '../common/SafarGoLogo';
 import { buildSubdomainUrl } from '../../lib/subdomain';
 import {
-  sendRegistrationOtpEmail,
   sendPasswordResetOtpEmail,
   sendLoginOtpEmail,
   sendLoginSuccessAlertEmail,
 } from '../../lib/emailService';
 import {
   sendWhatsAppOtp,
-  verifyWhatsAppOtp,
 } from '../../lib/whatsappService';
 import {
   Lock,
@@ -23,17 +21,9 @@ import {
   Mail,
   CheckCircle2,
   Clock,
-  Sparkles,
   ArrowLeft,
-  KeyRound,
   RotateCcw,
   Bus,
-  Crown,
-  Store,
-  User,
-  Building,
-  Phone,
-  Check,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -42,59 +32,22 @@ export const LoginSubdomainGateway: React.FC = () => {
     currentUser,
     role,
     login,
-    registerAgent,
-    registerShopkeeper,
-    registerCustomer,
     resetPassword,
     allProfiles,
   } = useAuth();
-  const { error, success, info } = useToast();
+  const { error, success } = useToast();
 
-  // Mode: 'login' | 'register' | 'forgot_password'
-  const [activeMode, setActiveMode] = useState<'login' | 'register' | 'forgot_password'>(() => {
-    try {
-      const p = new URLSearchParams(window.location.search);
-      const m = p.get('mode') || p.get('tab');
-      if (m === 'register' || m === 'signup' || m === 'join') return 'register';
-      if (m === 'forgot' || m === 'forgot_password') return 'forgot_password';
-    } catch {}
-    return 'login';
-  });
+  // Mode: 'login' | 'forgot_password' (Registration is strictly via Become an Agent on Homepage)
+  const [activeMode, setActiveMode] = useState<'login' | 'forgot_password'>('login');
 
   // Step inside active mode: 'form' | 'otp_verify' | 'success_tick'
   const [authStep, setAuthStep] = useState<'form' | 'otp_verify' | 'success_tick'>('form');
 
-  // Registration Role: 'agent' | 'customer' | 'shopkeeper'
-  const [selectedRegRole, setSelectedRegRole] = useState<'agent' | 'customer' | 'shopkeeper'>(() => {
-    try {
-      const p = new URLSearchParams(window.location.search);
-      const r = p.get('role');
-      if (r === 'customer' || r === 'shopkeeper') return r;
-    } catch {}
-    return 'agent';
-  });
-
-  // Common Form States
-  const [mobileNumber, setMobileNumber] = useState('');
-  const [emailInput, setEmailInput] = useState('');
+  // Login Form States
+  const [mobileOrEmail, setMobileOrEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-
-  // Registration-specific fields
-  const [fullName, setFullName] = useState('');
-  const [shopName, setShopName] = useState('');
-  const [city, setCity] = useState(MP_NETWORK_CITIES[0] || 'Indore');
-  const [referralCode, setReferralCode] = useState(() => {
-    try {
-      const p = new URLSearchParams(window.location.search);
-      const ref = p.get('ref') || p.get('referral') || p.get('refCode');
-      if (ref) return ref.trim().toUpperCase();
-      return localStorage.getItem('safargo_active_ref_code') || '';
-    } catch {
-      return '';
-    }
-  });
 
   // Forgot Password fields
   const [forgotInput, setForgotInput] = useState('');
@@ -108,8 +61,6 @@ export const LoginSubdomainGateway: React.FC = () => {
   const [otpTimer, setOtpTimer] = useState(30);
   const [isOtpSending, setIsOtpSending] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [whatsappSent, setWhatsappSent] = useState(false);
-  const [whatsappDeepLink, setWhatsappDeepLink] = useState('');
 
   // Redirect handling
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -122,12 +73,6 @@ export const LoginSubdomainGateway: React.FC = () => {
     if (local.length <= 2) return `${local[0]}*@${domain}`;
     const masked = `${local[0]}${'*'.repeat(Math.min(local.length - 2, 4))}${local[local.length - 1]}`;
     return `${masked}@${domain}`;
-  };
-
-  const maskMobile = (mob: string): string => {
-    const clean = mob.replace(/\D/g, '').slice(-10);
-    if (clean.length !== 10) return mob;
-    return `+91 ${clean.slice(0, 2)}******${clean.slice(-2)}`;
   };
 
   // Resend OTP Countdown Timer
@@ -168,12 +113,12 @@ export const LoginSubdomainGateway: React.FC = () => {
   }, [currentUser, role]);
 
   // =========================================================================
-  // 1. SUBMIT LOGIN: Credentials Verification & Real Email OTP Dispatch
+  // 1. SUBMIT LOGIN: Credentials Check & Real Email OTP Dispatch
   // =========================================================================
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const inputVal = (emailInput || mobileNumber).trim();
+    const inputVal = mobileOrEmail.trim();
     if (!inputVal) {
       error('आवश्यक विवरण', 'कृपया अपना ईमेल अथवा 10-अंकीय मोबाइल नंबर दर्ज करें।');
       return;
@@ -197,7 +142,7 @@ export const LoginSubdomainGateway: React.FC = () => {
     if (!found) {
       error(
         'खाता नहीं मिला',
-        'यह मोबाइल/ईमेल हमारे सिस्टम में पंजीकृत नहीं है। कृपया नया खाता बनाएं (Create Account).'
+        'यह मोबाइल/ईमेल हमारे सिस्टम में पंजीकृत नहीं है। नया एजेंट बनने के लिए होमपेज पर "Become an Agent" देखें।'
       );
       return;
     }
@@ -247,8 +192,7 @@ export const LoginSubdomainGateway: React.FC = () => {
       setAuthStep('otp_verify');
       setOtpTimer(30);
     } catch (err: any) {
-      console.warn('[LoginPortal] Email dispatch warning:', err);
-      // Still allow login step to proceed
+      console.warn('[LoginPortal] Email dispatch notice:', err);
       setAuthStep('otp_verify');
       setOtpTimer(30);
     } finally {
@@ -257,91 +201,7 @@ export const LoginSubdomainGateway: React.FC = () => {
   };
 
   // =========================================================================
-  // 2. SUBMIT REGISTRATION: Form Validation & Real Email Confirmation OTP
-  // =========================================================================
-  const handleRegisterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!fullName.trim()) {
-      error('पूरा नाम आवश्यक', 'कृपया अपना पूरा नाम दर्ज करें।');
-      return;
-    }
-
-    const cleanMobile = mobileNumber.replace(/\D/g, '').slice(-10);
-    if (cleanMobile.length !== 10) {
-      error('अमान्य मोबाइल', 'कृपया सही 10-अंकीय मोबाइल नंबर दर्ज करें।');
-      return;
-    }
-
-    const cleanEmail = emailInput.trim();
-    if (!cleanEmail || !cleanEmail.includes('@')) {
-      error('वैध ईमेल आवश्यक', 'कृपया अपना असली Gmail/ईमेल दर्ज करें, जिसपर OTP आएगा।');
-      return;
-    }
-
-    if (password.length < 4) {
-      error('कमजोर पासवर्ड', 'पासवर्ड न्यूनतम 4 अक्षरों का होना चाहिए।');
-      return;
-    }
-
-    // Check duplicate
-    const exists = allProfiles.some((p) => {
-      const pMob = p.mobile ? p.mobile.replace(/\D/g, '').slice(-10) : '';
-      return (
-        pMob === cleanMobile ||
-        (p.email && p.email.toLowerCase() === cleanEmail.toLowerCase())
-      );
-    });
-
-    if (exists) {
-      error('पंजीकरण पहले से मौजूद', 'यह मोबाइल या ईमेल पहले से पंजीकृत है। कृपया लॉगिन करें।');
-      return;
-    }
-
-    setTargetEmail(cleanEmail);
-
-    // Generate real 6-digit confirmation code
-    const generatedCode = String(Math.floor(100000 + Math.random() * 900000));
-    setActiveOtpCode(generatedCode);
-
-    setIsOtpSending(true);
-
-    try {
-      // Dispatch real email via emailService
-      await sendRegistrationOtpEmail({
-        toEmail: cleanEmail,
-        fullName: fullName.trim(),
-        confirmCode: generatedCode,
-        role: selectedRegRole,
-      });
-
-      // Dispatch light confetti
-      try {
-        confetti({
-          particleCount: 60,
-          spread: 70,
-          origin: { y: 0.6 },
-        });
-      } catch {}
-
-      success(
-        'वेरिफिकेशन OTP भेजा गया! 🎉',
-        `आपके ईमेल (${cleanEmail}) पर SafarGo एक्टिवेशन कोड भेजा गया है।`
-      );
-
-      setAuthStep('otp_verify');
-      setOtpTimer(30);
-    } catch (err: any) {
-      console.warn('[RegisterPortal] Email dispatch warning:', err);
-      setAuthStep('otp_verify');
-      setOtpTimer(30);
-    } finally {
-      setIsOtpSending(false);
-    }
-  };
-
-  // =========================================================================
-  // 3. SUBMIT OTP: Real Verification & Execution of Login/Registration
+  // 2. SUBMIT OTP: Real Verification & Execution of Login
   // =========================================================================
   const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -367,53 +227,7 @@ export const LoginSubdomainGateway: React.FC = () => {
     setIsVerifying(true);
 
     try {
-      if (activeMode === 'register') {
-        // Execute real registration
-        const cleanMobile = mobileNumber.replace(/\D/g, '').slice(-10);
-        let ok = false;
-
-        if (selectedRegRole === 'agent') {
-          ok = await registerAgent({
-            full_name: fullName.trim(),
-            mobile: cleanMobile,
-            email: targetEmail,
-            city,
-            district: city,
-            address: `${city}, Madhya Pradesh`,
-            shop_name: shopName.trim() || `${fullName.trim()} CSC Center`,
-            referral_code: referralCode.trim() || undefined,
-            password: password.trim(),
-          });
-        } else if (selectedRegRole === 'shopkeeper') {
-          ok = await registerShopkeeper({
-            full_name: fullName.trim(),
-            shop_name: shopName.trim() || `${fullName.trim()} Store`,
-            mobile: cleanMobile,
-            email: targetEmail,
-            city,
-            district: city,
-            address: `${city}, MP`,
-            password: password.trim(),
-          });
-        } else {
-          ok = await registerCustomer({
-            full_name: fullName.trim(),
-            mobile: cleanMobile,
-            email: targetEmail,
-            city,
-            address: `${city}, MP`,
-            password: password.trim(),
-          });
-        }
-
-        if (ok) {
-          setAuthStep('success_tick');
-          triggerCelebrationConfetti();
-          const savedUid = localStorage.getItem('safargo_current_user_id_v1') || undefined;
-          performRoleRedirect(selectedRegRole, savedUid);
-        }
-      } else if (activeMode === 'forgot_password') {
-        // Complete Password Reset
+      if (activeMode === 'forgot_password') {
         if (!newPassword || newPassword.length < 4) {
           error('पासवर्ड', 'कृपया न्यूनतम 4 अक्षरों का नया पासवर्ड दर्ज करें।');
           setIsVerifying(false);
@@ -434,7 +248,7 @@ export const LoginSubdomainGateway: React.FC = () => {
         }
       } else {
         // Standard Login
-        const identifier = targetUser?.email || targetEmail || emailInput || mobileNumber;
+        const identifier = targetUser?.email || targetEmail || mobileOrEmail;
         const ok = await login(identifier, password.trim());
 
         if (ok) {
@@ -459,7 +273,7 @@ export const LoginSubdomainGateway: React.FC = () => {
   };
 
   // =========================================================================
-  // 4. FORGOT PASSWORD: Send Reset OTP Email
+  // 3. FORGOT PASSWORD: Send Reset OTP Email
   // =========================================================================
   const handleForgotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -513,7 +327,7 @@ export const LoginSubdomainGateway: React.FC = () => {
 
   // WhatsApp OTP Fallback Dispatch
   const handleSendWhatsAppFallback = async () => {
-    const clean = (mobileNumber || forgotInput).replace(/\D/g, '').slice(-10);
+    const clean = (mobileOrEmail || forgotInput).replace(/\D/g, '').slice(-10);
     if (clean.length !== 10) {
       error('मोबाइल नंबर', '10-अंकीय मोबाइल नंबर उपलब्ध नहीं है।');
       return;
@@ -521,13 +335,11 @@ export const LoginSubdomainGateway: React.FC = () => {
 
     const res = await sendWhatsAppOtp({
       mobile: clean,
-      purpose: activeMode === 'register' ? 'registration' : 'login',
-      agentName: fullName || targetUser?.full_name || 'SafarGo Partner',
+      purpose: 'login',
+      agentName: targetUser?.full_name || 'SafarGo Partner',
     });
 
     if (res.success) {
-      setWhatsappSent(true);
-      setWhatsappDeepLink(res.directWhatsAppUrl);
       setActiveOtpCode(res.otpCode);
       setEnteredOtp(res.otpCode);
       success('WhatsApp OTP भेजा गया! 📲', `OTP: ${res.otpCode} स्वतः भर दिया गया है।`);
@@ -563,28 +375,18 @@ export const LoginSubdomainGateway: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center py-8 px-4 sm:px-6 font-sans">
-      {/* 1. SIMULATED SUBDOMAIN REDIRECT BROWSER BAR */}
-      <div className="w-full max-w-md mb-4 bg-slate-900 text-slate-300 rounded-2xl px-4 py-2.5 flex items-center justify-between text-xs shadow-lg border border-slate-800">
-        <div className="flex items-center gap-2 overflow-hidden">
-          <div className="flex items-center gap-1.5 shrink-0">
-            <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-            <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-          </div>
-          <span className="text-slate-600">|</span>
-          <div className="flex items-center gap-1.5 text-slate-200 font-mono text-[11px] truncate">
-            <Lock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span className="text-emerald-400 font-bold">https://</span>
-            <span className="text-white font-extrabold">login.safargo.in</span>
-            <span className="text-slate-400">/auth/v2/signin</span>
-          </div>
+      {/* 1. VERIFIED SECURE PORTAL BAR WITH SAFARGO LOGO */}
+      <div className="w-full max-w-md mb-4 bg-slate-900 text-slate-200 rounded-2xl px-4 py-2.5 flex items-center justify-between text-xs shadow-lg border border-slate-800">
+        <div className="flex items-center gap-2">
+          <SafarGoLogo size="sm" showBadge={false} showTagline={false} variant="light" />
         </div>
-        <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/30 shrink-0">
-          SSL SECURE
-        </span>
+        <div className="flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 text-[11px] font-black px-2.5 py-1 rounded-full border border-emerald-500/30 shrink-0 shadow-xs">
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+          <span>100% VERIFIED SECURE LOGIN</span>
+        </div>
       </div>
 
-      {/* 2. MAIN AUTHENTICATION CARD */}
+      {/* 2. MAIN AUTHENTICATION CARD (LOGIN ONLY) */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden text-left relative">
         {/* Top Gradient Header */}
         <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 p-6 sm:p-7 text-white relative">
@@ -601,14 +403,13 @@ export const LoginSubdomainGateway: React.FC = () => {
               <Bus className="w-3.5 h-3.5" /> Safar Go Single Sign-On
             </div>
             <h1 className="text-2xl font-black tracking-tight text-white">
-              {authStep === 'form' && (activeMode === 'login' ? 'Welcome Back' : 'Create Account')}
+              {authStep === 'form' && activeMode === 'login' && 'Welcome Back'}
               {authStep === 'form' && activeMode === 'forgot_password' && 'Reset Password'}
               {authStep === 'otp_verify' && 'Verify Security Code'}
-              {authStep === 'success_tick' && (activeMode === 'register' ? 'Account Created!' : 'Welcome Aboard!')}
+              {authStep === 'success_tick' && 'Welcome Aboard!'}
             </h1>
             <p className="text-xs text-red-100">
-              {authStep === 'form' && activeMode === 'login' && 'Sign in to access your tickets, wallet & discounts'}
-              {authStep === 'form' && activeMode === 'register' && 'Join Madhya Pradesh’s trusted mobility network'}
+              {authStep === 'form' && activeMode === 'login' && 'Sign in to access your tickets, wallet & partner tools'}
               {authStep === 'form' && activeMode === 'forgot_password' && 'Enter details to receive your secure reset OTP'}
               {authStep === 'otp_verify' && 'Protecting your account with two-factor email verification'}
               {authStep === 'success_tick' && 'Preparing your authorized dashboard...'}
@@ -619,398 +420,161 @@ export const LoginSubdomainGateway: React.FC = () => {
         {/* CARD BODY: DYNAMIC STEP TRANSITIONS */}
         <div className="p-6 sm:p-8">
           {/* ========================================================================= */}
-          {/* STEP 1: CREDENTIALS OR REGISTRATION FORM                                  */}
+          {/* STEP 1: LOGIN FORM                                                        */}
           {/* ========================================================================= */}
-          {authStep === 'form' && (
+          {authStep === 'form' && activeMode === 'login' && (
+            <form onSubmit={handleLoginSubmit} className="space-y-4">
+              {/* Mobile or Email */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  पंजीकृत मोबाइल या ईमेल *
+                </label>
+                <div className="flex items-center rounded-xl border border-slate-300 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-100 overflow-hidden transition-all bg-slate-50/50">
+                  <span className="bg-slate-100 px-3.5 py-3 text-xs font-black text-slate-700 border-r border-slate-300">
+                    +91 / ✉️
+                  </span>
+                  <input
+                    type="text"
+                    required
+                    value={mobileOrEmail}
+                    onChange={(e) => setMobileOrEmail(e.target.value)}
+                    placeholder="उदा. 98260XXXXX अथवा agent@gmail.com"
+                    className="w-full px-3.5 py-3 text-sm font-bold text-slate-900 focus:outline-none bg-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Password with Eye Toggle */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    पासवर्ड *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotInput(mobileOrEmail);
+                      setActiveMode('forgot_password');
+                    }}
+                    className="text-xs font-bold text-red-600 hover:text-red-700 hover:underline cursor-pointer"
+                  >
+                    पासवर्ड भूल गए?
+                  </button>
+                </div>
+                <div className="relative flex items-center rounded-xl border border-slate-300 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-100 overflow-hidden transition-all bg-slate-50/50">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="अपना पासवर्ड दर्ज करें"
+                    className="w-full pl-3.5 pr-10 py-3 text-sm font-bold text-slate-900 focus:outline-none bg-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                    title={showPassword ? 'पासवर्ड छुपाएं' : 'पासवर्ड दिखाएं'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Remember Me */}
+              <div className="flex items-center justify-between pt-1">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500"
+                  />
+                  <span>सत्र सुरक्षित रखें (Remember me)</span>
+                </label>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isOtpSending}
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-black text-sm shadow-xl shadow-red-200 transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer disabled:opacity-75"
+              >
+                {isOtpSending ? (
+                  <span className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 animate-spin" />
+                    सुरक्षा OTP भेजा जा रहा है...
+                  </span>
+                ) : (
+                  <>
+                    <span>CONTINUE WITH SECURE EMAIL OTP</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+
+              {/* Link to Become an Agent on Homepage */}
+              <div className="text-center pt-3 border-t border-slate-100 text-xs text-slate-500">
+                नया GO एजेंट बनना चाहते हैं?{' '}
+                <a
+                  href={buildSubdomainUrl('main')}
+                  className="text-red-600 font-bold hover:underline cursor-pointer"
+                >
+                  होमपेज पर Become an Agent देखें ➔
+                </a>
+              </div>
+            </form>
+          )}
+
+          {/* ========================================================================= */}
+          {/* STEP 1B: FORGOT PASSWORD FORM                                             */}
+          {/* ========================================================================= */}
+          {authStep === 'form' && activeMode === 'forgot_password' && (
             <div className="space-y-4">
-              {/* Segmented Mode Selector: Sign In vs Create Account */}
-              {activeMode !== 'forgot_password' && (
-                <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-2xl border border-slate-200 text-xs font-bold gap-1 mb-2">
+              <div className="text-xs text-slate-600 leading-relaxed">
+                अपना पंजीकृत मोबाइल अथवा ईमेल दर्ज करें। हम आपके पंजीकृत ईमेल पर 6-अंकीय पासवर्ड रीसेट सुरक्षा कोड भेजेंगे।
+              </div>
+
+              <form onSubmit={handleForgotSubmit} className="space-y-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    ईमेल अथवा मोबाइल *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={forgotInput}
+                    onChange={(e) => setForgotInput(e.target.value)}
+                    placeholder="उदा. rahul@gmail.com अथवा 98260XXXXX"
+                    className="w-full px-3.5 py-3 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:border-red-500 outline-none"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isOtpSending}
+                  className="w-full py-3.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  {isOtpSending ? (
+                    <span>भेजा जा रहा है...</span>
+                  ) : (
+                    <>
+                      <span>SEND RESET SECURITY CODE</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+
+                <div className="text-center pt-1">
                   <button
                     type="button"
                     onClick={() => setActiveMode('login')}
-                    className={`py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                      activeMode === 'login'
-                        ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white font-black shadow-md'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                    className="text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
                   >
-                    <Lock className="w-3.5 h-3.5" />
-                    <span>लॉगिन (Sign In)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveMode('register')}
-                    className={`py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                      activeMode === 'register'
-                        ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white font-black shadow-md'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>नया रजिस्ट्रेशन</span>
+                    ← वापस लॉगिन पर लौटें
                   </button>
                 </div>
-              )}
-
-              {/* A. LOGIN FORM */}
-              {activeMode === 'login' && (
-                <form onSubmit={handleLoginSubmit} className="space-y-4">
-                  {/* Mobile or Email */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      पंजीकृत मोबाइल या ईमेल *
-                    </label>
-                    <div className="flex items-center rounded-xl border border-slate-300 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-100 overflow-hidden transition-all bg-slate-50/50">
-                      <span className="bg-slate-100 px-3.5 py-3 text-xs font-black text-slate-700 border-r border-slate-300">
-                        +91 / ✉️
-                      </span>
-                      <input
-                        type="text"
-                        required
-                        value={emailInput || mobileNumber}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val.includes('@')) {
-                            setEmailInput(val);
-                            setMobileNumber('');
-                          } else {
-                            setMobileNumber(val);
-                            setEmailInput(val);
-                          }
-                        }}
-                        placeholder="उदा. 98260XXXXX अथवा user@gmail.com"
-                        className="w-full px-3.5 py-3 text-sm font-bold text-slate-900 focus:outline-none bg-transparent"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Password with Eye Toggle */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                        पासवर्ड *
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setForgotInput(emailInput || mobileNumber);
-                          setActiveMode('forgot_password');
-                        }}
-                        className="text-xs font-bold text-red-600 hover:text-red-700 hover:underline cursor-pointer"
-                      >
-                        पासवर्ड भूल गए?
-                      </button>
-                    </div>
-                    <div className="relative flex items-center rounded-xl border border-slate-300 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-100 overflow-hidden transition-all bg-slate-50/50">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="अपना पासवर्ड दर्ज करें"
-                        className="w-full pl-3.5 pr-10 py-3 text-sm font-bold text-slate-900 focus:outline-none bg-transparent"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
-                        title={showPassword ? 'पासवर्ड छुपाएं' : 'पासवर्ड दिखाएं'}
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Remember Me */}
-                  <div className="flex items-center justify-between pt-1">
-                    <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-600">
-                      <input
-                        type="checkbox"
-                        checked={rememberMe}
-                        onChange={(e) => setRememberMe(e.target.checked)}
-                        className="w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500"
-                      />
-                      <span>सत्र सुरक्षित रखें (Remember me)</span>
-                    </label>
-                  </div>
-
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={isOtpSending}
-                    className="w-full py-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-black text-sm shadow-xl shadow-red-200 transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer disabled:opacity-75"
-                  >
-                    {isOtpSending ? (
-                      <span className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 animate-spin" />
-                        सुरक्षा OTP भेजा जा रहा है...
-                      </span>
-                    ) : (
-                      <>
-                        <span>CONTINUE WITH SECURE EMAIL OTP</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-
-                  <div className="text-center pt-2 text-xs text-slate-500">
-                    खाता नहीं है?{' '}
-                    <button
-                      type="button"
-                      onClick={() => setActiveMode('register')}
-                      className="text-red-600 font-bold hover:underline cursor-pointer"
-                    >
-                      यहाँ नया खाता बनाएं ➔
-                    </button>
-                  </div>
-                </form>
-              )}
-
-              {/* B. REGISTRATION FORM */}
-              {activeMode === 'register' && (
-                <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
-                  {/* Role Selector Pill */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
-                      खाता प्रकार (Select Role)
-                    </label>
-                    <div className="grid grid-cols-3 p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold gap-1 text-center">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedRegRole('agent')}
-                        className={`py-2 rounded-lg transition cursor-pointer flex flex-col items-center gap-0.5 ${
-                          selectedRegRole === 'agent'
-                            ? 'bg-amber-400 text-slate-950 font-black shadow-xs'
-                            : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        <Crown className="w-3.5 h-3.5" />
-                        <span>GO एजेंट</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setSelectedRegRole('customer')}
-                        className={`py-2 rounded-lg transition cursor-pointer flex flex-col items-center gap-0.5 ${
-                          selectedRegRole === 'customer'
-                            ? 'bg-rose-600 text-white font-black shadow-xs'
-                            : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        <User className="w-3.5 h-3.5" />
-                        <span>यात्री</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setSelectedRegRole('shopkeeper')}
-                        className={`py-2 rounded-lg transition cursor-pointer flex flex-col items-center gap-0.5 ${
-                          selectedRegRole === 'shopkeeper'
-                            ? 'bg-emerald-600 text-white font-black shadow-xs'
-                            : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        <Store className="w-3.5 h-3.5" />
-                        <span>दुकानदार</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Full Name */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                      पूरा नाम (Full Name) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="उदा. राहुल शर्मा"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:border-red-500 focus:ring-1 focus:ring-red-200 outline-none"
-                    />
-                  </div>
-
-                  {/* Mobile Number */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                      10-अंकीय मोबाइल नंबर *
-                    </label>
-                    <div className="flex items-center rounded-xl border border-slate-300 focus-within:border-red-500 focus-within:ring-1 focus-within:ring-red-200 overflow-hidden bg-slate-50/50">
-                      <span className="bg-slate-100 px-3 py-2.5 text-xs font-black text-slate-700 border-r border-slate-300">
-                        +91
-                      </span>
-                      <input
-                        type="tel"
-                        maxLength={10}
-                        required
-                        value={mobileNumber}
-                        onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))}
-                        placeholder="98260XXXXX"
-                        className="w-full px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none bg-transparent"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Real Gmail / Email Address */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                      असली Gmail पता (Verification OTP हेतु) *
-                    </label>
-                    <div className="relative flex items-center rounded-xl border border-slate-300 focus-within:border-red-500 focus-within:ring-1 focus-within:ring-red-200 overflow-hidden">
-                      <Mail className="w-4 h-4 text-slate-400 absolute left-3" />
-                      <input
-                        type="email"
-                        required
-                        value={emailInput}
-                        onChange={(e) => setEmailInput(e.target.value)}
-                        placeholder="उदा. rahul@gmail.com"
-                        className="w-full pl-9 pr-3 py-2.5 text-xs font-bold text-slate-900 focus:outline-none font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Password with Eye Toggle */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                      सुरक्षित पासवर्ड बनाएं *
-                    </label>
-                    <div className="relative flex items-center rounded-xl border border-slate-300 focus-within:border-red-500 focus-within:ring-1 focus-within:ring-red-200 overflow-hidden">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="न्यूनतम 4 अक्षर"
-                        className="w-full pl-3.5 pr-10 py-2.5 text-xs font-bold text-slate-900 focus:outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* City & Shop Name */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                        शहर (City)
-                      </label>
-                      <select
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                        className="w-full px-2.5 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:border-red-500 outline-none"
-                      >
-                        {MP_NETWORK_CITIES.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {selectedRegRole !== 'customer' && (
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                          दुकान / केंद्र का नाम
-                        </label>
-                        <input
-                          type="text"
-                          value={shopName}
-                          onChange={(e) => setShopName(e.target.value)}
-                          placeholder="उदा. शर्मा CSC केंद्र"
-                          className="w-full px-2.5 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:border-red-500 outline-none"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={isOtpSending}
-                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-700 hover:to-rose-800 text-white font-black text-xs shadow-lg shadow-red-200 transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer disabled:opacity-75"
-                  >
-                    {isOtpSending ? (
-                      <span className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 animate-spin" />
-                        सत्यापन कोड भेजा जा रहा है...
-                      </span>
-                    ) : (
-                      <>
-                        <span>VERIFY EMAIL & CREATE ACCOUNT</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-
-                  <div className="text-center pt-1 text-xs text-slate-500">
-                    पहले से खाता है?{' '}
-                    <button
-                      type="button"
-                      onClick={() => setActiveMode('login')}
-                      className="text-red-600 font-bold hover:underline cursor-pointer"
-                    >
-                      यहाँ लॉगिन करें ➔
-                    </button>
-                  </div>
-                </form>
-              )}
-
-              {/* C. FORGOT PASSWORD FORM */}
-              {activeMode === 'forgot_password' && (
-                <div className="space-y-4">
-                  <div className="text-xs text-slate-600 leading-relaxed">
-                    अपना पंजीकृत मोबाइल अथवा ईमेल दर्ज करें। हम आपके पंजीकृत ईमेल पर 6-अंकीय पासवर्ड रीसेट सुरक्षा कोड भेजेंगे।
-                  </div>
-
-                  <form onSubmit={handleForgotSubmit} className="space-y-3.5">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                        ईमेल अथवा मोबाइल *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={forgotInput}
-                        onChange={(e) => setForgotInput(e.target.value)}
-                        placeholder="उदा. rahul@gmail.com अथवा 98260XXXXX"
-                        className="w-full px-3.5 py-3 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:border-red-500 outline-none"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={isOtpSending}
-                      className="w-full py-3.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
-                    >
-                      {isOtpSending ? (
-                        <span>भेजा जा रहा है...</span>
-                      ) : (
-                        <>
-                          <span>SEND RESET SECURITY CODE</span>
-                          <ArrowRight className="w-4 h-4" />
-                        </>
-                      )}
-                    </button>
-
-                    <div className="text-center pt-1">
-                      <button
-                        type="button"
-                        onClick={() => setActiveMode('login')}
-                        className="text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
-                      >
-                        ← वापस लॉगिन पर लौटें
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
+              </form>
             </div>
           )}
 
@@ -1031,7 +595,7 @@ export const LoginSubdomainGateway: React.FC = () => {
 
                   <div className="space-y-0.5">
                     <div className="text-xs font-black text-slate-900 flex items-center gap-1.5">
-                      <span>OTP Sent to Your Real Gmail Address!</span>
+                      <span>OTP Sent to Your Gmail Address!</span>
                       <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">
                         CHECK NOW
                       </span>
@@ -1136,7 +700,7 @@ export const LoginSubdomainGateway: React.FC = () => {
                           if (targetEmail) {
                             await sendLoginOtpEmail({
                               toEmail: targetEmail,
-                              userName: fullName || targetUser?.full_name || 'Partner',
+                              userName: targetUser?.full_name || 'Partner',
                               otpCode: code,
                             });
                             success('नया OTP भेजा गया!', `कोड आपके ईमेल ${maskEmail(targetEmail)} पर भेजा गया।`);
@@ -1200,9 +764,7 @@ export const LoginSubdomainGateway: React.FC = () => {
                   <CheckCircle2 className="w-3.5 h-3.5" /> Authentication Verified
                 </span>
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                  {activeMode === 'register'
-                    ? '🎉 बधाई हो! खाता सफलतापूर्वक सक्रिय हुआ!'
-                    : 'You Have Successfully Logged In!'}
+                  You Have Successfully Logged In!
                 </h2>
                 <p className="text-xs text-slate-500">
                   Welcome to Safar Go. Redirecting to your authorized portal...
