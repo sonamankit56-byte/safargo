@@ -1,0 +1,26 @@
+feature,area,priority,original,clone,notes
+Infinite Product Feed,discovery,must,yes,yes,2-column cards with deal price discount and ratings
+Search Bar with Category Suggestions,search,must,yes,yes,Top search input with clear button and instant filter
+Banner Carousel,home,must,yes,yes,Auto-rotating promotional banners with indicator dots
+Category Chips Ribbon,navigation,must,yes,yes,Horizontal scrollable categories with icon pills
+Bottom Navigation Bar,navigation,must,yes,yes,5 fixed tabs: Home Categories Mall Orders Account
+Category Hub with Left Sidebar,categories,must,yes,yes,Left category tabs and right subcategory visual cards
+SafarGo Mall Premium Brand Catalog,mall,should,yes,yes,Curated authentic factory direct products
+Product Details Screen with Image Carousel,product,must,yes,yes,Zoomable carousel price breakdown size options seller info
+Size & Variant Selector,product,must,yes,yes,Stock indicator pills (S M L XL XXL)
+Reseller Margin Calculator,reselling,must,yes,yes,Selling to customer Yes/No with cash profit calculator
+WhatsApp Catalog Sharing,reselling,should,yes,yes,One-tap WhatsApp share button for reseller marketing
+Shopping Bag & Quantity Adjustment,cart,must,yes,yes,Bag item list size change quantity counter price summary
+Multi-Step Delivery Address Form,checkout,must,yes,yes,Pincode lookup house no street city state landmark
+Payment Methods Selection,checkout,must,yes,yes,Cash on Delivery COD UPI Cards and Netbanking
+Prepaid Discount Incentive,checkout,should,yes,yes,Special ₹15-₹30 extra discount on instant UPI payments
+Flipkart/Meesho Order Placed Animation,checkout,must,yes,yes,Animated drawing checkmark with sound and confetti
+My Orders Dashboard,orders,must,yes,yes,Filter by All Shipped Delivered Cancelled
+Visual Step-by-Step Order Tracker,tracking,must,yes,yes,Placed to Packed to Shipped to Out for Delivery to Delivered
+Delivery Partner & Tracking ID details,tracking,should,yes,yes,Shadowfax / Delhivery tracking code with live updates
+User Profile & Account Center,account,must,yes,yes,Profile details address book wishlist language toggle
+Wishlist Bookmark System,catalog,should,yes,yes,Heart bookmark toggle with top header counter
+Reseller Earnings & Bank Settlement,resell,must,yes,yes,Total margins wallet balance bank account & UPI details
+Multi-Language Switcher (Hindi & English),i18n,should,yes,yes,Instant toggle between Hindi and English
+Mobile-Width Responsive Container,responsive,must,yes,yes,100% pixel-perfect on mobile screens and clean desktop view
+Capacitor Native Android Support,mobile,must,yes,yes,Android Studio wrapper for compiling APK directly
