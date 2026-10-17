@@ -1,5 +1,6 @@
 export const TAB_TO_PATH: Record<string, string> = {
   'home': '/',
+  'bus-booking': '/book',
   'quick-delivery': '/quick-delivery',
   'track-order': '/track-order',
   'promoter-program': '/promoter',
@@ -41,6 +42,9 @@ export const TAB_TO_PATH: Record<string, string> = {
 
 export const PATH_TO_TAB: Record<string, string> = {
   '/': 'home',
+  '/book': 'bus-booking',
+  '/bus-booking': 'bus-booking',
+  '/redbus': 'bus-booking',
   '/quick-delivery': 'quick-delivery',
   '/track-order': 'track-order',
   '/promoter': 'promoter-program',

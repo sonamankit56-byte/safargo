@@ -118,6 +118,22 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
               <span>होम (Home)</span>
             </button>
 
+            {/* RedBus / Live Bus Booking */}
+            <button
+              onClick={() => handleTabChange('bus-booking')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
+                currentTab === 'bus-booking'
+                  ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-xs'
+                  : 'text-amber-200 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <Bus className="w-3.5 h-3.5" />
+              <span>बस टिकटिंग (Book Bus)</span>
+              <span className="bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.2 rounded-full">
+                LIVE
+              </span>
+            </button>
+
             {/* Nearby / Quick Delivery */}
             {qdMode !== 'hidden' && (
               <button

@@ -36,7 +36,10 @@ import {
   Zap,
   Gift,
   Smartphone,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
 
 export const LoginSubdomainGateway: React.FC = () => {
   const {
@@ -85,6 +88,7 @@ export const LoginSubdomainGateway: React.FC = () => {
   // Form Fields
   const [emailOrMobile, setEmailOrMobile] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState('');
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
@@ -191,6 +195,13 @@ export const LoginSubdomainGateway: React.FC = () => {
     try {
       const ok = await login(emailOrMobile.trim(), password.trim());
       if (ok) {
+        try {
+          confetti({
+            particleCount: 120,
+            spread: 75,
+            origin: { y: 0.5 },
+          });
+        } catch {}
         success('लॉगिन सफल!', 'सुरक्षित सत्र प्रारंभ हुआ। डैशबोर्ड पर भेजा जा रहा है...');
         const savedUid = localStorage.getItem('safargo_current_user_id_v1') || undefined;
         performRoleRedirect(selectedRole, savedUid);
@@ -248,6 +259,13 @@ export const LoginSubdomainGateway: React.FC = () => {
     try {
       const ok = await loginWithOtp(clean, selectedRole);
       if (ok) {
+        try {
+          confetti({
+            particleCount: 120,
+            spread: 75,
+            origin: { y: 0.5 },
+          });
+        } catch {}
         const savedUid = localStorage.getItem('safargo_current_user_id_v1') || undefined;
         performRoleRedirect(selectedRole, savedUid);
       }
@@ -505,6 +523,27 @@ export const LoginSubdomainGateway: React.FC = () => {
 
       {/* Main Content Card Container */}
       <main className="flex-1 max-w-xl w-full mx-auto px-4 py-8 sm:py-12 flex flex-col justify-center">
+
+        {/* SIMULATED SUBDOMAIN REDIRECT BROWSER BAR */}
+        <div className="w-full mb-3 bg-slate-900/90 text-slate-300 rounded-2xl px-4 py-2.5 flex items-center justify-between text-xs shadow-lg border border-slate-800">
+          <div className="flex items-center gap-2 overflow-hidden">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+              <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+            </div>
+            <span className="text-slate-600">|</span>
+            <div className="flex items-center gap-1.5 text-slate-200 font-mono text-[11px] truncate">
+              <Lock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="text-emerald-400 font-bold">https://</span>
+              <span className="text-white font-extrabold">login.safargo.in</span>
+              <span className="text-slate-400">/auth/v2/signin</span>
+            </div>
+          </div>
+          <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/30 shrink-0">
+            SSL SECURE
+          </span>
+        </div>
         
         {/* Redirecting Overlay if actively transitioning */}
         {isRedirecting && (
@@ -818,13 +857,21 @@ export const LoginSubdomainGateway: React.FC = () => {
                       <div className="relative">
                         <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                         <input
-                          type="password"
+                          type={showPassword ? 'text' : 'password'}
                           required
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           placeholder="पासवर्ड दर्ज करें"
-                          className="w-full pl-10 pr-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-xs focus:ring-2 focus:ring-amber-400 outline-none font-mono"
+                          className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-xs focus:ring-2 focus:ring-amber-400 outline-none font-mono"
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3.5 top-3 text-slate-400 hover:text-white cursor-pointer"
+                          title={showPassword ? 'पासवर्ड छुपाएं' : 'पासवर्ड दिखाएं'}
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
                       </div>
                     </div>
 
