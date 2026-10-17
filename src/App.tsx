@@ -201,7 +201,7 @@ const AppContent: React.FC = () => {
     return <GoAgentSubdomainGateway />;
   }
 
-  if (activeSubdomain === 'promoter') {
+  if (activeSubdomain === 'promoter' || activeSubdomain === 'partner') {
     return <PromoterSubdomainGateway />;
   }
 
@@ -211,6 +211,10 @@ const AppContent: React.FC = () => {
 
   if (activeSubdomain === 'creator') {
     return <CreatorSubdomainGateway />;
+  }
+
+  if (activeSubdomain === 'pay') {
+    return <GoWalletHub onNavigate={setCurrentTab} onOpenAuth={handleOpenAuth} />;
   }
 
   if (

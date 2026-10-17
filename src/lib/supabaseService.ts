@@ -176,8 +176,21 @@ export const db = {
   async updateBooking(id: string, updates: Partial<Booking>): Promise<boolean> {
     if (!isSupabaseConfigured || !supabase) return false;
     try {
+      if (updates.confirmed_by) {
+        await ensureAgentProfile(updates.confirmed_by, 'SafarGo Operations Admin');
+      }
       const cleanUpdates = filterObjectKeys(updates, VALID_BOOKING_COLS);
-      const { error } = await supabase.from('bookings').update(cleanUpdates).eq('id', id);
+
+      // Try updating by primary key `id`
+      let { data, error } = await supabase.from('bookings').update(cleanUpdates).eq('id', id).select();
+
+      // If no row matched by id, try matching by unique `booking_code`
+      if (!error && (!data || data.length === 0)) {
+        const res = await supabase.from('bookings').update(cleanUpdates).eq('booking_code', id).select();
+        error = res.error;
+        data = res.data;
+      }
+
       if (error) {
         console.error('Supabase updateBooking error:', error);
         return false;

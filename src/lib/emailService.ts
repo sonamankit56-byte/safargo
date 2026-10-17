@@ -45,26 +45,28 @@ export async function sendResendEmail(
       text: payload.text,
     };
 
-    // 1. Primary Route: Serverless / Vite Dev backend endpoint `/api/send-email`
-    try {
-      const response = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(bodyData),
-      });
+    // 1. Primary Route: Serverless / Vite Dev backend endpoint `/api/send-email` (browser only)
+    if (typeof window !== 'undefined') {
+      try {
+        const response = await fetch('/api/send-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(bodyData),
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('[EmailService] Email dispatched successfully via /api/send-email:', data);
-        return { success: true, id: data.id };
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.warn('[EmailService] /api/send-email returned status:', response.status, errorData);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('[EmailService] Email dispatched successfully via /api/send-email:', data);
+          return { success: true, id: data.id };
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          console.warn('[EmailService] /api/send-email returned status:', response.status, errorData);
+        }
+      } catch (apiErr) {
+        console.warn('[EmailService] Backend endpoint /api/send-email unreachable, attempting direct fallback:', apiErr);
       }
-    } catch (apiErr) {
-      console.warn('[EmailService] Backend endpoint /api/send-email unreachable, attempting direct fallback:', apiErr);
     }
 
     // 2. Direct Fallback via Resend API (Node / WebWorker / server contexts)

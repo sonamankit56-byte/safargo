@@ -183,7 +183,9 @@ export const verifyWhatsAppOtp = (
 ): { verified: boolean; message: string } => {
   const cleanMobile = cleanPhoneNumber(mobile);
   const otps = getStoredOtps();
+  const cleanEntered = (enteredOtp || '').trim();
 
+  // Find active, unexpired, unverified record matching mobile and purpose
   const record = otps.find(
     (r) =>
       r.mobile === cleanMobile &&
@@ -192,42 +194,44 @@ export const verifyWhatsAppOtp = (
       !r.isVerified
   );
 
-  const cleanEntered = (enteredOtp || '').trim();
-  const masterCodes = ['123456', '999999', '888888', '000000', '777777', '111111'];
-  if (masterCodes.includes(cleanEntered)) {
-    return {
-      verified: true,
-      message: 'OTP सत्यापन सफल! आपका अनुरोध स्वीकार कर लिया गया है।',
-    };
-  }
-
-  if (!record) {
-    if (cleanEntered.length === 6) {
+  if (record) {
+    if (record.otpCode.trim() === cleanEntered) {
+      record.isVerified = true;
+      saveOtpRecord(record);
       return {
         verified: true,
         message: 'OTP सत्यापन सफल! आपका अनुरोध स्वीकार कर लिया गया है।',
       };
+    } else {
+      return {
+        verified: false,
+        message: 'गलत OTP कोड दर्ज किया गया है। कृपया सही 6-अंकों का कोड दर्ज करें।',
+      };
     }
-    return {
-      verified: false,
-      message: 'OTP समाप्त (Expired) हो गया है या नहीं मिला। कृपया पुनः नया OTP भेजें।',
-    };
   }
 
-  if (record.otpCode.trim() !== cleanEntered) {
-    return {
-      verified: false,
-      message: 'गलत OTP कोड दर्ज किया गया है। कृपया सही 6-अंकों का कोड दर्ज करें।',
-    };
+  // Check if an expired or already-verified record exists
+  const expiredOrUsed = otps.find(
+    (r) => r.mobile === cleanMobile && r.purpose === purpose
+  );
+  if (expiredOrUsed) {
+    if (expiredOrUsed.isVerified) {
+      return {
+        verified: false,
+        message: 'यह OTP पहले ही उपयोग (Used) किया जा चुका है। कृपया नया OTP प्राप्त करें।',
+      };
+    }
+    if (expiredOrUsed.expiresAt <= Date.now()) {
+      return {
+        verified: false,
+        message: 'OTP समाप्त (Expired) हो गया है या नहीं मिला। कृपया पुनः नया OTP भेजें।',
+      };
+    }
   }
-
-  // Mark verified
-  record.isVerified = true;
-  saveOtpRecord(record);
 
   return {
-    verified: true,
-    message: 'OTP सत्यापन सफल! आपका अनुरोध स्वीकार कर लिया गया है।',
+    verified: false,
+    message: 'OTP समाप्त (Expired) हो गया है या नहीं मिला। कृपया पुनः नया OTP भेजें।',
   };
 };
 

@@ -13,7 +13,23 @@
  * - Session/LocalStorage persistence
  */
 
-export type AppSubdomain = 'main' | 'admin' | 'agent' | 'promoter' | 'shop' | 'creator' | 'careers' | 'login' | 'help';
+export type AppSubdomain =
+  | 'main'
+  | 'admin'
+  | 'agent'
+  | 'book'
+  | 'operator'
+  | 'kisan'
+  | 'buyer'
+  | 'transport'
+  | 'pay'
+  | 'partner'
+  | 'promoter'
+  | 'shop'
+  | 'creator'
+  | 'careers'
+  | 'login'
+  | 'help';
 
 export interface SubdomainConfig {
   id: AppSubdomain;
@@ -35,6 +51,15 @@ export const SUBDOMAIN_CONFIGS: Record<AppSubdomain, SubdomainConfig> = {
     subdomainPrefix: 'www',
     themeColor: 'from-orange-500 to-amber-500',
   },
+  book: {
+    id: 'book',
+    title: 'SafarGo ग्राहक बस बुकिंग पोर्टल',
+    badge: 'Customer Direct Booking',
+    description: 'मोबाइल-फर्स्ट सरल बुकिंग, ऑपरेटर चयन, लाइव किराया व तत्काल ई-टिकट',
+    pathFallback: '/booking',
+    subdomainPrefix: 'book',
+    themeColor: 'from-orange-600 via-amber-500 to-yellow-500',
+  },
   admin: {
     id: 'admin',
     title: 'SafarGo सुपर एडमिन कंट्रोल पैनल',
@@ -52,6 +77,60 @@ export const SUBDOMAIN_CONFIGS: Record<AppSubdomain, SubdomainConfig> = {
     pathFallback: '/go-agent',
     subdomainPrefix: 'agent',
     themeColor: 'from-amber-400 via-orange-500 to-yellow-300',
+  },
+  operator: {
+    id: 'operator',
+    title: 'SafarGo बस ऑपरेटर डैशबोर्ड',
+    badge: 'Bus Operator Desk',
+    description: 'बस रूट प्रबंधन, सीट इन्वेंट्री व वास्तविक ऑपरेटर सत्यापन केंद्र',
+    pathFallback: '/operator',
+    subdomainPrefix: 'operator',
+    themeColor: 'from-blue-600 to-cyan-700',
+  },
+  kisan: {
+    id: 'kisan',
+    title: 'SafarGo किसान समृद्धि सेवा',
+    badge: 'Farmer Mobility & Logistics',
+    description: 'फसल परिवहन, मंडी आवागमन व ग्रामीण किसान यात्रा सुविधा',
+    pathFallback: '/kisan',
+    subdomainPrefix: 'kisan',
+    themeColor: 'from-emerald-600 to-green-700',
+  },
+  buyer: {
+    id: 'buyer',
+    title: 'SafarGo खरीदार व व्यापारी नेटवर्क',
+    badge: 'Buyer & Merchant Desk',
+    description: 'मंडी खरीद, थोक लॉजिस्टिक्स व व्यापारिक परिवहन ट्रैकिंग',
+    pathFallback: '/buyer',
+    subdomainPrefix: 'buyer',
+    themeColor: 'from-teal-600 to-emerald-800',
+  },
+  transport: {
+    id: 'transport',
+    title: 'SafarGo ट्रांसपोर्टर व वाहन फ्लीट',
+    badge: 'Transporter Fleet Desk',
+    description: 'वाहन प्रबंधन, कार्गो बुकिंग व सुरक्षित माल ढुलाई संचालन',
+    pathFallback: '/transport',
+    subdomainPrefix: 'transport',
+    themeColor: 'from-slate-700 to-slate-900',
+  },
+  pay: {
+    id: 'pay',
+    title: 'SafarGo भुगतान व लेज़र ट्रैकिंग पोर्टल',
+    badge: 'Payment & Wallet Hub',
+    description: 'UPI भुगतान स्थिति, UTR सत्यापन, कमीशन व साप्ताहिक पेआउट विवरण',
+    pathFallback: '/pay',
+    subdomainPrefix: 'pay',
+    themeColor: 'from-amber-500 to-orange-600',
+  },
+  partner: {
+    id: 'partner',
+    title: 'SafarGo बिजनेस पार्टनर व रेफरल हब',
+    badge: 'Partner & Referral Network',
+    description: 'बिजनेस पार्टनरशिप, ₹100 रेफरल रिवॉर्ड ट्रैकिंग व नेटवर्क विस्तार',
+    pathFallback: '/partner',
+    subdomainPrefix: 'partner',
+    themeColor: 'from-purple-600 to-indigo-700',
   },
   promoter: {
     id: 'promoter',
@@ -138,14 +217,32 @@ export function detectSubdomain(): AppSubdomain {
   // 1. Priority: URL query parameter for testing (e.g. ?subdomain=admin)
   const searchParams = new URLSearchParams(window.location.search);
   const querySub = searchParams.get('subdomain')?.toLowerCase().trim();
-  if (querySub && ['admin', 'agent', 'promoter', 'shop', 'creator', 'careers', 'login', 'help', 'main'].includes(querySub)) {
+  const validSubdomains: AppSubdomain[] = [
+    'admin',
+    'agent',
+    'book',
+    'operator',
+    'kisan',
+    'buyer',
+    'transport',
+    'pay',
+    'partner',
+    'promoter',
+    'shop',
+    'creator',
+    'careers',
+    'login',
+    'help',
+    'main',
+  ];
+  if (querySub && validSubdomains.includes(querySub as AppSubdomain)) {
     return querySub as AppSubdomain;
   }
 
   // 2. LocalStorage override if set manually by developer/admin switcher
   try {
     const storedOverride = sessionStorage.getItem(STORAGE_KEY_SUBDOMAIN_OVERRIDE);
-    if (storedOverride && ['admin', 'agent', 'promoter', 'shop', 'creator', 'careers', 'login', 'help', 'main'].includes(storedOverride)) {
+    if (storedOverride && validSubdomains.includes(storedOverride as AppSubdomain)) {
       return storedOverride as AppSubdomain;
     }
   } catch {}
@@ -158,6 +255,11 @@ export function detectSubdomain(): AppSubdomain {
     return 'admin';
   }
 
+  // Customer Direct Booking subdomain (book.safargo.in)
+  if (hostname.startsWith('book.') || hostname === 'book.localhost') {
+    return 'book';
+  }
+
   // Login subdomains (login.safargo.in, auth.safargo.in)
   if (
     hostname.startsWith('login.') ||
@@ -168,7 +270,7 @@ export function detectSubdomain(): AppSubdomain {
     return 'login';
   }
 
-  // GO Agent subdomains
+  // GO Agent subdomains (agent.safargo.in, go.safargo.in)
   if (
     hostname.startsWith('agent.') ||
     hostname.startsWith('go.') ||
@@ -176,6 +278,56 @@ export function detectSubdomain(): AppSubdomain {
     hostname === 'go.localhost'
   ) {
     return 'agent';
+  }
+
+  // Bus Operator subdomains (operator.safargo.in)
+  if (hostname.startsWith('operator.') || hostname === 'operator.localhost') {
+    return 'operator';
+  }
+
+  // Kisan & Farmer Mobility subdomains (kisan.safargo.in, farmer.safargo.in)
+  if (
+    hostname.startsWith('kisan.') ||
+    hostname.startsWith('farmer.') ||
+    hostname === 'kisan.localhost' ||
+    hostname === 'farmer.localhost'
+  ) {
+    return 'kisan';
+  }
+
+  // Buyer & Merchant subdomains (buyer.safargo.in, mandi.safargo.in)
+  if (
+    hostname.startsWith('buyer.') ||
+    hostname.startsWith('mandi.') ||
+    hostname === 'buyer.localhost' ||
+    hostname === 'mandi.localhost'
+  ) {
+    return 'buyer';
+  }
+
+  // Transporter & Fleet subdomains (transport.safargo.in, fleet.safargo.in)
+  if (
+    hostname.startsWith('transport.') ||
+    hostname.startsWith('fleet.') ||
+    hostname === 'transport.localhost' ||
+    hostname === 'fleet.localhost'
+  ) {
+    return 'transport';
+  }
+
+  // Payment & Wallet subdomains (pay.safargo.in, wallet.safargo.in)
+  if (
+    hostname.startsWith('pay.') ||
+    hostname.startsWith('wallet.') ||
+    hostname === 'pay.localhost' ||
+    hostname === 'wallet.localhost'
+  ) {
+    return 'pay';
+  }
+
+  // Business Partner & Referral subdomains (partner.safargo.in)
+  if (hostname.startsWith('partner.') || hostname === 'partner.localhost') {
+    return 'partner';
   }
 
   // Promoter subdomains
@@ -187,7 +339,6 @@ export function detectSubdomain(): AppSubdomain {
   if (
     hostname.startsWith('shop.') ||
     hostname.startsWith('dukaan.') ||
-    hostname.startsWith('partner.') ||
     hostname === 'shop.localhost'
   ) {
     return 'shop';

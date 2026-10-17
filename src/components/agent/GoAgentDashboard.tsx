@@ -170,6 +170,27 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
     }
   });
 
+  const [isRefreshingStatus, setIsRefreshingStatus] = useState(false);
+  const handleManualRefreshStatus = () => {
+    setIsRefreshingStatus(true);
+    info('जांच जारी है...', 'एडमिन व ऑपरेटर स्टेटस पुनः चेक किया जा रहा है...');
+    setTimeout(() => {
+      setIsRefreshingStatus(false);
+      try {
+        const raw = localStorage.getItem('safargo_bookings_v1');
+        if (raw) {
+          const list = JSON.parse(raw);
+          const found = list.find((b: any) => b.id === activePendingBookingId || b.booking_code === activePendingBookingId);
+          if (found && (found.status === 'confirmed' || found.status === 'approved')) {
+            success('🎉 टिकट कन्फर्म हो गई!', `PNR: ${found.ticket_pnr || 'CONFIRMED'} जारी हो चुका है। ₹20 कमीशन Go Wallet में जमा!`);
+          } else {
+            info('प्रक्रियाधीन', 'आपकी टिकट ऑपरेटर सत्यापन में है, कृपया कुछ क्षण प्रतीक्षा करें।');
+          }
+        }
+      } catch {}
+    }, 600);
+  };
+
   // History Tab: Filter ('all' | 'pending' | 'confirmed' | 'cancelled') & Search
   const [historyFilter, setHistoryFilter] = useState<'all' | 'pending' | 'confirmed' | 'cancelled'>('all');
   const [historySearchTerm, setHistorySearchTerm] = useState('');
@@ -299,22 +320,23 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
 
   const activePendingBooking = useMemo(() => {
     if (!activePendingBookingId) return null;
-    return myGoBookings.find((b) => b.id === activePendingBookingId) || null;
+    return (
+      myGoBookings.find(
+        (b) => b.id === activePendingBookingId || b.booking_code === activePendingBookingId
+      ) || null
+    );
   }, [activePendingBookingId, myGoBookings]);
 
   useEffect(() => {
     if (activePendingBooking) {
-      if (activePendingBooking.status === 'confirmed') {
+      if (activePendingBooking.status === 'confirmed' || (activePendingBooking as any).status === 'approved') {
         success('🎉 टिकट कन्फर्म हो गई!', `PNR: ${activePendingBooking.ticket_pnr || 'OK'} जारी हो चुका है। ₹20 कमीशन Go Wallet में जमा!`);
-        try {
-          localStorage.removeItem(`safargo_pending_booking_${currentUser?.id}`);
-        } catch {}
       }
     }
   }, [activePendingBooking?.status]);
 
   // Metric Stats
-  const confirmedBookings = myGoBookings.filter((b) => b.status === 'confirmed');
+  const confirmedBookings = myGoBookings.filter((b) => b.status === 'confirmed' || (b as any).status === 'approved');
   const confirmedCount = confirmedBookings.length;
   const totalCommissionEarned = confirmedCount * 20;
 
@@ -336,11 +358,17 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
     return myGoBookings.filter((b) => {
       // Status Filter
       if (historyFilter === 'pending') {
-        if (b.status === 'confirmed' || b.status === 'cancelled' || b.status === 'refund_processed') return false;
+        return b.status === 'booking_request' || b.status === 'awaiting_operator_confirmation';
       } else if (historyFilter === 'confirmed') {
-        if (b.status !== 'confirmed') return false;
+        return b.status === 'confirmed' || (b as any).status === 'approved';
       } else if (historyFilter === 'cancelled') {
-        if (b.status !== 'cancelled' && b.status !== 'cancellation_requested' && b.status !== 'refund_processed') return false;
+        return (
+          b.status === 'cancelled' ||
+          b.status === 'cancellation_requested' ||
+          (b as any).status === 'refund_processed' ||
+          b.status === 'rejected' ||
+          b.status === 'expired'
+        );
       }
 
       // Search Filter
@@ -950,7 +978,17 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                   </span>
                 </div>
 
-                <div className="pt-2">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-sm mx-auto pt-2">
+                  <button
+                    type="button"
+                    onClick={handleManualRefreshStatus}
+                    disabled={isRefreshingStatus}
+                    className="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-lg active:scale-95"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isRefreshingStatus ? 'animate-spin' : ''}`} />
+                    <span>{isRefreshingStatus ? 'जांच जारी है...' : '🔄 स्थिति रिफ्रेश करें'}</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => {
@@ -959,7 +997,7 @@ export const GoAgentDashboard: React.FC<GoAgentDashboardProps> = ({
                         localStorage.removeItem(`safargo_pending_booking_${currentUser?.id}`);
                       } catch {}
                     }}
-                    className="text-xs text-slate-500 hover:text-slate-300 underline"
+                    className="w-full py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition"
                   >
                     नया फॉर्म खोलें
                   </button>

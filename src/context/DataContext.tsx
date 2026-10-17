@@ -296,39 +296,70 @@ const STORAGE_KEY_PROMO_CODES = 'safargo_promo_codes_v1';
 // Ensures that a 'confirmed' or 'approved' state is NEVER downgraded back to 'booking_request' or 'pending'
 export const mergeBookingsWithPrecedence = (localList: Booking[], incomingList: Booking[]): Booking[] => {
   const map = new Map<string, Booking>();
-  localList.forEach((b) => map.set(b.id, b));
+  const codeToId = new Map<string, string>();
+
+  localList.forEach((b) => {
+    map.set(b.id, b);
+    if (b.booking_code) {
+      codeToId.set(b.booking_code, b.id);
+    }
+  });
 
   const statusRank: Record<string, number> = {
     confirmed: 10,
+    approved: 10,
+    completed: 10,
     cancelled: 9,
     rejected: 8,
     cancellation_requested: 5,
     awaiting_operator_confirmation: 3,
     booking_request: 2,
+    pending: 2,
+    pending_approval: 2,
     expired: 1,
   };
 
   incomingList.forEach((inc) => {
-    const existing = map.get(inc.id);
+    // Look up by ID or by unique booking_code
+    const existingId = map.has(inc.id) ? inc.id : (inc.booking_code ? codeToId.get(inc.booking_code) : undefined);
+    const existing = existingId ? map.get(existingId) : undefined;
+
     if (!existing) {
       map.set(inc.id, inc);
+      if (inc.booking_code) {
+        codeToId.set(inc.booking_code, inc.id);
+      }
     } else {
       const exRank = statusRank[existing.status] || 0;
       const incRank = statusRank[inc.status] || 0;
       const winningStatus = (incRank > exRank ? inc.status : existing.status) as BookingStatus;
 
-      map.set(inc.id, {
-        ...existing,
-        ...inc,
+      // Higher-ranking record's fields take strict precedence
+      const primary = exRank >= incRank ? existing : inc;
+      const secondary = exRank >= incRank ? inc : existing;
+
+      const mergedRecord: Booking = {
+        ...secondary,
+        ...primary,
+        id: existing.id, // Retain stable local ID
+        booking_code: primary.booking_code || secondary.booking_code,
         status: winningStatus,
-        ticket_pnr: inc.ticket_pnr || existing.ticket_pnr,
-        actual_fare: inc.actual_fare ?? existing.actual_fare,
-        confirmed_seats: inc.confirmed_seats || existing.confirmed_seats,
-        actual_operator: inc.actual_operator || existing.actual_operator,
-        confirmed_by: inc.confirmed_by || existing.confirmed_by,
-        confirmed_at: inc.confirmed_at || existing.confirmed_at,
-        admin_notes: inc.admin_notes || existing.admin_notes,
-      });
+        ticket_pnr: primary.ticket_pnr || secondary.ticket_pnr,
+        actual_fare: primary.actual_fare ?? secondary.actual_fare ?? primary.total_estimated_amount,
+        confirmed_seats: primary.confirmed_seats || secondary.confirmed_seats,
+        actual_operator: primary.actual_operator || secondary.actual_operator || primary.operator_preference,
+        actual_boarding_point: primary.actual_boarding_point || secondary.actual_boarding_point || primary.boarding_point,
+        actual_drop_point: primary.actual_drop_point || secondary.actual_drop_point || primary.drop_point,
+        confirmed_by: primary.confirmed_by || secondary.confirmed_by,
+        confirmed_at: primary.confirmed_at || secondary.confirmed_at,
+        admin_notes: primary.admin_notes || secondary.admin_notes,
+        ticket_doc_url: primary.ticket_doc_url || secondary.ticket_doc_url,
+        payment_mode: primary.payment_mode || secondary.payment_mode,
+        payment_status: primary.payment_status || secondary.payment_status,
+        payment_utr: primary.payment_utr || secondary.payment_utr,
+      };
+
+      map.set(existing.id, mergedRecord);
     }
   });
 
@@ -712,9 +743,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           db.getPromotionClaims(),
         ]);
 
-        if (liveBookings && liveBookings.length > 0) setBookings(liveBookings);
+        if (liveBookings && liveBookings.length > 0) {
+          setBookings((prev) => {
+            const next = mergeBookingsWithPrecedence(prev, liveBookings);
+            safeSetItem(STORAGE_KEY_BOOKINGS, JSON.stringify(sanitizeBookings(next)));
+            return next;
+          });
+        }
         if (liveTrips && liveTrips.length > 0) setBusTrips(liveTrips);
-        if (liveCommissions && liveCommissions.length > 0) setCommissions(liveCommissions);
+        if (liveCommissions && liveCommissions.length > 0) {
+          setCommissions((prev) => {
+            const map = new Map<string, CommissionEntry>();
+            prev.forEach((c) => map.set(c.id, c));
+            liveCommissions.forEach((c) => map.set(c.id, c));
+            const next = Array.from(map.values()).sort(
+              (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+            safeSetItem(STORAGE_KEY_COMMISSION, JSON.stringify(next));
+            return next;
+          });
+        }
         if (liveSalaries && liveSalaries.length > 0) setSalaryRecords(liveSalaries);
         if (livePayouts && livePayouts.length > 0) setPayoutRequests(livePayouts);
         if (liveRecharges && liveRecharges.length > 0) setWalletRecharges(liveRecharges);
@@ -756,8 +804,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           safeSetItem(STORAGE_KEY_WALLET_TX, JSON.stringify(liveTxs));
         }
         if (liveComms && liveComms.length > 0) {
-          setCommissions(liveComms);
-          safeSetItem(STORAGE_KEY_COMMISSIONS, JSON.stringify(liveComms));
+          setCommissions((prev) => {
+            const map = new Map<string, CommissionEntry>();
+            prev.forEach((c) => map.set(c.id, c));
+            liveComms.forEach((c) => map.set(c.id, c));
+            const next = Array.from(map.values()).sort(
+              (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+            safeSetItem(STORAGE_KEY_COMMISSION, JSON.stringify(next));
+            return next;
+          });
         }
         if (livePayouts && livePayouts.length > 0) {
           setPayoutRequests(livePayouts);
@@ -807,6 +863,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.error('Wallet tx storage sync error:', err);
         }
       }
+      if (e.key === STORAGE_KEY_COMMISSION && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            setCommissions((prev) => {
+              const map = new Map<string, CommissionEntry>();
+              prev.forEach((c) => map.set(c.id, c));
+              parsed.forEach((c) => map.set(c.id, c));
+              return Array.from(map.values()).sort(
+                (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+              );
+            });
+          }
+        } catch (err) {
+          console.error('Commission storage sync error:', err);
+        }
+      }
       if (e.key === STORAGE_KEY_BOOKINGS && e.newValue) {
         try {
           const parsed = JSON.parse(e.newValue);
@@ -824,32 +897,50 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribeCloud = subscribeToCloudEvents((event: CloudSyncEvent) => {
       if (event.type === 'BOOKING_CREATED') {
         setBookings((prev) => {
-          if (prev.some((b) => b.id === event.booking?.id)) return prev;
+          if (prev.some((b) => b.id === event.booking?.id || (event.booking?.booking_code && b.booking_code === event.booking.booking_code))) return prev;
           const next = [event.booking, ...prev];
           safeSetItem(STORAGE_KEY_BOOKINGS, JSON.stringify(sanitizeBookings(next)));
           return next;
         });
       } else if (event.type === 'BOOKING_CONFIRMED') {
         setBookings((prev) => {
+          const targetId = event.bookingId || event.booking?.id;
+          const targetCode = event.booking?.booking_code;
+          let matched = false;
           const updated = prev.map((b) => {
-            if (b.id === event.bookingId) {
+            if (b.id === targetId || (targetCode && b.booking_code === targetCode)) {
+              matched = true;
               return {
                 ...b,
                 ...event.booking,
                 status: 'confirmed' as BookingStatus,
                 ticket_pnr: event.pnr || event.booking?.ticket_pnr || b.ticket_pnr,
+                actual_fare: event.booking?.actual_fare ?? b.actual_fare,
+                confirmed_seats: event.booking?.confirmed_seats || b.confirmed_seats,
+                actual_operator: event.booking?.actual_operator || b.actual_operator,
+                actual_boarding_point: event.booking?.actual_boarding_point || b.actual_boarding_point,
+                actual_drop_point: event.booking?.actual_drop_point || b.actual_drop_point,
                 confirmed_at: event.booking?.confirmed_at || new Date().toISOString(),
               };
             }
             return b;
           });
+          if (!matched && event.booking) {
+            updated.unshift({
+              ...event.booking,
+              status: 'confirmed' as BookingStatus,
+              ticket_pnr: event.pnr || event.booking?.ticket_pnr,
+              confirmed_at: event.booking?.confirmed_at || new Date().toISOString(),
+            });
+          }
           safeSetItem(STORAGE_KEY_BOOKINGS, JSON.stringify(sanitizeBookings(updated)));
           return updated;
         });
       } else if (event.type === 'BOOKING_REJECTED') {
         setBookings((prev) => {
+          const targetId = event.bookingId;
           const updated = prev.map((b) =>
-            b.id === event.bookingId
+            b.id === targetId
               ? { ...b, status: 'rejected' as BookingStatus, rejection_reason: event.reason }
               : b
           );
@@ -983,6 +1074,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const updated = prev.map((b) => {
           if (
             (b.status === 'booking_request' || b.status === 'awaiting_operator_confirmation') &&
+            b.status !== 'confirmed' &&
+            !b.ticket_pnr &&
             new Date(b.deadline_at).getTime() <= nowTime
           ) {
             hasChanges = true;
@@ -996,6 +1089,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return b;
         });
         if (hasChanges) {
+          safeSetItem(STORAGE_KEY_BOOKINGS, JSON.stringify(sanitizeBookings(updated)));
           addAuditLog('auto_expire_deadline', 'bookings', undefined, { timestamp: new Date().toISOString() });
         }
         return hasChanges ? updated : prev;
@@ -1726,7 +1820,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     }
 
-    const target = bookings.find((b) => b.id === bookingId);
+    const target = bookings.find((b) => b.id === bookingId || b.booking_code === bookingId);
     if (!target) {
       error('Error', 'Booking not found.');
       return false;
@@ -1744,7 +1838,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Atomic commission check: ensure no prior credit ledger entry exists for this booking
     const alreadyCredited = commissions.some(
-      (c) => c.booking_id === bookingId && c.status === 'credited'
+      (c) =>
+        (c.booking_id === target.id || (target.booking_code && c.booking_code === target.booking_code)) &&
+        c.status === 'credited'
     );
     if (alreadyCredited) {
       error('Duplicate Commission Prevented', 'Commission has already been credited for this booking.');
@@ -1773,17 +1869,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     setBookings((prev) => {
-      const next = prev.map((b) => (b.id === bookingId ? updatedBooking : b));
+      const next = prev.map((b) =>
+        b.id === target.id || (target.booking_code && b.booking_code === target.booking_code)
+          ? updatedBooking
+          : b
+      );
       safeSetItem(STORAGE_KEY_BOOKINGS, JSON.stringify(sanitizeBookings(next)));
       return next;
     });
 
     saveBookingToFirestore(updatedBooking).catch(console.error);
 
-    // 2. Insert Commission Ledger Entry (₹19.34)
+    // 2. Insert Commission Ledger Entry (₹20)
     const newCommissionEntry: CommissionEntry = {
       id: `comm-${Date.now()}`,
-      booking_id: bookingId,
+      booking_id: target.id,
       booking_code: target.booking_code,
       agent_id: target.agent_id,
       agent_name: target.agent_name,
@@ -1802,7 +1902,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (referrer) {
         // Count confirmed bookings by this agent (including this one)
         const agentConfirmedBookings = bookings.filter(
-          (b) => b.agent_id === bookedAgent.id && b.status === 'confirmed' && b.id !== bookingId
+          (b) => b.agent_id === bookedAgent.id && b.status === 'confirmed' && b.id !== target.id
         ).length + 1;
 
         const reqBookings = settings.referral_required_bookings || 5;
@@ -1866,7 +1966,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const entryId = `comm-bs-${Date.now()}`;
       newBoardingSathiEntry = {
         id: entryId,
-        booking_id: bookingId,
+        booking_id: target.id,
         booking_code: target.booking_code,
         agent_id: target.agent_id,
         agent_name: target.agent_name,
@@ -1897,6 +1997,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (newBoardingSathiEntry) {
         list.unshift(newBoardingSathiEntry);
       }
+      safeSetItem(STORAGE_KEY_COMMISSION, JSON.stringify(list));
       return list;
     });
 
@@ -1925,7 +2026,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (isSupabaseConfigured) {
       db.createWalletTransaction(commWalletTx).catch(console.error);
-      db.updateBooking(bookingId, {
+      db.updateBooking(target.id, {
         status: 'confirmed',
         actual_fare: verificationData.actual_fare,
         confirmed_seats: verificationData.confirmed_seats,
@@ -1944,7 +2045,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // 3. Audit Log
-    addAuditLog('confirm_booking', 'bookings', bookingId, {
+    addAuditLog('confirm_booking', 'bookings', target.id, {
       booking_code: target.booking_code,
       commission_credited: commRate,
       pnr: verificationData.ticket_pnr,
@@ -1959,7 +2060,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Instant Zero-Latency Cross-Tab & Cross-Device Cloud Sync
     broadcastCloudEvent({
       type: 'BOOKING_CONFIRMED',
-      bookingId,
+      bookingId: target.id,
       booking: updatedBooking,
       pnr: verificationData.ticket_pnr,
       agentId: target.agent_id,
@@ -1976,7 +2077,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     }
 
-    const target = bookings.find((b) => b.id === bookingId);
+    const target = bookings.find((b) => b.id === bookingId || b.booking_code === bookingId);
     if (!target) return false;
 
     const nowIso = new Date().toISOString();
@@ -1988,7 +2089,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     setBookings((prev) => {
-      const next = prev.map((b) => (b.id === bookingId ? rejectedBooking : b));
+      const next = prev.map((b) =>
+        b.id === target.id || (target.booking_code && b.booking_code === target.booking_code)
+          ? rejectedBooking
+          : b
+      );
       safeSetItem(STORAGE_KEY_BOOKINGS, JSON.stringify(sanitizeBookings(next)));
       return next;
     });
@@ -1997,13 +2102,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     broadcastCloudEvent({
       type: 'BOOKING_REJECTED',
-      bookingId,
+      bookingId: target.id,
       reason,
       timestamp: Date.now(),
     });
 
     if (isSupabaseConfigured) {
-      db.updateBooking(bookingId, {
+      db.updateBooking(target.id, {
         status: 'rejected',
         rejection_reason: reason,
         updated_at: nowIso,
