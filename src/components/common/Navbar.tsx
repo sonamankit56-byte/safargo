@@ -94,7 +94,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-slate-900 border-b border-slate-800 text-white shadow-lg">
+    <header className="sticky top-0 z-40 bg-[#0A2885] border-b border-[#071E66] text-white shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
@@ -104,18 +104,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
           </div>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-1.5">
             {/* Global Home link */}
             <button
               onClick={() => handleTabChange('home')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition ${
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
                 currentTab === 'home'
-                  ? 'bg-orange-500 text-white shadow-sm'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  ? 'bg-white/20 text-white shadow-xs'
+                  : 'text-blue-100 hover:text-white hover:bg-white/10'
               }`}
             >
-              <Home className="w-4 h-4" />
-              Home
+              <Home className="w-3.5 h-3.5" />
+              <span>होम (Home)</span>
             </button>
 
             {/* Nearby / Quick Delivery */}
@@ -526,10 +526,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                   onClick={() => {
                     window.location.href = buildSubdomainUrl('login');
                   }}
-                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl border border-slate-700 transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-full border border-white/20 transition flex items-center gap-1.5 shadow-xs cursor-pointer"
                 >
-                  <LogIn className="w-3.5 h-3.5 text-orange-400" />
-                  <span>लॉगिन करें</span>
+                  <LogIn className="w-3.5 h-3.5 text-amber-300" />
+                  <span>लॉगिन</span>
                 </button>
 
                 {prmMode !== 'hidden' && (
@@ -545,11 +545,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                         window.location.href = `${buildSubdomainUrl('login')}?role=promoter`;
                       }
                     }}
-                    className="px-3 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-xs rounded-xl transition flex items-center gap-1.5 shadow-sm active:scale-95 border border-amber-300 cursor-pointer"
+                    className="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded-full transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
                     title="विशेष प्रमोटिंग पार्टनर लॉगिन पोर्टल (₹15,000/माह)"
                   >
                     <Award className="w-3.5 h-3.5 text-slate-950" />
-                    <span>🤝 प्रमोटर लॉगिन</span>
+                    <span>प्रमोटर</span>
                     {prmMode === 'coming_soon' && (
                       <span className="text-[9px] font-extrabold bg-slate-950 text-amber-300 px-1 rounded">
                         जल्द
@@ -562,11 +562,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, onOpe
                   onClick={() => {
                     window.location.href = `${buildSubdomainUrl('login')}?role=agent`;
                   }}
-                  className="px-3.5 py-2 bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-xs rounded-xl transition flex items-center gap-1.5 shadow-md active:scale-95 cursor-pointer"
+                  className="px-4 py-2 bg-[#FF6500] hover:bg-[#e65c00] text-white font-extrabold text-xs rounded-full transition flex items-center gap-1.5 shadow-md active:scale-95 cursor-pointer"
                   title="अधिकृत SafarGo एजेंट बनें (login.safargo.in)"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
-                  <span>फ्री एजेंट बनें</span>
+                  <span>GO एजेंट बनें</span>
                 </button>
               </div>
             ) : (
