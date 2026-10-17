@@ -17,6 +17,8 @@ export interface OnboardingApplication {
   bankName: string;
   settlementUpiId: string;
   referralCode?: string;
+  aadhaarDocUrl?: string;
+  panDocUrl?: string;
   status: 'pending' | 'approved' | 'rejected';
   rejectionReason?: string;
   submittedAt: string;

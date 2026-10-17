@@ -225,10 +225,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setAgentAuthStep('form');
-                  setIsAgentModalOpen(true);
-                }}
+                onClick={handleOpenOnboarding}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <Briefcase className="w-4 h-4 text-red-600" />
@@ -635,10 +632,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div className="lg:col-span-4 flex flex-col items-center justify-center gap-3">
               <button
                 type="button"
-                onClick={() => {
-                  setAgentAuthStep('form');
-                  setIsAgentModalOpen(true);
-                }}
+                onClick={handleOpenOnboarding}
                 className="w-full sm:w-auto bg-slate-900 hover:bg-black text-white font-black text-sm px-8 py-4 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>BECOME AN AGENT (JOIN NOW)</span>

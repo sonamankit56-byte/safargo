@@ -155,13 +155,13 @@ const AppContent: React.FC = () => {
       // Direct rendering of LoginSubdomainGateway is handled below
       return;
     } else if (location.pathname.startsWith('/admin')) {
-      if (!currentUser || (role !== 'admin' && !isAdmin)) {
+      if (currentUser && role !== 'admin' && !isAdmin) {
         if (role === 'customer') navigate('/customer', { replace: true });
         else if (role === 'shopkeeper') navigate('/shop', { replace: true });
         else if (role === 'agent') navigate('/go-agent', { replace: true });
         else if (role === 'promoter') navigate('/promoter/dashboard', { replace: true });
-        else navigate('/', { replace: true });
       }
+      // If unauthenticated, allow AdminSubdomainLayout to display the dedicated admin login portal
     } else if (location.pathname === '/agent' || location.pathname === '/agent/dashboard') {
       if (role === 'agent') {
         navigate('/go-agent', { replace: true });
@@ -196,7 +196,7 @@ const AppContent: React.FC = () => {
   // render the dedicated isolated environments completely separated from public passenger view.
   const activeSubdomain = detectSubdomain();
 
-  if (activeSubdomain === 'admin') {
+  if (activeSubdomain === 'admin' || location.pathname.startsWith('/admin')) {
     return <AdminSubdomainLayout />;
   }
 

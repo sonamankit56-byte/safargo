@@ -353,11 +353,24 @@ export async function sendRegistrationOtpEmail(params: {
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 540px; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08); border: 1px solid #e2e8f0;">
           <tr>
             <td style="background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); padding: 32px 28px; text-align: center;">
-              <h1 style="margin: 0; font-size: 28px; font-weight: 900; color: #ffffff;">
-                Safar<span style="color: #fed7aa;">Go</span>
+              <!-- Official SafarGo Logo -->
+              <div style="display: inline-block; background: #ffffff; border-radius: 14px; padding: 6px 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-bottom: 12px;">
+                <table cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="vertical-align: middle; padding-right: 8px;">
+                      <span style="display: inline-block; width: 28px; height: 28px; border-radius: 8px; background: #ea580c; color: #ffffff; text-align: center; line-height: 28px; font-size: 16px; font-weight: 900;">🚌</span>
+                    </td>
+                    <td style="vertical-align: middle;">
+                      <span style="font-size: 20px; font-weight: 900; letter-spacing: -0.5px; color: #ea580c;">Safar<span style="color: #f59e0b;">Go</span></span>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+              <h1 style="margin: 0; font-size: 22px; font-weight: 900; color: #ffffff;">
+                Your Registration OTP
               </h1>
-              <p style="margin: 6px 0 0; color: #ffedd5; font-size: 14px; font-weight: 600;">
-                🎉 SafarGo परिवार में आपका हार्दिक स्वागत है!
+              <p style="margin: 6px 0 0; color: #ffedd5; font-size: 13px; font-weight: 600;">
+                Complete Onboarding &amp; Earn Money • Good Journey, Thank You 🙏
               </p>
             </td>
           </tr>
@@ -367,7 +380,7 @@ export async function sendRegistrationOtpEmail(params: {
                 प्रिय ${fullName || 'साथी'},
               </h2>
               <p style="margin: 0 0 18px; font-size: 14px; line-height: 1.6; color: #475569;">
-                SafarGo (<strong>${roleTitle}</strong>) के रूप में आपका पंजीकरण शुरू हो चुका है। अपना खाता सक्रिय और ईमेल सत्यापित करने के लिए कृपया नीचे दिए गए 6-अंकीय पुष्टिकरण कोड को दर्ज करें:
+                SafarGo (<strong>${roleTitle}</strong>) के रूप में आपका पंजीकरण शुरू हो चुका है। अपना खाता सक्रिय और ईमेल सत्यापित करने के लिए नीचे दिए गए 6-अंकीय पुष्टिकरण कोड को दर्ज करें:
               </p>
 
               <!-- Code Box -->
@@ -378,8 +391,8 @@ export async function sendRegistrationOtpEmail(params: {
                 <span style="display: inline-block; font-family: 'Courier New', Courier, monospace; font-size: 38px; font-weight: 900; letter-spacing: 8px; color: #ea580c;">
                   ${confirmCode}
                 </span>
-                <span style="display: block; font-size: 12px; font-weight: 600; color: #9a3412; margin-top: 8px;">
-                  सत्यापन के बाद आपका खाता तुरंत सक्रिय हो जाएगा
+                <span style="display: block; font-size: 12px; font-weight: 700; color: #9a3412; margin-top: 8px;">
+                  Your registration OTP complete onboarding and earn money, good journey, thank you 🙏
                 </span>
               </div>
 
@@ -638,6 +651,182 @@ export async function sendAgentApprovalEmail(params: {
   const res = await sendResendEmail({
     to: toEmail,
     subject: `🎉 Congratulations! Your SafarGo Agent Account is Verified & Approved - Create Password`,
+    html,
+    text,
+  });
+
+  return res.success;
+}
+
+/**
+ * 7. Send Onboarding Application Submitted & Verification Under Review Email (with Logo & PDF Dossier link)
+ */
+export async function sendOnboardingSubmittedEmail(params: {
+  toEmail: string;
+  fullName: string;
+  shopName: string;
+  agentId: string;
+  mobile: string;
+  panNumber: string;
+  aadhaarNumber: string;
+  bankName: string;
+  accountNumber: string;
+  settlementUpiId: string;
+}): Promise<boolean> {
+  const {
+    toEmail,
+    fullName,
+    shopName,
+    agentId,
+    mobile,
+    panNumber,
+    aadhaarNumber,
+    bankName,
+    accountNumber,
+    settlementUpiId,
+  } = params;
+
+  const origin =
+    typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin
+      : 'https://safargo.in';
+
+  const dossierLink = `${origin}/onboarding?dossier=${encodeURIComponent(agentId)}`;
+
+  const maskedAadhaar = `XXXX-XXXX-${aadhaarNumber.slice(-4)}`;
+  const maskedPan = panNumber ? `${panNumber.slice(0, 2)}*****${panNumber.slice(-2)}` : 'N/A';
+  const maskedAccount = accountNumber ? `••••••••${accountNumber.slice(-4)}` : 'N/A';
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafarGo Onboarding Submitted</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f1f5f9; padding: 30px 15px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 560px; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0;">
+          
+          <!-- BRAND HEADER WITH SAFARGO OFFICIAL LOGO -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); padding: 36px 30px; text-align: center;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center">
+                    <div style="display: inline-block; background: #ffffff; border-radius: 16px; padding: 8px 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-bottom: 12px;">
+                      <table cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td style="vertical-align: middle; padding-right: 8px;">
+                            <span style="display: inline-block; width: 32px; height: 32px; border-radius: 10px; background: #dc2626; color: #ffffff; text-align: center; line-height: 32px; font-size: 18px; font-weight: 900;">🚌</span>
+                          </td>
+                          <td style="vertical-align: middle;">
+                            <span style="font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #dc2626;">Safar<span style="color: #f59e0b;">Go</span></span>
+                          </td>
+                        </tr>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+              <h1 style="margin: 0; font-size: 22px; font-weight: 900; color: #ffffff; letter-spacing: -0.3px;">
+                📋 Onboarding Registration Submitted
+              </h1>
+              <p style="margin: 8px 0 0; color: #ffedd5; font-size: 13px; font-weight: 600;">
+                Your registration complete, complete onboarding and earn money, good journey, thank you 🙏
+              </p>
+            </td>
+          </tr>
+
+          <!-- BODY -->
+          <tr>
+            <td style="padding: 32px 28px;">
+              <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 16px; padding: 18px 20px; margin-bottom: 24px; text-align: center;">
+                <span style="display: inline-block; font-size: 24px; margin-bottom: 4px;">⏳</span>
+                <h2 style="margin: 0 0 6px; font-size: 16px; font-weight: 900; color: #92400e;">
+                  safargo team verify kar rahi hai
+                </h2>
+                <p style="margin: 0; font-size: 13px; font-weight: 700; color: #b45309;">
+                  हम आपको अपडेट करेंगे वेरीफाई होने पर (We will update you once verified)
+                </p>
+              </div>
+
+              <p style="margin: 0 0 16px; font-size: 14px; line-height: 1.6; color: #334155;">
+                प्रिय <strong>${fullName}</strong> (${shopName}),
+              </p>
+              <p style="margin: 0 0 20px; font-size: 14px; line-height: 1.6; color: #475569;">
+                आपका SafarGo अधिकृत एजेंट ऑनबोर्डिंग आवेदन सफलतापूर्वक जमा हो चुका है। संदर्भ संख्या (Application ID): <strong style="color: #dc2626; font-family: monospace;">${agentId}</strong>।
+              </p>
+
+              <!-- Application Summary Table -->
+              <table width="100%" cellpadding="8" cellspacing="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; margin-bottom: 24px; font-size: 12px;">
+                <tr>
+                  <td style="font-weight: 700; color: #64748b; width: 40%;">पंजीकृत केंद्र:</td>
+                  <td style="font-weight: 800; color: #0f172a;">${shopName}</td>
+                </tr>
+                <tr>
+                  <td style="font-weight: 700; color: #64748b;">मोबाइल नंबर:</td>
+                  <td style="font-weight: 800; color: #0f172a; font-family: monospace;">+91 ${mobile}</td>
+                </tr>
+                <tr>
+                  <td style="font-weight: 700; color: #64748b;">आधार पहचान:</td>
+                  <td style="font-weight: 800; color: #0f172a; font-family: monospace;">${maskedAadhaar} (Verified ✓)</td>
+                </tr>
+                <tr>
+                  <td style="font-weight: 700; color: #64748b;">PAN कार्ड:</td>
+                  <td style="font-weight: 800; color: #0f172a; font-family: monospace;">${maskedPan} (Verified ✓)</td>
+                </tr>
+                <tr>
+                  <td style="font-weight: 700; color: #64748b;">बैंक खाता:</td>
+                  <td style="font-weight: 800; color: #0f172a;">${bankName} • ${maskedAccount}</td>
+                </tr>
+                <tr>
+                  <td style="font-weight: 700; color: #64748b;">रविवार पेआउट UPI:</td>
+                  <td style="font-weight: 800; color: #059669; font-family: monospace;">${settlementUpiId}</td>
+                </tr>
+              </table>
+
+              <!-- Action Link to Download/View PDF Dossier -->
+              <div style="text-align: center; margin: 26px 0;">
+                <a href="${dossierLink}" style="display: inline-block; background: #0f172a; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 800; padding: 14px 28px; border-radius: 12px; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25);">
+                  📄 VIEW / PRINT OFFICIAL APPLICATION DOSSIER (PDF)
+                </a>
+              </div>
+
+              <!-- Notice -->
+              <div style="background-color: #f1f5f9; border-left: 4px solid #0284c7; padding: 12px 16px; border-radius: 0 8px 8px 0; font-size: 11px; color: #0369a1; line-height: 1.5;">
+                दस्तावेजों का सत्यापन पूर्ण होते ही आपको ईमेल पर <strong>पासवर्ड बनाने का सुरक्षित लिंक</strong> प्रेषित कर दिया जाएगा जिसके बाद आप <strong>login.safargo.in</strong> से सीधे लॉगिन कर सकेंगे।
+              </div>
+            </td>
+          </tr>
+
+          <!-- FOOTER -->
+          <tr>
+            <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 28px; text-align: center;">
+              <p style="margin: 0 0 4px; font-size: 12px; font-weight: 800; color: #0f172a;">
+                SafarGo Technologies Private Limited
+              </p>
+              <p style="margin: 0; font-size: 11px; color: #94a3b8;">
+                24x7 पार्टनर हेल्पडेस्क: 1800-SAFAR-GO • support@safargo.in
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`;
+
+  const text = `SafarGo Onboarding Submitted! प्रिय ${fullName}, SafarGo टीम वेरीफाई कर रही है, हम आपको अपडेट करेंगे वेरीफाई होने पर। आवेदन संदर्भ ID: ${agentId}। Your registration complete, complete onboarding and earn money, good journey, thank you 🙏`;
+
+  const res = await sendResendEmail({
+    to: toEmail,
+    subject: `📋 SafarGo: Registration Received (${agentId}) - SafarGo टीम वेरीफाई कर रही है`,
     html,
     text,
   });

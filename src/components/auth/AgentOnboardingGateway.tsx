@@ -32,8 +32,13 @@ import {
   Briefcase,
   ChevronRight,
   User,
+  Upload,
+  FileText,
+  Trash2,
+  Image as ImageIcon,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { sendOnboardingSubmittedEmail } from '../../lib/emailService';
 
 export const AgentOnboardingGateway: React.FC = () => {
   const { registerAgent, currentUser, role } = useAuth();
@@ -46,14 +51,16 @@ export const AgentOnboardingGateway: React.FC = () => {
   const [fullName, setFullName] = useState('');
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isOtpSending, setIsOtpSending] = useState(false);
   const [activeOtpCode, setActiveOtpCode] = useState('');
   const [enteredOtp, setEnteredOtp] = useState('');
   const [otpTimer, setOtpTimer] = useState(30);
   const [isOtpVerified, setIsOtpVerified] = useState(false);
+
+  // Document Uploads (Aadhaar & PAN)
+  const [aadhaarDocUrl, setAadhaarDocUrl] = useState('');
+  const [panDocUrl, setPanDocUrl] = useState('');
 
   // Step 2: Business & Center Profile State
   const [shopName, setShopName] = useState('');
@@ -168,10 +175,6 @@ export const AgentOnboardingGateway: React.FC = () => {
       error('ईमेल आवश्यक', 'कृपया वैध Gmail/ईमेल दर्ज करें जिसपर सत्यापन कोड आएगा।');
       return;
     }
-    if (password.length < 4) {
-      error('सुरक्षित पासवर्ड', 'पासवर्ड कम से कम 4 अक्षरों का होना चाहिए।');
-      return;
-    }
 
     const code = String(Math.floor(100000 + Math.random() * 900000));
     setActiveOtpCode(code);
@@ -267,6 +270,39 @@ export const AgentOnboardingGateway: React.FC = () => {
   };
 
   // =========================================================================
+  // DOCUMENT UPLOADS: AADHAAR CARD & PAN CARD
+  // =========================================================================
+  const handleAadhaarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      error('फ़ाइल बड़ी है', 'कृपया 5MB से छोटी आधार कार्ड फ़ोटो अपलोड करें।');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAadhaarDocUrl(reader.result as string);
+      success('आधार कार्ड संलग्न! 📄', 'आधार कार्ड फ़ाइल सफलतापूर्वक अपलोड कर दी गई है।');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePanUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      error('फ़ाइल बड़ी है', 'कृपया 5MB से छोटी पैन कार्ड फ़ोटो अपलोड करें।');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPanDocUrl(reader.result as string);
+      success('पैन कार्ड संलग्न! 💳', 'पैन कार्ड फ़ाइल सफलतापूर्वक अपलोड कर दी गई है।');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // =========================================================================
   // STEP 3 VALIDATION: KYC & IDENTITY
   // =========================================================================
   const handleValidateStep3 = (e: React.FormEvent) => {
@@ -350,7 +386,23 @@ export const AgentOnboardingGateway: React.FC = () => {
         bankName: bankName || 'Bank of India',
         settlementUpiId: settlementUpiId.trim(),
         referralCode: referralCode.trim() || undefined,
+        aadhaarDocUrl: aadhaarDocUrl || undefined,
+        panDocUrl: panDocUrl || undefined,
       });
+
+      // Dispatch acknowledgment & review notification email to agent's Gmail with PDF link
+      sendOnboardingSubmittedEmail({
+        toEmail: email.trim(),
+        fullName: fullName.trim(),
+        shopName: shopName.trim(),
+        agentId: saved.id,
+        mobile: cleanMobile,
+        panNumber: panNumber.trim().toUpperCase(),
+        aadhaarNumber: cleanAadhaar,
+        bankName: bankName || 'Bank of India',
+        accountNumber: accountNumber.trim(),
+        settlementUpiId: settlementUpiId.trim(),
+      }).catch(console.error);
 
       setGeneratedAgentId(saved.id);
       setIsActivated(true);
@@ -563,48 +615,25 @@ export const AgentOnboardingGateway: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Real Gmail */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      असली Gmail पता (Verification हेतु) *
-                    </label>
-                    <div className="relative flex items-center rounded-xl border border-slate-300 focus-within:border-red-500 focus-within:ring-1 focus-within:ring-red-200 overflow-hidden">
-                      <Mail className="w-4 h-4 text-slate-400 absolute left-3" />
-                      <input
-                        type="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="उदा. rahul.csc@gmail.com"
-                        className="w-full pl-9 pr-3 py-3 text-xs font-bold text-slate-900 focus:outline-none font-mono"
-                      />
-                    </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    असली Gmail पता (Verification एवं खाता सक्रियण लिंक हेतु) *
+                  </label>
+                  <div className="relative flex items-center rounded-xl border border-slate-300 focus-within:border-red-500 focus-within:ring-1 focus-within:ring-red-200 overflow-hidden bg-slate-50/50">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3" />
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="उदा. rahul.csc@gmail.com"
+                      className="w-full pl-9 pr-3 py-3 text-xs font-bold text-slate-900 focus:outline-none font-mono bg-transparent"
+                    />
                   </div>
-
-                  {/* Password with Eye Toggle */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      लॉगिन पासवर्ड बनाएं *
-                    </label>
-                    <div className="relative flex items-center rounded-xl border border-slate-300 focus-within:border-red-500 focus-within:ring-1 focus-within:ring-red-200 overflow-hidden">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="न्यूनतम 4 अक्षर"
-                        className="w-full pl-3.5 pr-10 py-3 text-xs font-bold text-slate-900 focus:outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1.5 flex items-center gap-1.5 font-medium">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>सत्यापन के उपरांत 8+ अंकों का पासवर्ड बनाने का गोपनीय लिंक सीधे इसी ईमेल पर प्रेषित किया जाएगा।</span>
+                  </p>
                 </div>
 
                 {/* Send OTP Trigger */}
@@ -938,6 +967,127 @@ export const AgentOnboardingGateway: React.FC = () => {
                       placeholder="23AAAAA0000A1Z5 (वैकल्पिक)"
                       className="w-full px-3.5 py-3 rounded-xl border border-slate-300 text-xs font-mono font-bold text-slate-900 uppercase focus:border-red-500 outline-none"
                     />
+                  </div>
+                </div>
+
+                {/* Aadhaar & PAN Card File Upload Section */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Aadhaar Upload Card */}
+                  <div className="p-4 rounded-2xl border-2 border-dashed border-slate-300 hover:border-red-400 bg-slate-50/60 transition-all space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <FileText className="w-4 h-4 text-red-600" />
+                        <span>आधार कार्ड फ़ोटो अपलोड *</span>
+                      </label>
+                      {aadhaarDocUrl && (
+                        <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                          <Check className="w-3 h-3" /> संलग्नित
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      आधार कार्ड का आगे/पीछे का फ़ोटो (JPG, PNG - Max 5MB)
+                    </p>
+
+                    {aadhaarDocUrl ? (
+                      <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-white p-2.5 flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <img
+                            src={aadhaarDocUrl}
+                            alt="Aadhaar Preview"
+                            className="w-12 h-12 object-cover rounded-lg border border-slate-200"
+                          />
+                          <div>
+                            <span className="text-xs font-bold text-slate-900 block">
+                              Aadhaar_Document.jpg
+                            </span>
+                            <span className="text-[10px] text-emerald-600 font-bold">
+                              सत्यापन हेतु तैयार
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setAadhaarDocUrl('')}
+                          className="p-2 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 cursor-pointer transition"
+                          title="दस्तावेज हटाएं"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-300 hover:border-red-500 bg-white cursor-pointer hover:bg-red-50/30 transition group">
+                        <Upload className="w-5 h-5 text-slate-400 group-hover:text-red-600 transition" />
+                        <span className="text-xs font-bold text-slate-700 group-hover:text-red-700 mt-1.5">
+                          आधार कार्ड अपलोड करें
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAadhaarUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* PAN Upload Card */}
+                  <div className="p-4 rounded-2xl border-2 border-dashed border-slate-300 hover:border-red-400 bg-slate-50/60 transition-all space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <FileText className="w-4 h-4 text-red-600" />
+                        <span>पैन कार्ड फ़ोटो अपलोड *</span>
+                      </label>
+                      {panDocUrl && (
+                        <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                          <Check className="w-3 h-3" /> संलग्नित
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      मूल पैन कार्ड का स्पष्ट फ़ोटो (JPG, PNG - Max 5MB)
+                    </p>
+
+                    {panDocUrl ? (
+                      <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-white p-2.5 flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <img
+                            src={panDocUrl}
+                            alt="PAN Preview"
+                            className="w-12 h-12 object-cover rounded-lg border border-slate-200"
+                          />
+                          <div>
+                            <span className="text-xs font-bold text-slate-900 block">
+                              PAN_Card_Document.jpg
+                            </span>
+                            <span className="text-[10px] text-emerald-600 font-bold">
+                              सत्यापन हेतु तैयार
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setPanDocUrl('')}
+                          className="p-2 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 cursor-pointer transition"
+                          title="दस्तावेज हटाएं"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-300 hover:border-red-500 bg-white cursor-pointer hover:bg-red-50/30 transition group">
+                        <Upload className="w-5 h-5 text-slate-400 group-hover:text-red-600 transition" />
+                        <span className="text-xs font-bold text-slate-700 group-hover:text-red-700 mt-1.5">
+                          पैन कार्ड अपलोड करें
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePanUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
                   </div>
                 </div>
 
@@ -1315,18 +1465,21 @@ export const AgentOnboardingGateway: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Notice: Your Account Activated 24 Hours */}
-                    <div className="max-w-md mx-auto bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-3xl p-5 text-left space-y-2 shadow-sm">
-                      <div className="flex items-center gap-2 text-amber-900 font-black text-sm">
+                    {/* Notice: SafarGo Team Verifying Notice */}
+                    <div className="max-w-md mx-auto bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-3xl p-5 text-left space-y-2.5 shadow-sm">
+                      <div className="flex items-center gap-2 text-amber-950 font-black text-sm">
                         <Clock className="w-5 h-5 text-amber-600 shrink-0" />
-                        <span>Your Account Will Be Activated Within 24 Hours</span>
+                        <span>SafarGo टीम वेरीफाई कर रही है (Verification in Progress)</span>
                       </div>
-                      <p className="text-xs text-amber-800 leading-relaxed font-medium">
-                        आपका ऑनबोर्डिंग आवेदन सफलतापूर्वक सुपर एडमिन डेस्क को प्राप्त हो चुका है। दस्तावेजों की समीक्षा पूर्ण होने के उपरांत <strong>24 घंटे के अंदर</strong> आपके पंजीकृत ईमेल (<strong>{email}</strong>) पर <strong>पासवर्ड बनाने का सुरक्षित लिंक</strong> प्रेषित किया जाएगा।
+                      <p className="text-xs text-amber-950 leading-relaxed font-black">
+                        safargo team verify kar rahi hai hum apko update karenge verify hone par
                       </p>
-                      <div className="pt-1 text-[11px] text-amber-700 flex items-center gap-1.5 font-bold">
-                        <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                        <span>24x7 पार्टनर सहायता: 1800-SAFAR-GO • support@safargo.in</span>
+                      <p className="text-[11px] text-amber-800 leading-relaxed font-medium">
+                        आपके द्वारा अपलोड किए गए आधार, पैन एवं बैंक विवरणों की समीक्षा पूरी होते ही आपके पंजीकृत ईमेल (<strong>{email}</strong>) पर <strong>खाता सक्रियण एवं पासवर्ड निर्माण का लिंक</strong> भेजा जाएगा।
+                      </p>
+                      <div className="pt-1 text-[11px] text-emerald-800 flex items-center gap-1.5 font-bold border-t border-amber-200/60">
+                        <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>24 घंटे के अंदर खाता सक्रियण (Your account activated within 24 hours)</span>
                       </div>
                     </div>
 

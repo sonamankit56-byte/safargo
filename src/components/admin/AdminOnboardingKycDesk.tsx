@@ -459,6 +459,76 @@ export const AdminOnboardingKycDesk: React.FC = () => {
                     </strong>
                   </div>
                 </div>
+
+                {/* Uploaded KYC Documents Preview */}
+                <div className="p-2 border-t border-slate-100 mt-2">
+                  <div className="text-[11px] font-bold text-slate-700 mb-2">Uploaded Document Dossier (दस्तावेज़ प्रतिलिपि):</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="border border-slate-200 rounded-xl p-2 bg-slate-50">
+                      <div className="text-[10px] font-bold text-slate-600 flex items-center justify-between mb-1.5">
+                        <span>Aadhaar Card (आधार कार्ड)</span>
+                        {selectedApp.aadhaarDocUrl ? (
+                          <span className="text-emerald-600 text-[9px] font-bold">✓ Attached</span>
+                        ) : (
+                          <span className="text-amber-600 text-[9px]">Pending</span>
+                        )}
+                      </div>
+                      {selectedApp.aadhaarDocUrl ? (
+                        <div className="relative group rounded-lg overflow-hidden border border-slate-300 max-h-36 bg-white flex items-center justify-center">
+                          <img
+                            src={selectedApp.aadhaarDocUrl}
+                            alt="Aadhaar Card Preview"
+                            className="w-full h-36 object-contain"
+                          />
+                          <a
+                            href={selectedApp.aadhaarDocUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-xs font-bold gap-1"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" /> Full Size View
+                          </a>
+                        </div>
+                      ) : (
+                        <div className="h-20 rounded-lg border border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-xs">
+                          No Aadhaar Image Attached
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="border border-slate-200 rounded-xl p-2 bg-slate-50">
+                      <div className="text-[10px] font-bold text-slate-600 flex items-center justify-between mb-1.5">
+                        <span>PAN Card (पैन कार्ड)</span>
+                        {selectedApp.panDocUrl ? (
+                          <span className="text-emerald-600 text-[9px] font-bold">✓ Attached</span>
+                        ) : (
+                          <span className="text-amber-600 text-[9px]">Pending</span>
+                        )}
+                      </div>
+                      {selectedApp.panDocUrl ? (
+                        <div className="relative group rounded-lg overflow-hidden border border-slate-300 max-h-36 bg-white flex items-center justify-center">
+                          <img
+                            src={selectedApp.panDocUrl}
+                            alt="PAN Card Preview"
+                            className="w-full h-36 object-contain"
+                          />
+                          <a
+                            href={selectedApp.panDocUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-xs font-bold gap-1"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" /> Full Size View
+                          </a>
+                        </div>
+                      ) : (
+                        <div className="h-20 rounded-lg border border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-xs">
+                          No PAN Card Image Attached
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* SECTION 4: BANK ACCOUNT & SETTLEMENT PAYOUT */}

@@ -250,10 +250,19 @@ export function detectSubdomain(): AppSubdomain {
     return querySub as AppSubdomain;
   }
 
-  // Check path priority for dedicated onboarding / registration
+  // Check path priority for dedicated portals (admin, onboarding, login, agent)
   const pathname = window.location.pathname.toLowerCase();
+  if (pathname.startsWith('/admin')) {
+    return 'admin';
+  }
   if (pathname === '/onboarding' || pathname === '/register') {
     return 'onboarding';
+  }
+  if (pathname === '/login') {
+    return 'login';
+  }
+  if (pathname === '/go-agent') {
+    return 'agent';
   }
 
   // 2. LocalStorage override if set manually by developer/admin switcher

@@ -228,8 +228,8 @@ export const LoginSubdomainGateway: React.FC = () => {
 
     try {
       if (activeMode === 'forgot_password') {
-        if (!newPassword || newPassword.length < 4) {
-          error('पासवर्ड', 'कृपया न्यूनतम 4 अक्षरों का नया पासवर्ड दर्ज करें।');
+        if (!newPassword || newPassword.length < 8) {
+          error('पासवर्ड आवश्यकता', 'पासवर्ड कम से कम 8 अक्षरों (अंक, अक्षर, विशेष चिह्न) का होना चाहिए।');
           setIsVerifying(false);
           return;
         }
@@ -398,9 +398,9 @@ export const LoginSubdomainGateway: React.FC = () => {
             <ArrowLeft className="w-4 h-4" />
           </a>
 
-          <div className="text-center pt-1 space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-[10px] font-black uppercase tracking-wider text-red-100">
-              <Bus className="w-3.5 h-3.5" /> Safar Go Single Sign-On
+          <div className="text-center pt-1 space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/25 border border-emerald-300/40 text-[11px] font-black uppercase tracking-wider text-emerald-100 shadow-xs">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" /> Only Verified Agent Login (केवल सत्यापित एजेंट लॉगिन)
             </div>
             <h1 className="text-2xl font-black tracking-tight text-white">
               {authStep === 'form' && activeMode === 'login' && 'Welcome Back'}
@@ -423,53 +423,68 @@ export const LoginSubdomainGateway: React.FC = () => {
           {/* STEP 1: LOGIN FORM                                                        */}
           {/* ========================================================================= */}
           {authStep === 'form' && activeMode === 'login' && (
-            <form onSubmit={handleLoginSubmit} className="space-y-4">
-              {/* Mobile or Email */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  पंजीकृत मोबाइल या ईमेल *
-                </label>
-                <div className="flex items-center rounded-xl border border-slate-300 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-100 overflow-hidden transition-all bg-slate-50/50">
-                  <span className="bg-slate-100 px-3.5 py-3 text-xs font-black text-slate-700 border-r border-slate-300">
-                    +91 / ✉️
-                  </span>
-                  <input
-                    type="text"
-                    required
-                    value={mobileOrEmail}
-                    onChange={(e) => setMobileOrEmail(e.target.value)}
-                    placeholder="उदा. 98260XXXXX अथवा agent@gmail.com"
-                    className="w-full px-3.5 py-3 text-sm font-bold text-slate-900 focus:outline-none bg-transparent"
-                  />
+            <div className="space-y-4">
+              {/* Verified Agent & Sunday Payout Notice */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 text-xs text-emerald-950 flex items-start gap-2.5 shadow-xs">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-black text-emerald-900">केवल सत्यापित एजेंट लॉगिन (Only Verified Agent Login)</span>
+                    <span className="text-[10px] bg-emerald-200 text-emerald-800 font-bold px-1.5 py-0.2 rounded">100% SECURE</span>
+                  </div>
+                  <p className="text-[11px] text-emerald-800 leading-relaxed font-medium">
+                    कमीशन निकासी प्रत्येक रविवार को स्वतः ही आपके सत्यापित बैंक खाते या UPI में ट्रांसफर हो जाती है।
+                  </p>
                 </div>
               </div>
 
-              {/* Password with Eye Toggle */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    पासवर्ड *
+              <form onSubmit={handleLoginSubmit} className="space-y-4">
+                {/* Mobile or Email */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    पंजीकृत मोबाइल या ईमेल *
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setForgotInput(mobileOrEmail);
-                      setActiveMode('forgot_password');
-                    }}
-                    className="text-xs font-bold text-red-600 hover:text-red-700 hover:underline cursor-pointer"
-                  >
-                    पासवर्ड भूल गए?
-                  </button>
+                  <div className="flex items-center rounded-xl border border-slate-300 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-100 overflow-hidden transition-all bg-slate-50/50">
+                    <span className="bg-slate-100 px-3.5 py-3 text-xs font-black text-slate-700 border-r border-slate-300">
+                      +91 / ✉️
+                    </span>
+                    <input
+                      type="text"
+                      required
+                      value={mobileOrEmail}
+                      onChange={(e) => setMobileOrEmail(e.target.value)}
+                      placeholder="उदा. 98260XXXXX अथवा agent@gmail.com"
+                      className="w-full px-3.5 py-3 text-sm font-bold text-slate-900 focus:outline-none bg-transparent"
+                    />
+                  </div>
                 </div>
-                <div className="relative flex items-center rounded-xl border border-slate-300 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-100 overflow-hidden transition-all bg-slate-50/50">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="अपना पासवर्ड दर्ज करें"
-                    className="w-full pl-3.5 pr-10 py-3 text-sm font-bold text-slate-900 focus:outline-none bg-transparent"
-                  />
+
+                {/* Password with Eye Toggle */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      पासवर्ड *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForgotInput(mobileOrEmail);
+                        setActiveMode('forgot_password');
+                      }}
+                      className="text-xs font-bold text-red-600 hover:text-red-700 hover:underline cursor-pointer"
+                    >
+                      पासवर्ड भूल गए?
+                    </button>
+                  </div>
+                  <div className="relative flex items-center rounded-xl border border-slate-300 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-100 overflow-hidden transition-all bg-slate-50/50">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="अपना 8+ अंकों/अक्षरों का पासवर्ड दर्ज करें"
+                      className="w-full pl-3.5 pr-10 py-3 text-sm font-bold text-slate-900 focus:outline-none bg-transparent"
+                    />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
@@ -524,6 +539,7 @@ export const LoginSubdomainGateway: React.FC = () => {
                 </a>
               </div>
             </form>
+            </div>
           )}
 
           {/* ========================================================================= */}
@@ -654,7 +670,7 @@ export const LoginSubdomainGateway: React.FC = () => {
                       required
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="न्यूनतम 4 अक्षर"
+                      placeholder="कम से कम 8 अक्षर (अंक, वर्ण, प्रतीक)"
                       className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:border-red-500 outline-none"
                     />
                   </div>
