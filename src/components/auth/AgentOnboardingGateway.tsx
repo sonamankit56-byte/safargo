@@ -6,6 +6,7 @@ import { MP_NETWORK_CITIES } from '../../lib/mockData';
 import { buildSubdomainUrl } from '../../lib/subdomain';
 import { sendRegistrationOtpEmail } from '../../lib/emailService';
 import { sendWhatsAppOtp } from '../../lib/whatsappService';
+import { saveOnboardingApplication } from '../../lib/onboardingStorage';
 import {
   ShieldCheck,
   CheckCircle2,
@@ -331,56 +332,52 @@ export const AgentOnboardingGateway: React.FC = () => {
       const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
       const cleanAadhaar = aadhaarNumber.replace(/\D/g, '').slice(0, 12);
 
-      const ok = await registerAgent({
-        full_name: fullName.trim(),
+      const saved = saveOnboardingApplication({
+        fullName: fullName.trim(),
         mobile: cleanMobile,
         email: email.trim(),
+        shopName: shopName.trim(),
+        businessType: businessType || 'Proprietorship',
         city,
-        district: city,
         address: `${address.trim()}, Pin: ${pinCode.trim()}, Madhya Pradesh`,
-        shop_name: shopName.trim(),
-        referral_code: referralCode.trim() || undefined,
-        password: password.trim(),
-        pan_number: panNumber.trim().toUpperCase(),
-        aadhaar_number: cleanAadhaar,
-        bank_account_holder: accountHolder.trim(),
-        bank_account_number: accountNumber.trim(),
-        bank_ifsc: ifscCode.trim().toUpperCase(),
-        bank_name: bankName || 'Bank of India',
-        bank_upi_id: settlementUpiId.trim(),
+        pincode: pinCode.trim(),
+        panNumber: panNumber.trim().toUpperCase(),
+        aadhaarNumber: cleanAadhaar,
+        gstin: gstin.trim() || undefined,
+        accountHolder: accountHolder.trim(),
+        accountNumber: accountNumber.trim(),
+        ifsc: ifscCode.trim().toUpperCase(),
+        bankName: bankName || 'Bank of India',
+        settlementUpiId: settlementUpiId.trim(),
+        referralCode: referralCode.trim() || undefined,
       });
 
-      if (ok) {
-        const agentId = `SFG-AGT-${cleanMobile.slice(-5)}`;
-        setGeneratedAgentId(agentId);
-        setIsActivated(true);
+      setGeneratedAgentId(saved.id);
+      setIsActivated(true);
 
-        try {
-          confetti({
-            particleCount: 150,
-            spread: 80,
-            origin: { y: 0.5 },
-          });
-          setTimeout(() => {
-            confetti({
-              particleCount: 80,
-              angle: 60,
-              spread: 60,
-              origin: { x: 0.1 },
-            });
-            confetti({
-              particleCount: 80,
-              angle: 120,
-              spread: 60,
-              origin: { x: 0.9 },
-            });
-          }, 300);
-        } catch {}
-
+      try {
+        confetti({
+          particleCount: 150,
+          spread: 80,
+          origin: { y: 0.5 },
+        });
         setTimeout(() => {
-          window.location.href = buildSubdomainUrl('agent');
-        }, 2200);
-      }
+          confetti({
+            particleCount: 80,
+            angle: 60,
+            spread: 60,
+            origin: { x: 0.1 },
+          });
+          confetti({
+            particleCount: 80,
+            angle: 120,
+            spread: 60,
+            origin: { x: 0.9 },
+          });
+        }, 300);
+      } catch {}
+    } catch (err: any) {
+      error('त्रुटि', err?.message || 'आवेदन सबमिट करने में समस्या आई');
     } finally {
       setIsSubmitting(false);
     }
@@ -1228,8 +1225,8 @@ export const AgentOnboardingGateway: React.FC = () => {
                     </div>
                   </>
                 ) : (
-                  /* Post-Activation Live Celebration & Certificate View */
-                  <div className="py-8 text-center space-y-6 animate-in zoom-in-95 duration-300">
+                  /* Post-Activation Live Celebration & Onboarding Complete View */
+                  <div className="py-6 text-center space-y-6 animate-in zoom-in-95 duration-300">
                     {/* SVG Checkmark Tick Animation */}
                     <div className="relative flex items-center justify-center">
                       <div className="absolute w-28 h-28 rounded-full bg-emerald-500/20 pulse-ring-effect pointer-events-none" />
@@ -1261,20 +1258,93 @@ export const AgentOnboardingGateway: React.FC = () => {
                       </div>
                     </div>
 
+                    {/* Headline and Counter */}
                     <div className="space-y-2">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-black uppercase tracking-wider">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Razorpay-Grade e-KYC Verified
-                      </span>
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-black uppercase tracking-wider">
+                        <CheckCircle2 className="w-4 h-4" /> 5 / 5 Steps Completed Successfully (100%)
+                      </div>
                       <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                        🎉 बधाई हो! आपका SafarGo एजेंट खाता सक्रिय हुआ!
+                        🎉 Onboarding Complete Successful!
                       </h2>
-                      <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
-                        Agent ID: <strong className="font-mono text-slate-900">{generatedAgentId}</strong> • Opening your GO Agent 3D Terminal...
+                      <p className="text-xs sm:text-sm font-bold text-red-600">
+                        Application Reference ID: <span className="font-mono bg-red-50 px-2 py-0.5 rounded border border-red-200">{generatedAgentId}</span>
                       </p>
                     </div>
 
-                    <div className="w-40 h-1.5 bg-slate-100 rounded-full mx-auto overflow-hidden">
-                      <div className="w-full h-full bg-emerald-500 rounded-full animate-pulse" />
+                    {/* Every Step Tick Mark List */}
+                    <div className="max-w-md mx-auto bg-slate-50 border border-slate-200 rounded-3xl p-5 text-left space-y-3 shadow-xs">
+                      <div className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                        Completed Verification Milestones
+                      </div>
+
+                      <div className="space-y-2 text-xs">
+                        <div className="flex items-center gap-2.5 text-slate-800">
+                          <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                            <Check className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="font-bold">Step 1: Account Credentials &amp; Email OTP Verified</span>
+                        </div>
+
+                        <div className="flex items-center gap-2.5 text-slate-800">
+                          <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                            <Check className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="font-bold">Step 2: Center &amp; Business Profile Configured</span>
+                        </div>
+
+                        <div className="flex items-center gap-2.5 text-slate-800">
+                          <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                            <Check className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="font-bold">Step 3: Identity &amp; e-KYC Verification Done</span>
+                        </div>
+
+                        <div className="flex items-center gap-2.5 text-slate-800">
+                          <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                            <Check className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="font-bold">Step 4: Bank Account &amp; Settlement Payout Setup Done</span>
+                        </div>
+
+                        <div className="flex items-center gap-2.5 text-slate-800">
+                          <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                            <Check className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="font-bold">Step 5: Document Review &amp; Verification Submitted</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Notice: Your Account Activated 24 Hours */}
+                    <div className="max-w-md mx-auto bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-3xl p-5 text-left space-y-2 shadow-sm">
+                      <div className="flex items-center gap-2 text-amber-900 font-black text-sm">
+                        <Clock className="w-5 h-5 text-amber-600 shrink-0" />
+                        <span>Your Account Will Be Activated Within 24 Hours</span>
+                      </div>
+                      <p className="text-xs text-amber-800 leading-relaxed font-medium">
+                        आपका ऑनबोर्डिंग आवेदन सफलतापूर्वक सुपर एडमिन डेस्क को प्राप्त हो चुका है। दस्तावेजों की समीक्षा पूर्ण होने के उपरांत <strong>24 घंटे के अंदर</strong> आपके पंजीकृत ईमेल (<strong>{email}</strong>) पर <strong>पासवर्ड बनाने का सुरक्षित लिंक</strong> प्रेषित किया जाएगा।
+                      </p>
+                      <div className="pt-1 text-[11px] text-amber-700 flex items-center gap-1.5 font-bold">
+                        <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                        <span>24x7 पार्टनर सहायता: 1800-SAFAR-GO • support@safargo.in</span>
+                      </div>
+                    </div>
+
+                    {/* Return Action Buttons */}
+                    <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                      <a
+                        href={buildSubdomainUrl('main')}
+                        className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-slate-900 hover:bg-black text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <span>मुख्य वेबसाइट पर जाएं (Return to Home)</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </a>
+                      <a
+                        href={buildSubdomainUrl('login')}
+                        className="w-full sm:w-auto px-6 py-3.5 rounded-2xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <span>लॉगिन पोर्टल (login.safargo.in)</span>
+                      </a>
                     </div>
                   </div>
                 )}

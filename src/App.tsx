@@ -49,6 +49,7 @@ import { CreatorSubdomainGateway } from './components/creator/CreatorSubdomainGa
 import { CareersSubdomainGateway } from './components/careers/CareersSubdomainGateway';
 import { LoginSubdomainGateway } from './components/auth/LoginSubdomainGateway';
 import { AgentOnboardingGateway } from './components/auth/AgentOnboardingGateway';
+import { CreateAgentPasswordGateway } from './components/auth/CreateAgentPasswordGateway';
 import { HelpSubdomainGateway } from './components/help/HelpSubdomainGateway';
 import { AdminJobsDesk } from './components/admin/AdminJobsDesk';
 import { AutoRedBusBookingView } from './components/bus/AutoRedBusBookingView';
@@ -220,6 +221,13 @@ const AppContent: React.FC = () => {
   }
 
   if (
+    location.pathname.startsWith('/create-password') ||
+    location.pathname.startsWith('/set-password')
+  ) {
+    return <CreateAgentPasswordGateway />;
+  }
+
+  if (
     !currentUser &&
     (activeSubdomain === 'onboarding' ||
       location.pathname === '/onboarding' ||
@@ -245,14 +253,15 @@ const AppContent: React.FC = () => {
   const isGoAgentView = !!currentUser && role === 'agent';
   const isAgentRoute = currentTab === 'go-agent';
   const isHomeView = currentTab === 'home';
+  const isPassengerBooking = currentTab === 'bus-booking' || currentTab === 'book' || currentTab === 'redbus';
 
   return (
     <div className={`min-h-screen ${isGoAgentView || isAgentRoute ? 'bg-slate-950' : 'bg-slate-50'} flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950 overflow-x-hidden`}>
-      {/* Platform Live Announcement Broadcast Banner (Hidden for GO Agent and Home view to ensure clean standalone views) */}
-      {!isGoAgentView && !isAgentRoute && !isHomeView && <AnnouncementBanner />}
+      {/* Platform Live Announcement Broadcast Banner (Hidden for GO Agent, Home view and Passenger Booking to ensure clean standalone views) */}
+      {!isGoAgentView && !isAgentRoute && !isHomeView && !isPassengerBooking && <AnnouncementBanner />}
 
-      {/* Navigation Header (Hidden for GO Agent and Home view: HomePage has its dedicated RedBus Header) */}
-      {!isGoAgentView && !isAgentRoute && !isHomeView && (
+      {/* Navigation Header (Hidden for GO Agent, Home view and Passenger Booking: has dedicated modern RedBus Header) */}
+      {!isGoAgentView && !isAgentRoute && !isHomeView && !isPassengerBooking && (
         <Navbar
           currentTab={currentTab}
           setCurrentTab={setCurrentTab}
@@ -263,7 +272,7 @@ const AppContent: React.FC = () => {
       )}
 
       {/* Main Content View Container */}
-      <main className={`flex-1 ${isGoAgentView || isAgentRoute || isHomeView ? 'pb-0' : 'pb-16'}`}>
+      <main className={`flex-1 ${isGoAgentView || isAgentRoute || isHomeView || isPassengerBooking ? 'pb-0' : 'pb-16'}`}>
         {isGoAgentView ? (
           <GoAgentDashboard
             onNavigateHome={() => navigate('/')}
@@ -391,6 +400,7 @@ const AppContent: React.FC = () => {
           <AgentOnboardingGateway />
         ) : currentTab === 'bus-booking' || currentTab === 'book' || currentTab === 'redbus' ? (
           <AutoRedBusBookingView
+            onNavigateHome={() => setCurrentTab('home')}
             onBookingSuccess={(b) => {
               if (role === 'agent') setCurrentTab('agent-bookings');
               else setCurrentTab('my-bookings');
@@ -438,8 +448,8 @@ const AppContent: React.FC = () => {
         />
       )}
 
-      {/* Footer (Hidden for GO Agent and Home view: HomePage has its dedicated RedBus Footer) */}
-      {!isGoAgentView && !isHomeView && (
+      {/* Footer (Hidden for GO Agent, Home view and Passenger Booking: HomePage and Booking views have their dedicated RedBus Footer) */}
+      {!isGoAgentView && !isHomeView && !isPassengerBooking && (
         <footer className="bg-slate-900 text-white border-t border-slate-800 py-10 mt-auto">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
@@ -605,8 +615,8 @@ const AppContent: React.FC = () => {
         </footer>
       )}
 
-      {/* Global Bottom Navigation Bar (Hidden for GO Agent and Home view) */}
-      {!isGoAgentView && !isHomeView && <BottomNav currentTab={currentTab} onNavigateTab={setCurrentTab} />}
+      {/* Global Bottom Navigation Bar (Hidden for GO Agent, Home view and Passenger Booking) */}
+      {!isGoAgentView && !isHomeView && !isPassengerBooking && <BottomNav currentTab={currentTab} onNavigateTab={setCurrentTab} />}
 
       {/* Dedicated Subdomain Directory & DNS Configuration Modal */}
       <SubdomainDirectoryModal

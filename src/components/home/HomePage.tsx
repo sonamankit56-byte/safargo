@@ -63,13 +63,46 @@ export const HomePage: React.FC<HomePageProps> = ({
   // FAQ Accordion State
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
-    // Open Onboarding Gateway in New Tab
+  // Open Onboarding Gateway in New Tab
   const handleOpenOnboarding = () => {
     const onboardingUrl = buildSubdomainUrl('onboarding');
     const win = window.open(onboardingUrl, '_blank', 'noopener,noreferrer');
     if (!win || win.closed || typeof win.closed === 'undefined') {
       window.location.href = onboardingUrl;
     }
+  };
+
+  const handleSwapCities = () => {
+    const temp = fromCity;
+    setFromCity(toCity);
+    setToCity(temp);
+  };
+
+  const handleQuickDate = (daysAhead: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + daysAhead);
+    setJourneyDate(d.toISOString().split('T')[0]);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fromCity.trim() || !toCity.trim()) {
+      error('शहर चयन आवश्यक', 'कृपया प्रस्थान और गंतव्य दोनों शहर चुनें।');
+      return;
+    }
+    if (fromCity.toLowerCase() === toCity.toLowerCase()) {
+      error('समान शहर', 'प्रस्थान और गंतव्य शहर समान नहीं हो सकते।');
+      return;
+    }
+    onNavigateTab('bus-booking');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleRouteSelect = (from: string, to: string) => {
+    setFromCity(from);
+    setToCity(to);
+    onNavigateTab('bus-booking');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Trending Offers Data

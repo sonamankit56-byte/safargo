@@ -12,8 +12,9 @@ import { AdminAuditLogs } from './AdminAuditLogs';
 import { AdminSecurityDesk } from './AdminSecurityDesk';
 import { AdminPromoterManagement } from './AdminPromoterManagement';
 import { AdminSupportDesk } from './AdminSupportDesk';
-import { AdminJobsDesk } from './AdminJobsDesk';
 import { AdminGoAgentDesk } from './AdminGoAgentDesk';
+import { AdminOnboardingKycDesk } from './AdminOnboardingKycDesk';
+import { getOnboardingApplications } from '../../lib/onboardingStorage';
 import { SafarGoLogo } from '../common/SafarGoLogo';
 import { buildSubdomainUrl } from '../../lib/subdomain';
 import {
@@ -71,6 +72,9 @@ export const AdminSubdomainLayout: React.FC<AdminSubdomainLayoutProps> = () => {
   const activeOtpCount = (pendingLoginOtps || []).filter(
     (o) => o.status === 'pending' && o.expires_at > nowIsoStr
   ).length;
+
+  const onboardingApps = getOnboardingApplications();
+  const pendingOnboardingCount = onboardingApps.filter((a) => a.status === 'pending').length;
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -240,18 +244,13 @@ export const AdminSubdomainLayout: React.FC<AdminSubdomainLayoutProps> = () => {
             <nav className="hidden lg:flex items-center gap-1 text-xs font-bold">
               {[
                 { id: 'dashboard', label: 'डैशबोर्ड', icon: LayoutDashboard },
+                { id: 'onboarding-kyc', label: `📋 ऑनबोर्डिंग KYC (${pendingOnboardingCount})`, icon: FileText },
                 { id: 'go-agent-desk', label: '👑 GO एजेंट डेस्क', icon: Award },
                 { id: 'bookings', label: `बुकिंग्स (${pendingBookingsCount})`, icon: FileCheck },
                 { id: 'agents', label: 'एजेंट प्रबंधन', icon: Users },
-                { id: 'jobs', label: 'जॉब्स एवं भर्ती', icon: Briefcase },
-                { id: 'wallet', label: `Go Wallet (${pendingRechargesCount})`, icon: DollarSign },
-                { id: 'salary', label: 'वेतन व कमीशन', icon: DollarSign },
                 { id: 'trips', label: 'बस ट्रिप्स', icon: Bus },
-                { id: 'promoters', label: 'प्रमोटर (5 स्लॉट)', icon: Award },
-                { id: 'security', label: `सुरक्षा (${activeOtpCount})`, icon: ShieldCheck },
-                { id: 'support', label: `सपोर्ट (${pendingTicketsCount})`, icon: LifeBuoy },
+                { id: 'wallet', label: `Go Wallet (${pendingRechargesCount})`, icon: DollarSign },
                 { id: 'settings', label: 'सेटिंग्स व डोमेन', icon: Settings },
-                { id: 'logs', label: 'ऑडिट लॉग्स', icon: History },
               ].map((tab) => {
                 const Icon = tab.icon;
                 const active = activeAdminTab === tab.id;
@@ -301,17 +300,13 @@ export const AdminSubdomainLayout: React.FC<AdminSubdomainLayoutProps> = () => {
           <div className="lg:hidden flex items-center gap-1 overflow-x-auto py-2 border-t border-slate-800 text-xs">
             {[
               { id: 'dashboard', label: 'डैशबोर्ड' },
+              { id: 'onboarding-kyc', label: `📋 KYC (${pendingOnboardingCount})` },
               { id: 'go-agent-desk', label: '👑 GO एजेंट' },
               { id: 'bookings', label: `बुकिंग्स (${pendingBookingsCount})` },
               { id: 'agents', label: 'एजेंट' },
-              { id: 'jobs', label: 'जॉब्स' },
-              { id: 'wallet', label: `वॉलेट (${pendingRechargesCount})` },
-              { id: 'salary', label: 'वेतन' },
               { id: 'trips', label: 'बसें' },
-              { id: 'security', label: `सुरक्षा (${activeOtpCount})` },
-              { id: 'support', label: `सपोर्ट (${pendingTicketsCount})` },
+              { id: 'wallet', label: `वॉलेट (${pendingRechargesCount})` },
               { id: 'settings', label: 'सेटिंग्स' },
-              { id: 'logs', label: 'लॉग्स' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -335,20 +330,21 @@ export const AdminSubdomainLayout: React.FC<AdminSubdomainLayoutProps> = () => {
         {activeAdminTab === 'dashboard' && (
           <AdminDashboard
             onNavigate={(tab) => {
-              if (tab === 'go-agent-desk' || tab === 'admin-go-desk' || tab === 'admin-kyc-desk') setActiveAdminTab('go-agent-desk');
+              if (tab === 'onboarding-kyc' || tab === 'admin-kyc-desk' || tab === 'admin-onboarding') setActiveAdminTab('onboarding-kyc');
+              else if (tab === 'go-agent-desk' || tab === 'admin-go-desk') setActiveAdminTab('go-agent-desk');
               else if (tab === 'admin-bookings') setActiveAdminTab('bookings');
               else if (tab === 'admin-agents') setActiveAdminTab('agents');
-              else if (tab === 'admin-jobs') setActiveAdminTab('jobs');
-              else if (tab === 'admin-salary') setActiveAdminTab('salary');
               else if (tab === 'admin-trips') setActiveAdminTab('trips');
               else if (tab === 'admin-settings') setActiveAdminTab('settings');
-              else if (tab === 'admin-security-desk') setActiveAdminTab('security');
-              else if (tab === 'admin-support-desk') setActiveAdminTab('support');
               else if (tab === 'go-wallet') setActiveAdminTab('wallet');
               else setActiveAdminTab(tab);
             }}
             onOpenBooking={(id) => setSelectedReviewBookingId(id)}
           />
+        )}
+
+        {activeAdminTab === 'onboarding-kyc' && (
+          <AdminOnboardingKycDesk />
         )}
 
         {activeAdminTab === 'go-agent-desk' && (
@@ -367,36 +363,12 @@ export const AdminSubdomainLayout: React.FC<AdminSubdomainLayoutProps> = () => {
           <AdminCommissionAndSalary initialTab="wallet_requests" />
         )}
 
-        {activeAdminTab === 'salary' && (
-          <AdminCommissionAndSalary initialTab="salary_review" />
-        )}
-
         {activeAdminTab === 'trips' && (
           <AdminBusTripManagement />
         )}
 
-        {activeAdminTab === 'promoters' && (
-          <AdminPromoterManagement />
-        )}
-
-        {activeAdminTab === 'security' && (
-          <AdminSecurityDesk />
-        )}
-
-        {activeAdminTab === 'support' && (
-          <AdminSupportDesk />
-        )}
-
-        {activeAdminTab === 'jobs' && (
-          <AdminJobsDesk />
-        )}
-
         {activeAdminTab === 'settings' && (
           <AdminSettings />
-        )}
-
-        {activeAdminTab === 'logs' && (
-          <AdminAuditLogs />
         )}
       </main>
 

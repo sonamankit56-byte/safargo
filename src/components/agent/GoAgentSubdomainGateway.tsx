@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { GoAgentDashboard } from './GoAgentDashboard';
-import { GoAgentAuthModal } from './GoAgentAuthModal';
 import { Go3DUltraLogo } from '../common/Go3DUltraLogo';
 import { SafarGoLogo } from '../common/SafarGoLogo';
 import { buildSubdomainUrl } from '../../lib/subdomain';
@@ -24,8 +23,6 @@ import {
 
 export const GoAgentSubdomainGateway: React.FC = () => {
   const { currentUser, role } = useAuth();
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
 
   // If already logged in as agent, render the isolated 3D dashboard directly!
   if (currentUser && role === 'agent') {
@@ -89,12 +86,11 @@ export const GoAgentSubdomainGateway: React.FC = () => {
           </a>
           <button
             onClick={() => {
-              setAuthMode('login');
-              setIsAuthModalOpen(true);
+              window.location.href = buildSubdomainUrl('login');
             }}
             className="px-5 py-2 rounded-full bg-white text-[#0A2885] hover:bg-blue-50 font-black text-xs shadow-md transition cursor-pointer"
           >
-            एजेंट लॉगिन
+            एजेंट लॉगिन (login.safargo.in)
           </button>
         </div>
       </header>
@@ -165,27 +161,16 @@ export const GoAgentSubdomainGateway: React.FC = () => {
           </div>
         </div>
 
-        {/* Jio-Style Rounded Pill CTA Buttons */}
-        <div className="flex flex-col sm:flex-row items-center gap-3.5 w-full sm:w-auto pt-2">
+        {/* Jio-Style Rounded Pill CTA Button */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 w-full sm:w-auto pt-2">
           <button
             onClick={() => {
-              setAuthMode('login');
-              setIsAuthModalOpen(true);
+              window.location.href = buildSubdomainUrl('login');
             }}
-            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#0A2885] hover:bg-[#071E66] text-white font-black text-xs sm:text-sm shadow-xl transition active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+            className="w-full sm:w-auto px-10 py-4 rounded-full bg-[#0A2885] hover:bg-[#071E66] text-white font-black text-xs sm:text-sm shadow-xl transition active:scale-95 cursor-pointer flex items-center justify-center gap-2"
           >
-            <span>एजेंट टर्मिनल में लॉगिन करें</span>
+            <span>एजेंट सुरक्षित लॉगिन (login.safargo.in)</span>
             <ArrowRight className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={() => {
-              setAuthMode('register');
-              setIsAuthModalOpen(true);
-            }}
-            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#FF6500] hover:bg-[#e65c00] text-white font-black text-xs sm:text-sm shadow-lg transition active:scale-95 cursor-pointer"
-          >
-            मुफ्त GO एजेंट रजिस्ट्रेशन
           </button>
         </div>
 
@@ -195,15 +180,6 @@ export const GoAgentSubdomainGateway: React.FC = () => {
       <footer className="p-4 text-center text-xs text-slate-400 bg-[#05184B] border-t border-white/10">
         © {new Date().getFullYear()} SafarGo Mobility Network • GO Agent Enterprise Terminal [agent.safargo.in]
       </footer>
-
-      {/* Auth Modal */}
-      {isAuthModalOpen && (
-        <GoAgentAuthModal
-          isOpen={isAuthModalOpen}
-          initialMode={authMode}
-          onClose={() => setIsAuthModalOpen(false)}
-        />
-      )}
 
     </div>
   );

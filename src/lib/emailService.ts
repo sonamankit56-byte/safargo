@@ -498,3 +498,150 @@ export async function sendPasswordResetOtpEmail(params: {
 
   return res.success;
 }
+
+/**
+ * 6. Send Agent Account Approval & Set Password Email with Official SafarGo Logo
+ */
+export async function sendAgentApprovalEmail(params: {
+  toEmail: string;
+  fullName: string;
+  shopName?: string;
+  agentId: string;
+  token: string;
+}): Promise<boolean> {
+  const { toEmail, fullName, shopName = 'CSC / Booking Center', agentId, token } = params;
+
+  const origin = typeof window !== 'undefined' && window.location?.origin
+    ? window.location.origin
+    : 'https://safargo.in';
+
+  const setPasswordLink = `${origin}/create-password?token=${encodeURIComponent(token)}&email=${encodeURIComponent(toEmail)}`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafarGo Agent Account Approved</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f1f5f9; padding: 30px 15px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 560px; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0;">
+          
+          <!-- BRAND HEADER WITH SAFARGO OFFICIAL LOGO -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 36px 30px; text-align: center;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center">
+                    <div style="display: inline-block; background: #ffffff; border-radius: 16px; padding: 8px 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-bottom: 12px;">
+                      <table cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td style="vertical-align: middle; padding-right: 8px;">
+                            <span style="display: inline-block; width: 32px; height: 32px; border-radius: 10px; background: #dc2626; color: #ffffff; text-align: center; line-height: 32px; font-size: 18px; font-weight: 900;">🚌</span>
+                          </td>
+                          <td style="vertical-align: middle;">
+                            <span style="font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #dc2626;">Safar<span style="color: #f59e0b;">Go</span></span>
+                          </td>
+                        </tr>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+              <h1 style="margin: 0; font-size: 24px; font-weight: 900; color: #ffffff; letter-spacing: -0.3px;">
+                🎉 बधाई हो! एजेंट खाता स्वीकृत हुआ
+              </h1>
+              <p style="margin: 8px 0 0; color: #fee2e2; font-size: 13px; font-weight: 600;">
+                SafarGo अधिकृत बस टिकटिंग एवं रोजगार नेटवर्क
+              </p>
+            </td>
+          </tr>
+
+          <!-- BODY -->
+          <tr>
+            <td style="padding: 32px 28px;">
+              <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 16px; padding: 18px 20px; margin-bottom: 24px; text-align: center;">
+                <span style="display: inline-block; font-size: 24px; margin-bottom: 4px;">✅</span>
+                <h2 style="margin: 0 0 6px; font-size: 16px; font-weight: 900; color: #065f46;">
+                  YOUR ACCOUNT NOW VERIFIED!
+                </h2>
+                <p style="margin: 0; font-size: 13px; font-weight: 700; color: #047857;">
+                  Now Use &amp; Earn Money — Start Now!
+                </p>
+              </div>
+
+              <p style="margin: 0 0 16px; font-size: 14px; line-height: 1.6; color: #334155;">
+                प्रिय <strong>${fullName}</strong> (${shopName}),
+              </p>
+              <p style="margin: 0 0 20px; font-size: 14px; line-height: 1.6; color: #475569;">
+                सुपर एडमिन सत्यापन टीम द्वारा आपका <strong>SafarGo Agent Onboarding KYC</strong> सफलतापूर्वक स्वीकार कर लिया गया है। आपका अधिकृत <strong>Agent ID: ${agentId}</strong> सक्रिय है।
+              </p>
+
+              <!-- Highlight Perks -->
+              <table width="100%" cellpadding="10" cellspacing="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; margin-bottom: 24px; font-size: 12px;">
+                <tr>
+                  <td style="font-weight: 700; color: #0f172a; width: 40%;">कमीशन दर:</td>
+                  <td style="font-weight: 800; color: #dc2626;">फ्लैट ₹20 प्रति बुकिंग (सीधे Go Wallet में)</td>
+                </tr>
+                <tr>
+                  <td style="font-weight: 700; color: #0f172a;">साप्ताहिक पेआउट:</td>
+                  <td style="font-weight: 800; color: #059669;">हर रविवार प्रातः 06:00 AM (सीधा बैंक/UPI)</td>
+                </tr>
+                <tr>
+                  <td style="font-weight: 700; color: #0f172a;">पंजीकृत केंद्र:</td>
+                  <td style="font-weight: 700; color: #334155;">${shopName}</td>
+                </tr>
+              </table>
+
+              <!-- Action Button -->
+              <div style="text-align: center; margin: 30px 0 24px;">
+                <a href="${setPasswordLink}" style="display: inline-block; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 900; padding: 16px 32px; border-radius: 14px; box-shadow: 0 8px 20px -3px rgba(220, 38, 38, 0.4); text-transform: uppercase; letter-spacing: 0.5px;">
+                  👉 CLICK HERE TO CREATE PASSWORD
+                </a>
+                <p style="margin: 10px 0 0; font-size: 11px; color: #64748b;">
+                  🔒 पासवर्ड नियम: न्यूनतम 8 अक्षर, कम से कम 1 संख्या (Number) एवं 1 स्पेशल कैरेक्टर (!@#$) आवश्यक
+                </p>
+              </div>
+
+              <!-- Security Warning -->
+              <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; font-size: 11px; color: #92400e;">
+                यह लिंक केवल 24 घंटे के लिए वैध है। पासवर्ड सेट करने के उपरांत आप <strong>login.safargo.in</strong> से सीधे अपने Go Agent टर्मिनल में प्रवेश कर सकेंगे।
+              </div>
+            </td>
+          </tr>
+
+          <!-- FOOTER -->
+          <tr>
+            <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 28px; text-align: center;">
+              <p style="margin: 0 0 4px; font-size: 12px; font-weight: 800; color: #0f172a;">
+                SafarGo Technologies Private Limited
+              </p>
+              <p style="margin: 0; font-size: 11px; color: #94a3b8;">
+                Enterprise Partner Portal: <a href="https://agent.safargo.in" style="color: #dc2626; text-decoration: none;">agent.safargo.in</a> • 24x7 पार्टनर डेस्क: 1800-SAFAR-GO
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`;
+
+  const text = `🎉 SafarGo Agent Account Approved! प्रिय ${fullName}, आपका SafarGo एजेंट खाता सत्यापित हो चुका है। पासवर्ड सेट करने हेतु इस लिंक पर जाएं: ${setPasswordLink} (न्यूनतम 8 अक्षर, नंबर व स्पेशल कैरेक्टर)।`;
+
+  const res = await sendResendEmail({
+    to: toEmail,
+    subject: `🎉 Congratulations! Your SafarGo Agent Account is Verified & Approved - Create Password`,
+    html,
+    text,
+  });
+
+  return res.success;
+}
+
