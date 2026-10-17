@@ -7,6 +7,19 @@ export default {
   theme: {
     extend: {
       colors: {
+        brand: {
+          50: '#fef2f2',
+          100: '#fee2e2',
+          200: '#fecaca',
+          500: '#ef4444',
+          600: '#dc2626',
+          700: '#c53030',
+          800: '#991b1b',
+          900: '#7f1d1d',
+          DEFAULT: '#c53030',
+        },
+        primary: '#c53030',
+        dark: '#0f172a',
         safargo: {
           navy: {
             50: '#f0f5fa',

@@ -4,71 +4,84 @@
 
 @layer base {
   body {
-    @apply antialiased text-slate-900 bg-slate-50;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    @apply bg-[#f7f8fa] text-slate-800 antialiased;
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
-@keyframes scaleUp {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
+/* Sleeper berth styling */
+.sleeper-berth {
+  position: relative;
+  transition: all 0.15s ease-in-out;
+}
+.sleeper-berth:hover {
+  transform: translateY(-2px);
+}
+
+/* Success checkmark drawing animation */
+@keyframes checkmark-circle {
+  0% {
+    stroke-dashoffset: 166;
+    transform: scale(0.85);
   }
-  to {
-    opacity: 1;
+  100% {
+    stroke-dashoffset: 0;
     transform: scale(1);
   }
 }
 
-@keyframes float3d {
-  0%, 100% {
-    transform: translateY(0px) rotateX(0deg) rotateY(0deg);
-  }
-  50% {
-    transform: translateY(-4px) rotateX(4deg) rotateY(-4deg);
-  }
-}
-
-@keyframes shineSweep {
+@keyframes checkmark-check {
   0% {
-    transform: translateX(-100%) rotate(45deg);
+    stroke-dashoffset: 48;
   }
-  20%, 100% {
-    transform: translateX(200%) rotate(45deg);
+  100% {
+    stroke-dashoffset: 0;
   }
 }
 
-@keyframes pulseGlow {
-  0%, 100% {
-    box-shadow: 0 8px 24px -4px rgba(249, 115, 22, 0.35);
+.animate-checkmark-circle {
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  animation: checkmark-circle 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.animate-checkmark-check {
+  transform-origin: 50% 50%;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: checkmark-check 0.4s cubic-bezier(0.65, 0, 0.45, 1) 0.4s forwards;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
   }
   50% {
-    box-shadow: 0 12px 32px 0px rgba(249, 115, 22, 0.6);
+    transform: scale(1.2);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0.8;
   }
 }
 
-.animate-fadeIn {
-  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.pulse-ring-effect {
+  animation: pulse-ring 2s infinite ease-in-out;
 }
-
-.animate-scaleUp {
-  animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-float3d {
-  animation: float3d 4s ease-in-out infinite;
-}
-
-.animate-pulseGlow {
-  animation: pulseGlow 3s ease-in-out infinite;
-}
-
