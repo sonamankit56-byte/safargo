@@ -70,6 +70,7 @@ import {
   fetchFirestoreBookings,
 } from '../lib/firebaseService';
 import { broadcastCloudEvent, subscribeToCloudEvents, CloudSyncEvent } from '../lib/cloudSyncService';
+import { enrichWalletTransaction } from '../lib/transactionUtils';
 
 interface DataContextType {
   // Bookings
@@ -1162,7 +1163,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Universal Go Wallet Transactions (includes Approved Recharges, Dukandar Quick Commerce Sales, Promoter Earnings, Ticket Bookings, Top Ad Boosts & Bank/UPI Withdrawals)
   const agentWalletTransactions = useMemo(() => {
     if (!currentUser) return [];
-    if (currentUser.role === 'admin') return walletTransactions;
+    if (currentUser.role === 'admin') return walletTransactions.map(enrichWalletTransaction);
 
     const myRechargeIds = new Set(agentWalletRecharges.map((r) => r.id));
     const directTxns = walletTransactions.filter(
@@ -1183,6 +1184,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: `Go Wallet रिचार्ज सत्यापित (UTR: ${r.utr_number})`,
         balance_after: Number(r.amount) || 0,
         created_at: r.approved_at || r.created_at,
+        transaction_name: '💳 वॉलेट रिचार्ज / पैसे जोड़े',
+        source_name: `SafarGo UPI QR / बैंक ट्रांसफर (UTR: ${r.utr_number})`,
+        source_category: 'wallet_recharge',
+        source_details: `बैंक UTR: ${r.utr_number} | 10-मिनट टाइमर सत्यापित`,
       }));
 
     // 2. Synthesize Dukandar Quick Commerce Item Sales into Go Wallet
@@ -1217,6 +1222,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             description: `क्विक कॉमर्स सामान बिक्री (${myShop.shop_name}): ${o.items_description}`,
             balance_after: saleAmt,
             created_at: o.delivered_at || o.created_at,
+            transaction_name: '🛍️ दुकान सामान बिक्री',
+            source_name: `क्विक डिलीवरी ऑर्डर (${myShop.shop_name})`,
+            source_category: 'quick_commerce',
+            source_details: o.items_description || 'दुकान उत्पाद बिक्री',
           });
         }
       });
@@ -1240,6 +1249,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             description: `प्रमोटर वायरल प्रमोशन रिवॉर्ड (${c.platform.toUpperCase()} - ${c.channel_or_handle})`,
             balance_after: Number(c.reward_amount) || 500,
             created_at: c.reviewed_at || c.created_at,
+            transaction_name: '🎁 प्रमोटर वायरल रिवॉर्ड',
+            source_name: `सोशल मीडिया प्रमोशन (${c.platform.toUpperCase()} - ${c.channel_or_handle})`,
+            source_category: 'referral_bonus',
+            source_details: `क्लेम कोड: ${c.claim_code}`,
           });
         }
       });
@@ -1260,6 +1273,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             description: `दुकान पार्टनर सब्सक्रिप्शन कमीशन (${s.shop_name} - ${s.subscription_plan_name})`,
             balance_after: bonusAmt,
             created_at: s.created_at,
+            transaction_name: '🎁 दुकान पार्टनर सब्सक्रिप्शन कमीशन',
+            source_name: `दुकानदार ऑनबोर्डिंग (${s.shop_name})`,
+            source_category: 'referral_bonus',
+            source_details: `प्लान: ${s.subscription_plan_name}`,
           });
         }
       });
@@ -1270,7 +1287,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...synthesizedFromApproved,
       ...synthesizedShopSales,
       ...synthesizedPromoterEarnings,
-    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    ]
+      .map(enrichWalletTransaction)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [walletTransactions, agentWalletRecharges, partnerShops, quickDeliveryOrders, promotionClaims, currentUser]);
 
   // Agent's Viral Promotion Claims Filter
@@ -1435,6 +1454,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: `Go Wallet से ${method === 'upi' ? 'UPI ID' : 'बैंक खाते'} (${destination}) में निकासी`,
         balance_after: newBalance,
         created_at: new Date().toISOString(),
+        transaction_name: '🏦 बैंक निकासी (Sunday Payout)',
+        source_name: `साप्ताहिक रविवार बैंक/UPI ट्रांसफर (${destination})`,
+        source_category: 'bank_withdrawal',
+        source_details: `${method === 'upi' ? 'UPI ID' : 'Bank A/c'}: ${destination}`,
       };
       setWalletTransactions((prev) => [newTxn, ...prev]);
       updateUserProfile(currentUser.id, { wallet_balance: newBalance });
@@ -1499,6 +1522,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: `🎉 मासिक फिक्स्ड वेतन निकासी (280 टिकट लक्ष्य पूर्ण) -> ${method === 'upi' ? 'UPI ID' : 'बैंक खाता'} (${destination})`,
         balance_after: agentWalletBalance,
         created_at: new Date().toISOString(),
+        transaction_name: '💼 फिक्स्ड मासिक वेतन (₹10,000)',
+        source_name: 'मासिक 280 टिकट लक्ष्य पूर्ति वेतन',
+        source_category: 'monthly_salary',
+        source_details: `लक्ष्य पूर्ति वेतन निकासी (${destination})`,
       };
 
       setWalletTransactions((prev) => [newTxn, ...prev]);
@@ -1731,6 +1758,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: `टिकट बुकिंग कटौती: ${bookingData.from_city} → ${bookingData.to_city}`,
         balance_after: newWalletBal,
         created_at: now.toISOString(),
+        transaction_name: '🚌 बस टिकट बुकिंग भुगतान',
+        source_name: `यात्री बस टिकट बुकिंग (${bookingData.from_city} → ${bookingData.to_city})`,
+        source_category: 'ticket_booking_debit',
+        source_details: `बुकिंग कोड: ${bookingCode} | यात्री: ${bookingData.customer_name}`,
       };
       setWalletTransactions((prev) => {
         const next = [debitTx, ...prev];
@@ -1936,6 +1967,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             description: `🎁 GO Agent Refer & Earn बोनस (₹${refBonus} इंस्टेंट क्रेडिट) - ${bookedAgent.full_name} ने पूरी की 5 कन्फर्म बुकिंग्स!`,
             balance_after: 0,
             created_at: nowIso,
+            transaction_name: '🎁 रेफरल बोनस (Refer & Earn ₹100)',
+            source_name: `साथी एजेंट रेफरल (${bookedAgent.full_name})`,
+            source_category: 'referral_bonus',
+            source_details: `${bookedAgent.full_name} ने 5 अनिवार्य कन्फर्म बुकिंग्स पूर्ण कीं`,
           };
           setWalletTransactions((prev) => {
             const next = [refWalletTx, ...prev];
@@ -1961,6 +1996,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // 2c. Check if Boarding Sathi was opted (extra ₹33 customer charge, agent receives +₹23 payout, SafarGo keeps ₹10)
     let newBoardingSathiEntry: CommissionEntry | null = null;
+    let newBoardingSathiWalletTx: WalletTransaction | null = null;
     if (target.boarding_sathi_opted) {
       const agentPayout = target.boarding_sathi_agent_payout || 23;
       const entryId = `comm-bs-${Date.now()}`;
@@ -1976,6 +2012,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         notes: `🛡️ बोर्डिंग साथी सेवा मानदेय (+₹${agentPayout}) - यात्री को बस में सुरक्षित बैठाने की सेवा (${target.booking_code})`,
         created_at: nowIso,
       };
+
+      newBoardingSathiWalletTx = {
+        id: `wtx-bs-${Date.now()}`,
+        agent_id: target.agent_id,
+        amount: agentPayout,
+        type: 'recharge',
+        booking_code: target.booking_code,
+        description: `🛡️ GO Agent बोर्डिंग साथी मानदेय (+₹${agentPayout} इंस्टेंट क्रेडिट) - Booking: ${target.booking_code}`,
+        balance_after: 0,
+        created_at: nowIso,
+        transaction_name: '🛡️ बोर्डिंग साथी मानदेय (+₹23)',
+        source_name: `यात्री बोर्डिंग सहायता सेवा (${target.booking_code})`,
+        source_category: 'boarding_sathi',
+        source_details: `यात्री को बस में सुरक्षित बैठाने का सेवा मानदेय | बुकिंग: ${target.booking_code}`,
+      };
+
       addAuditLog('award_boarding_sathi_payout', 'commission_ledger', entryId, {
         booking_code: target.booking_code,
         agent_name: target.agent_name,
@@ -1985,7 +2037,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       info(
         'बोर्डिंग साथी मानदेय!',
-        `+₹${agentPayout} एजेंट ${target.agent_name} के लेज़र में क्रेडिट (बोर्डिंग साथी सेवा: ₹33 शुल्क, ₹10 SafarGo शेयर)`
+        `+₹${agentPayout} एजेंट ${target.agent_name} के लेज़र व Go Wallet में क्रेडिट (बोर्डिंग साथी सेवा: ₹33 शुल्क, ₹10 SafarGo शेयर)`
       );
     }
 
@@ -2011,16 +2063,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       description: `⚡ GO Agent बस टिकट कमीशन (₹${commRate} इंस्टेंट क्रेडिट) - Booking: ${target.booking_code}`,
       balance_after: 0,
       created_at: nowIso,
+      transaction_name: '🎟️ बस टिकट कमीशन (फ्लैट ₹20)',
+      source_name: `सफरगो बस टिकट बुकिंग (${target.booking_code})`,
+      source_category: 'bus_ticket_commission',
+      source_details: `रूट: ${target.from_city} → ${target.to_city} | PNR: ${verificationData.ticket_pnr || 'CONFIRMED'}`,
     };
     setWalletTransactions((prev) => {
       const next = [commWalletTx, ...prev];
+      if (newBoardingSathiWalletTx) {
+        next.unshift(newBoardingSathiWalletTx);
+      }
       safeSetItem(STORAGE_KEY_WALLET_TX, JSON.stringify(next));
       return next;
     });
 
     const targetAgentProfile = allProfiles.find((p) => p.id === target.agent_id);
     if (targetAgentProfile) {
-      const updatedBal = (targetAgentProfile.wallet_balance || 0) + commRate;
+      const totalToAdd = commRate + (newBoardingSathiWalletTx ? Number(newBoardingSathiWalletTx.amount || 0) : 0);
+      const updatedBal = (targetAgentProfile.wallet_balance || 0) + totalToAdd;
       updateUserProfile(target.agent_id, { wallet_balance: updatedBal });
     }
 
@@ -3189,6 +3249,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         : `वॉलेट रिचार्ज स्वीकृत (UTR: ${recharge.utr_number})`,
       balance_after: newBal,
       created_at: nowIso,
+      transaction_name: '💳 वॉलेट रिचार्ज / पैसे जोड़े',
+      source_name: `SafarGo UPI QR / बैंक ट्रांसफर (UTR: ${recharge.utr_number})`,
+      source_category: 'wallet_recharge',
+      source_details: `बैंक UTR: ${recharge.utr_number} | एडमिन द्वारा लाइव स्वीकृत`,
     };
     setWalletTransactions((prev) => {
       const next = [creditTx, ...prev];

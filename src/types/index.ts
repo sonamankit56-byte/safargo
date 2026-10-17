@@ -389,6 +389,19 @@ export interface WalletRechargeRequest {
   created_at: string;
 }
 
+export type WalletTransactionSource =
+  | 'bus_ticket_commission'
+  | 'referral_bonus'
+  | 'boarding_sathi'
+  | 'wallet_recharge'
+  | 'monthly_salary'
+  | 'admin_adjustment'
+  | 'ticket_booking_debit'
+  | 'bank_withdrawal'
+  | 'quick_commerce'
+  | 'refund'
+  | 'other';
+
 export interface WalletTransaction {
   id: string;
   agent_id: string;
@@ -409,6 +422,12 @@ export interface WalletTransaction {
   description: string;
   balance_after: number;
   created_at: string;
+
+  // Transaction Name & Source of Funds (कहाँ-कहाँ से पैसा आया)
+  transaction_name?: string;
+  source_name?: string;
+  source_category?: WalletTransactionSource;
+  source_details?: string;
 }
 
 

@@ -16,9 +16,12 @@ import {
   Clock,
   Lock,
   AlertTriangle,
-  ShieldAlert
+  ShieldAlert,
+  RefreshCw,
+  Sparkles,
 } from 'lucide-react';
 import { compressImage } from '../../lib/storageUtils';
+import { subscribeToCloudEvents } from '../../lib/cloudSyncService';
 
 interface WalletRechargeModalProps {
   onClose: () => void;
@@ -26,7 +29,7 @@ interface WalletRechargeModalProps {
 
 export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClose }) => {
   const { settings, requestWalletRecharge, agentWalletBalance, agentWalletRecharges } = useData();
-  const { error, success } = useToast();
+  const { error, success, info } = useToast();
 
   const safeWalletBalance = Number(agentWalletBalance) || 0;
   const minAmount = Number(settings?.min_wallet_recharge) || 2000;
@@ -38,6 +41,8 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
   const [countdownSeconds, setCountdownSeconds] = useState(600); // 10 minutes = 600 seconds
+  const [liveApprovedOverride, setLiveApprovedOverride] = useState(false);
+  const [isCheckingLiveStatus, setIsCheckingLiveStatus] = useState(false);
 
   // 10-minute countdown timer
   useEffect(() => {
@@ -48,18 +53,64 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
     return () => clearInterval(interval);
   }, [isSubmittedSuccess, countdownSeconds]);
 
+  // Subscribe to real-time cloud events for instant admin approval notification
+  useEffect(() => {
+    if (!isSubmittedSuccess) return;
+
+    const unsubscribe = subscribeToCloudEvents((event) => {
+      if (event.type === 'RECHARGE_APPROVED') {
+        const matchUtr = utrNumber.trim() && event.recharge?.utr_number?.trim().toUpperCase() === utrNumber.trim().toUpperCase();
+        const matchAmt = Number(event.amount) === (parseFloat(amount) || minAmount);
+        if (matchUtr || matchAmt) {
+          setLiveApprovedOverride(true);
+          success(
+            '🎉 बधाई! एडमिन द्वारा पेमेंट सत्यापित व स्वीकृत!',
+            `₹${(parseFloat(amount) || minAmount).toLocaleString('en-IN')} आपके Go Wallet में तुरंत जमा हो गए हैं!`
+          );
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [isSubmittedSuccess, utrNumber, amount, minAmount, success]);
+
   // Check if admin approved this recharge request in real time
   const activeSubmittedRecharge = isSubmittedSuccess
     ? (agentWalletRecharges || []).find(
         (r) =>
-          (utrNumber.trim().length > 0 && r?.utr_number?.trim() === utrNumber.trim()) ||
+          (utrNumber.trim().length > 0 && r?.utr_number?.trim().toUpperCase() === utrNumber.trim().toUpperCase()) ||
           (Number(r?.amount) === (parseFloat(amount) || 0) &&
             r?.status === 'approved' &&
             r?.created_at &&
             new Date(r.created_at).getTime() > Date.now() - 3600000)
       )
     : undefined;
-  const isApprovedByAdmin = activeSubmittedRecharge?.status === 'approved';
+  const isApprovedByAdmin = liveApprovedOverride || activeSubmittedRecharge?.status === 'approved';
+
+  const handleManualCheckLive = () => {
+    setIsCheckingLiveStatus(true);
+    info('जांच जारी है...', 'एडमिन डेस्क व बैंक UTR मिलान चेक किया जा रहा है...');
+    setTimeout(() => {
+      setIsCheckingLiveStatus(false);
+      try {
+        const raw = localStorage.getItem('safargo_wallet_recharges_v1');
+        if (raw) {
+          const list = JSON.parse(raw);
+          const found = list.find(
+            (r: any) =>
+              (utrNumber.trim().length > 0 && r?.utr_number?.trim().toUpperCase() === utrNumber.trim().toUpperCase()) ||
+              (Number(r?.amount) === (parseFloat(amount) || minAmount) && r?.status === 'approved')
+          );
+          if (found && found.status === 'approved') {
+            setLiveApprovedOverride(true);
+            success('🎉 स्वीकृत!', 'एडमिन द्वारा आपका रिचार्ज स्वीकृत हो चुका है!');
+            return;
+          }
+        }
+      } catch {}
+      info('प्रतीक्षाधीन', 'आपका पेमेंट 10-मिनट टाइमर के तहत सुरक्षित प्रक्रियाधीन है।');
+    }, 600);
+  };
 
   // Intercept browser back / refresh / tab close while timer is active
   useEffect(() => {
@@ -257,6 +308,23 @@ export const WalletRechargeModal: React.FC<WalletRechargeModalProps> = ({ onClos
                   ⏳ 10 मिनट के अंदर सत्यापन (Under Review)
                 </span>
               )}
+            </div>
+
+            {/* Cloud Live Sync Indicator */}
+            <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[11px]">
+              <span className="flex items-center gap-1.5 text-emerald-600 font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block" />
+                <span>🟢 क्लाउड लाइव सिंक सक्रिय (Instant Live Sync)</span>
+              </span>
+              <button
+                type="button"
+                onClick={handleManualCheckLive}
+                disabled={isCheckingLiveStatus || isApprovedByAdmin}
+                className="text-amber-600 hover:text-amber-700 font-black flex items-center gap-1 cursor-pointer transition active:scale-95"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isCheckingLiveStatus ? 'animate-spin' : ''}`} />
+                <span>{isCheckingLiveStatus ? 'जांच जारी...' : '🔄 स्थिति पुनः जांचें'}</span>
+              </button>
             </div>
           </div>
 
