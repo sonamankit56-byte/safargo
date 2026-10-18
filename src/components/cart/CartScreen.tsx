@@ -10,7 +10,9 @@ import {
   Truck, 
   ArrowRight,
   Sparkles,
-  ChevronDown
+  HelpCircle,
+  Package,
+  CheckCircle2
 } from 'lucide-react';
 
 export const CartScreen: React.FC = () => {
@@ -19,16 +21,16 @@ export const CartScreen: React.FC = () => {
     removeFromCart, 
     updateQuantity, 
     updateItemSize,
-    setItemResaleMargin,
     cartTotalAmount, 
     cartTotalDiscount, 
-    cartTotalMargin,
+    isOrderReselling,
+    setIsOrderReselling,
+    customerCollectAmount,
+    setCustomerCollectAmount,
+    orderResellerMargin,
     setCurrentView,
     t 
   } = useShopping();
-
-  const [editingMarginItemId, setEditingMarginItemId] = useState<string | null>(null);
-  const [tempCustomerPrice, setTempCustomerPrice] = useState<number>(0);
 
   if (cart.length === 0) {
     return (
@@ -142,80 +144,106 @@ export const CartScreen: React.FC = () => {
                   </div>
                 </div>
               </div>
-
-              {/* Reseller Margin Bar per Item */}
-              <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs">
-                {editingMarginItemId === item.cartItemId ? (
-                  <div className="flex items-center gap-2 w-full">
-                    <span className="text-gray-500 text-[11px] whitespace-nowrap">{t('कस्टमर प्राइस ₹', 'Customer Price ₹')}</span>
-                    <input
-                      type="number"
-                      value={tempCustomerPrice || ''}
-                      onChange={(e) => setTempCustomerPrice(parseInt(e.target.value, 10) || 0)}
-                      className="w-24 px-2 py-1 text-xs border border-[#9F2089] rounded font-bold"
-                    />
-                    <button
-                      onClick={() => {
-                        setItemResaleMargin(item.cartItemId, tempCustomerPrice);
-                        setEditingMarginItemId(null);
-                      }}
-                      className="px-2.5 py-1 bg-[#9F2089] text-white text-[11px] font-bold rounded"
-                    >
-                      {t('सेव', 'Save')}
-                    </button>
-                    <button
-                      onClick={() => setEditingMarginItemId(null)}
-                      className="text-gray-400 text-[11px]"
-                    >
-                      {t('रद्द', 'Cancel')}
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-1.5">
-                      <TrendingUp className="w-3.5 h-3.5 text-[#9F2089]" />
-                      <span className="text-gray-600">
-                        {item.resellerMargin && item.resellerMargin > 0 ? (
-                          <span className="font-bold text-emerald-700">
-                            {t(`मार्जिन कमाई: ₹${item.resellerMargin}`, `Cash Margin: ₹${item.resellerMargin}`)}
-                          </span>
-                        ) : (
-                          t('कस्टमर को रीसेल कर रहे हैं?', 'Reselling to customer?')
-                        )}
-                      </span>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        setEditingMarginItemId(item.cartItemId);
-                        setTempCustomerPrice(item.customerPrice || Math.round(item.product.dealPrice * 1.5));
-                      }}
-                      className="text-[#9F2089] font-bold hover:underline"
-                    >
-                      {item.resellerMargin ? t('मार्जिन बदलें', 'Edit Margin') : t('+ मार्जिन जोड़ें', '+ Add Margin')}
-                    </button>
-                  </>
-                )}
-              </div>
             </div>
           ))}
         </div>
 
-        {/* Reseller Overall Summary (If any margin exists) */}
-        {cartTotalMargin > 0 && (
-          <div className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl p-3 shadow-sm flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-yellow-300" />
+        {/* 🌟 Iconic Meesho "Reselling the order?" Section 🌟 */}
+        <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-soft space-y-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-pink-100 text-[#9F2089] flex items-center justify-center shrink-0">
+                <TrendingUp className="w-4 h-4" />
+              </div>
               <div>
-                <span className="text-xs font-bold block">{t('कुल रीसेलर कैश मार्जिन', 'Total Cash Margin to Earn')}</span>
-                <span className="text-[10px] text-emerald-100">{t('रविवार को सीधे बैंक/यूपीआई में जमा होगा', 'Deposited Sunday on customer delivery')}</span>
+                <h4 className="text-xs sm:text-sm font-extrabold text-gray-900 leading-tight">
+                  {t('क्या आप यह ऑर्डर किसी कस्टमर को बेच रहे हैं?', 'Reselling the order?')}
+                </h4>
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                  {t('ग्राहक से अपना कैश मार्जिन कमाएं, हम गोपनीय रूप से डिलीवरी करेंगे', 'Selling to a customer? Add your cash margin')}
+                </p>
               </div>
             </div>
-            <span className="text-xl font-black text-yellow-300">
-              ₹{cartTotalMargin}
-            </span>
+
+            {/* Meesho Yes / No Radio Pill */}
+            <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-lg text-xs font-bold shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsOrderReselling(false)}
+                className={`px-3 py-1 rounded-md transition-all ${
+                  !isOrderReselling 
+                    ? 'bg-white text-gray-900 shadow-xs' 
+                    : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                {t('नहीं (No)', 'No')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsOrderReselling(true)}
+                className={`px-3 py-1 rounded-md transition-all ${
+                  isOrderReselling 
+                    ? 'bg-[#9F2089] text-white shadow-xs' 
+                    : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                {t('हाँ (Yes)', 'Yes')}
+              </button>
+            </div>
           </div>
-        )}
+
+          {/* Expanded Reseller Margin Box */}
+          {isOrderReselling ? (
+            <div className="pt-3 border-t border-gray-100 space-y-3 animate-in fade-in duration-200">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  {t('कस्टमर से कुल कितना रुपया लेना है? (Cash to collect from customer)', 'Cash to collect from customer (₹)')}
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-black text-gray-500 text-sm">₹</span>
+                  <input
+                    type="number"
+                    value={customerCollectAmount || ''}
+                    onChange={(e) => setCustomerCollectAmount(parseInt(e.target.value, 10) || 0)}
+                    placeholder={`कम से कम ₹${cartTotalAmount}`}
+                    className="w-full pl-8 pr-4 py-2.5 border-2 border-[#9F2089] rounded-xl text-base font-black focus:outline-none bg-pink-50/20"
+                  />
+                </div>
+              </div>
+
+              {/* Profit Calculation Box */}
+              <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3 flex items-center justify-between text-emerald-950">
+                <div>
+                  <span className="text-xs font-bold block">{t('आपकी नकद मार्जिन कमाई (Your Margin):', 'Your Cash Margin:')}</span>
+                  <span className="text-[10px] text-emerald-700 font-medium">
+                    {t('ऑर्डर डिलीवर होने के बाद सीधे आपके बैंक में जमा होगी', 'Deposited directly to your bank account on Sunday')}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-2xl font-black text-emerald-600">
+                    ₹{orderResellerMargin}
+                  </span>
+                </div>
+              </div>
+
+              {/* Anonymous Packaging Guarantee */}
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-[11px] text-amber-900 flex items-start gap-2">
+                <Package className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                <span>
+                  {t(
+                    `सफ़रगो न्यूट्रल पैकेजिंग: पार्सल पर सफ़रगो का कोई नाम या होलसेल बिल (₹${cartTotalAmount}) नहीं होगा। ग्राहक केवल ₹${customerCollectAmount} का बिल देखेगा।`,
+                    `100% Anonymous Delivery: No SafarGo branding or wholesale invoice (₹${cartTotalAmount}) will be shown. Courier will collect ₹${customerCollectAmount} from customer.`
+                  )}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-[11px] text-gray-500 bg-gray-50 p-2 rounded-lg flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>{t('पर्सनल ऑर्डर: सामान सीधे आपके पते पर सबसे कम होलसेल दाम पर डिलीवर होगा।', 'Personal Purchase: Direct wholesale pricing applied for yourself.')}</span>
+            </div>
+          )}
+        </div>
 
         {/* Price Breakdown Bill */}
         <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-soft space-y-2.5">
@@ -239,14 +267,27 @@ export const CartScreen: React.FC = () => {
               <span className="text-emerald-600 font-bold">{t('फ्री (FREE)', 'FREE')}</span>
             </div>
 
+            {isOrderReselling && (
+              <>
+                <div className="flex justify-between font-bold text-gray-800 pt-1 border-t border-dashed border-gray-200">
+                  <span>{t('कस्टमर से लेने वाली रकम (Cash to Collect)', 'Cash to Collect from Customer')}</span>
+                  <span>₹{customerCollectAmount}</span>
+                </div>
+                <div className="flex justify-between font-bold text-emerald-600">
+                  <span>{t('आपकी नकद मार्जिन कमाई (Margin to Earn)', 'Your Margin to Earn')}</span>
+                  <span>+₹{orderResellerMargin}</span>
+                </div>
+              </>
+            )}
+
             <div className="pt-2 border-t border-gray-200 flex justify-between text-sm font-extrabold text-gray-900">
-              <span>{t('कुल देय राशि', 'Order Total')}</span>
+              <span>{t('कुल ऑर्डर मूल्य (Order Total)', 'Order Total')}</span>
               <span>₹{cartTotalAmount}</span>
             </div>
           </div>
 
           <div className="p-2 bg-emerald-50 rounded-lg text-[11px] text-emerald-800 font-semibold text-center">
-            {t(`आप इस ऑर्डर पर ₹${cartTotalDiscount} की बचत कर रहे हैं!`, `You are saving ₹${cartTotalDiscount} on this order!`)}
+            {t(`आप इस ऑर्डर पर ₹${cartTotalDiscount} की सीधी बचत कर रहे हैं!`, `You are saving ₹${cartTotalDiscount} on this order!`)}
           </div>
         </div>
       </div>
@@ -255,15 +296,19 @@ export const CartScreen: React.FC = () => {
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 p-3 shadow-sticky">
         <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
           <div>
-            <span className="text-[10px] text-gray-500 block uppercase font-bold">{t('कुल राशि', 'Total')}</span>
-            <span className="text-lg font-black text-gray-900">₹{cartTotalAmount}</span>
+            <span className="text-[10px] text-gray-500 block uppercase font-bold">
+              {isOrderReselling ? t('कस्टमर बिल', 'Customer Price') : t('कुल राशि', 'Order Total')}
+            </span>
+            <span className="text-lg font-black text-gray-900">
+              ₹{isOrderReselling ? customerCollectAmount : cartTotalAmount}
+            </span>
           </div>
 
           <button
             onClick={() => setCurrentView('address_selection')}
             className="flex-1 max-w-xs py-3 px-5 bg-[#9F2089] hover:bg-pink-800 text-white font-extrabold text-xs sm:text-sm rounded-xl transition-all shadow-md shadow-pink-200 flex items-center justify-center gap-1.5 active:scale-95"
           >
-            <span>{t('डिलीवरी पता चुनें', 'Continue to Address')}</span>
+            <span>{isOrderReselling ? t('कस्टमर का पता चुनें', 'Deliver to Customer') : t('डिलीवरी पता चुनें', 'Continue to Address')}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

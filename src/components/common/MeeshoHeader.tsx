@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   Heart, 
@@ -16,6 +16,17 @@ interface MeeshoHeaderProps {
   showBack?: boolean;
 }
 
+const SEARCH_PLACEHOLDERS = [
+  'Search by Keyword or Product ID',
+  'Try Banarasi Saree...',
+  'Try Rayon Kurti...',
+  'Try Men Casual Shirt...',
+  'Try Bluetooth Earbuds...',
+  'Try King Size Bedsheet...',
+  'Try Kundan Jewellery...',
+  'Try Kids Dungaree...'
+];
+
 export const MeeshoHeader: React.FC<MeeshoHeaderProps> = ({ title, showBack = false }) => {
   const { 
     currentView, 
@@ -30,6 +41,15 @@ export const MeeshoHeader: React.FC<MeeshoHeaderProps> = ({ title, showBack = fa
     t
   } = useShopping();
 
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setPlaceholderIndex((prev) => (prev + 1) % SEARCH_PLACEHOLDERS.length);
+    }, 2500);
+    return () => clearInterval(timer);
+  }, []);
+
   const isSubPage = showBack || [
     'product_detail', 
     'cart', 
@@ -39,6 +59,8 @@ export const MeeshoHeader: React.FC<MeeshoHeaderProps> = ({ title, showBack = fa
     'wishlist',
     'search_modal'
   ].includes(currentView);
+
+  const currentPlaceholder = SEARCH_PLACEHOLDERS[placeholderIndex];
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
@@ -81,30 +103,40 @@ export const MeeshoHeader: React.FC<MeeshoHeaderProps> = ({ title, showBack = fa
           )}
         </div>
 
-        {/* Desktop Search Bar */}
+        {/* Desktop Search Bar (Exact Meesho Search Input) */}
         <div className="hidden md:flex flex-1 max-w-xl mx-4">
-          <div className="relative w-full">
+          <div 
+            onClick={() => {
+              if (currentView !== 'search_modal') setCurrentView('search_modal');
+            }}
+            className="relative w-full cursor-pointer"
+          >
             <input
               type="text"
+              readOnly
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => {
-                if (currentView !== 'search_modal') setCurrentView('search_modal');
-              }}
-              placeholder={t('कुर्ती, साड़ी, शर्ट या इलेक्ट्रॉनिक गैजेट्स खोजें...', 'Try Sarees, Kurtis, Shirts, Earbuds or Product ID...')}
-              className="w-full pl-10 pr-20 py-2 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9F2089] focus:bg-white transition-all text-gray-800 placeholder-gray-400"
+              placeholder={currentPlaceholder}
+              className="w-full pl-10 pr-20 py-2 text-sm bg-gray-50 border border-gray-300 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#9F2089] focus:bg-white transition-all text-gray-800 placeholder-gray-400"
             />
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-gray-400">
               <button 
-                onClick={() => setCurrentView('search_modal')} 
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentView('search_modal');
+                }} 
                 title="Voice Search"
                 className="hover:text-[#9F2089] p-1 rounded transition-colors"
               >
                 <Mic className="w-4 h-4" />
               </button>
               <button 
-                onClick={() => setCurrentView('search_modal')} 
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentView('search_modal');
+                }} 
                 title="Search by Photo"
                 className="hover:text-[#9F2089] p-1 rounded transition-colors"
               >
@@ -165,20 +197,20 @@ export const MeeshoHeader: React.FC<MeeshoHeaderProps> = ({ title, showBack = fa
         </div>
       </div>
 
-      {/* Mobile Search Bar (Only shown on top-level pages) */}
+      {/* Mobile Search Bar (Exact Meesho Top Search Bar with Rotating Placeholder) */}
       {!isSubPage && (
         <div className="md:hidden px-3 pb-2.5">
           <div 
             onClick={() => setCurrentView('search_modal')}
-            className="relative w-full flex items-center bg-gray-100 border border-gray-200 rounded-lg px-3 py-2 cursor-pointer text-gray-400 active:bg-gray-200 transition-colors"
+            className="relative w-full flex items-center bg-gray-100 border border-gray-200 rounded-lg px-3 py-2 cursor-pointer text-gray-400 active:bg-gray-200 transition-colors shadow-xs"
           >
             <Search className="w-4 h-4 mr-2 text-gray-400 shrink-0" />
-            <span className="text-xs truncate flex-1 text-gray-500">
-              {searchQuery || t('कुर्ती, साड़ी, टी-शर्ट या गैजेट्स खोजें...', 'Try Sarees, Kurtis, Shirts, Earbuds...')}
+            <span className="text-xs truncate flex-1 text-gray-600 font-medium">
+              {searchQuery || currentPlaceholder}
             </span>
             <div className="flex items-center gap-2 text-gray-500">
-              <Mic className="w-4 h-4" />
-              <Camera className="w-4 h-4" />
+              <Mic className="w-4 h-4 hover:text-[#9F2089]" />
+              <Camera className="w-4 h-4 hover:text-[#9F2089]" />
             </div>
           </div>
         </div>

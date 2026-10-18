@@ -15,7 +15,12 @@ import {
   ChevronRight,
   Store,
   CheckCircle,
-  ThumbsUp
+  ThumbsUp,
+  X,
+  Plus,
+  Minus,
+  CheckCircle2,
+  ArrowRight
 } from 'lucide-react';
 
 export const ProductDetail: React.FC = () => {
@@ -25,6 +30,8 @@ export const ProductDetail: React.FC = () => {
     toggleWishlist, 
     isWishlisted, 
     setCurrentView,
+    setIsOrderReselling,
+    setCustomerCollectAmount,
     t 
   } = useShopping();
 
@@ -49,6 +56,13 @@ export const ProductDetail: React.FC = () => {
   const [appliedCustomerPrice, setAppliedCustomerPrice] = useState<number | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Meesho Size & Quantity Bottom Sheet Modal
+  const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
+  const [sheetMode, setSheetMode] = useState<'buy' | 'cart'>('buy');
+  const [sheetQuantity, setSheetQuantity] = useState(1);
+  const [isSheetResell, setIsSheetResell] = useState(false);
+  const [sheetCustomerPrice, setSheetCustomerPrice] = useState(Math.round(selectedProduct.dealPrice * 1.5));
+
   const wishlisted = isWishlisted(selectedProduct.id);
 
   const showToast = (msg: string) => {
@@ -56,32 +70,46 @@ export const ProductDetail: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const handleAddToCart = () => {
-    addToCart(
-      selectedProduct, 
-      selectedSize, 
-      1, 
-      Boolean(appliedMargin), 
-      appliedCustomerPrice || undefined
-    );
-    showToast(t('प्रोडक्ट कार्ट में जोड़ा गया!', 'Added to Bag!'));
+  const openSheet = (mode: 'buy' | 'cart') => {
+    setSheetMode(mode);
+    setSheetQuantity(1);
+    setIsBottomSheetOpen(true);
   };
 
-  const handleBuyNow = () => {
+  const handleSheetConfirm = () => {
+    const isResale = Boolean(appliedMargin) || isSheetResell;
+    const finalPrice = appliedCustomerPrice || (isSheetResell ? sheetCustomerPrice : undefined);
+
     addToCart(
-      selectedProduct, 
-      selectedSize, 
-      1, 
-      Boolean(appliedMargin), 
-      appliedCustomerPrice || undefined
+      selectedProduct,
+      selectedSize,
+      sheetQuantity,
+      isResale,
+      finalPrice
     );
-    setCurrentView('cart');
+
+    if (isResale && finalPrice) {
+      setIsOrderReselling(true);
+      setCustomerCollectAmount(finalPrice);
+    }
+
+    setIsBottomSheetOpen(false);
+
+    if (sheetMode === 'buy') {
+      setCurrentView('cart');
+    } else {
+      showToast(t('प्रोडक्ट कार्ट में जोड़ा गया!', 'Added to Bag!'));
+    }
   };
 
   const handleResellSuccess = (customerPrice: number) => {
     const margin = customerPrice - selectedProduct.dealPrice;
     setAppliedMargin(margin);
     setAppliedCustomerPrice(customerPrice);
+    setIsSheetResell(true);
+    setSheetCustomerPrice(customerPrice);
+    setIsOrderReselling(true);
+    setCustomerCollectAmount(customerPrice);
     addToCart(selectedProduct, selectedSize, 1, true, customerPrice);
     showToast(t(`₹${margin} मार्जिन के साथ कार्ट में जोड़ा गया!`, `Added with ₹${margin} margin!`));
   };
@@ -117,6 +145,142 @@ export const ProductDetail: React.FC = () => {
         onClose={() => setIsMarginModalOpen(false)}
         onSuccessResell={handleResellSuccess}
       />
+
+      {/* 🌟 Meesho Size & Quantity Bottom Sheet Modal 🌟 */}
+      {isBottomSheetOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white w-full sm:max-w-md rounded-t-2xl overflow-hidden shadow-2xl max-h-[85vh] flex flex-col animate-in slide-in-from-bottom duration-200">
+            {/* Sheet Header */}
+            <div className="p-4 border-b border-gray-100 flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <img 
+                  src={selectedProduct.images[0]} 
+                  alt={selectedProduct.title} 
+                  className="w-16 h-16 rounded-xl object-cover bg-gray-50 shrink-0"
+                />
+                <div>
+                  <h3 className="text-xs font-semibold text-gray-800 line-clamp-1 max-w-[220px]">
+                    {selectedProduct.title}
+                  </h3>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <span className="text-lg font-black text-gray-900">₹{selectedProduct.dealPrice}</span>
+                    <span className="text-xs text-gray-400 line-through">₹{selectedProduct.mrp}</span>
+                    <span className="text-xs font-bold text-emerald-600">{selectedProduct.discountPercent}% OFF</span>
+                  </div>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsBottomSheetOpen(false)}
+                className="p-1 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Sheet Content */}
+            <div className="p-4 overflow-y-auto space-y-4 text-xs">
+              {/* Size Selector */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-bold text-gray-800 uppercase tracking-wider">{t('साइज़ चुनें (Select Size)', 'Select Size')}</span>
+                  <span className="text-[#9F2089] font-semibold">{selectedSize}</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {selectedProduct.sizes.map((size) => {
+                    const isSelected = size === selectedSize;
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => setSelectedSize(size)}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all ${
+                          isSelected 
+                            ? 'border-[#9F2089] bg-pink-50 text-[#9F2089] ring-2 ring-pink-100' 
+                            : 'border-gray-200 text-gray-700 hover:border-gray-300'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Quantity Stepper */}
+              <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                <span className="font-bold text-gray-800 uppercase tracking-wider">{t('मात्रा (Quantity)', 'Quantity')}</span>
+                <div className="flex items-center border border-gray-200 rounded-lg bg-gray-50">
+                  <button
+                    type="button"
+                    onClick={() => setSheetQuantity(Math.max(1, sheetQuantity - 1))}
+                    className="p-2 hover:bg-gray-200 text-gray-700 transition-colors"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="px-3 font-bold text-sm text-gray-900">{sheetQuantity}</span>
+                  <button
+                    type="button"
+                    onClick={() => setSheetQuantity(sheetQuantity + 1)}
+                    className="p-2 hover:bg-gray-200 text-gray-700 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Resell Toggle in Sheet */}
+              <div className="bg-pink-50/50 border border-pink-200 rounded-xl p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 font-bold text-gray-900">
+                    <TrendingUp className="w-4 h-4 text-[#9F2089]" />
+                    <span>{t('कस्टमर को बेचकर मार्जिन कमाएं?', 'Selling to a customer?')}</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={isSheetResell}
+                    onChange={(e) => setIsSheetResell(e.target.checked)}
+                    className="w-4 h-4 accent-[#9F2089] cursor-pointer"
+                  />
+                </div>
+
+                {isSheetResell && (
+                  <div className="pt-2 border-t border-pink-100 flex items-center justify-between gap-2">
+                    <span className="text-[11px] text-gray-600">{t('कस्टमर प्राइस ₹', 'Customer Price ₹')}</span>
+                    <input
+                      type="number"
+                      value={sheetCustomerPrice}
+                      onChange={(e) => setSheetCustomerPrice(parseInt(e.target.value, 10) || 0)}
+                      className="w-28 px-2.5 py-1 text-xs border border-[#9F2089] rounded-lg font-bold bg-white"
+                    />
+                    <span className="text-[11px] font-bold text-emerald-700">
+                      Margin: ₹{Math.max(0, sheetCustomerPrice - (selectedProduct.dealPrice * sheetQuantity))}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Sheet Actions */}
+            <div className="p-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-3">
+              <div>
+                <span className="text-[10px] text-gray-400 block uppercase font-bold">{t('कुल कीमत', 'Total Price')}</span>
+                <span className="text-base font-black text-gray-900">
+                  ₹{selectedProduct.dealPrice * sheetQuantity}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSheetConfirm}
+                className="flex-1 py-3 px-5 bg-[#9F2089] hover:bg-pink-800 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 active:scale-95"
+              >
+                <span>{sheetMode === 'buy' ? t('ऑर्डर जारी रखें (Continue)', 'Continue to Checkout') : t('कार्ट में जोड़ें', 'Add to Bag')}</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-4xl mx-auto space-y-2 sm:space-y-3 sm:py-3">
         {/* 1. Image Slider & Badges */}
@@ -405,7 +569,7 @@ export const ProductDetail: React.FC = () => {
         <div className="max-w-4xl mx-auto flex items-center gap-2">
           {/* Add to Cart button */}
           <button
-            onClick={handleAddToCart}
+            onClick={() => openSheet('cart')}
             className="flex-1 py-3 px-3 bg-white border-2 border-[#9F2089] text-[#9F2089] hover:bg-pink-50 font-extrabold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-xs"
           >
             <ShoppingBag className="w-4 h-4" />
@@ -414,7 +578,7 @@ export const ProductDetail: React.FC = () => {
 
           {/* Buy Now button */}
           <button
-            onClick={handleBuyNow}
+            onClick={() => openSheet('buy')}
             className="flex-1 py-3 px-3 bg-[#9F2089] hover:bg-pink-800 text-white font-black text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-md shadow-pink-200"
           >
             <Zap className="w-4 h-4 fill-white" />

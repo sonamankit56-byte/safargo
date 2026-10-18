@@ -45,6 +45,18 @@ interface ShoppingContextType {
   cartTotalDiscount: number;
   cartTotalMargin: number;
 
+  // Global Order Reselling Toggle (Meesho USP)
+  isOrderReselling: boolean;
+  setIsOrderReselling: (isResale: boolean) => void;
+  customerCollectAmount: number;
+  setCustomerCollectAmount: (amount: number) => void;
+  orderResellerMargin: number;
+
+  // Search History
+  recentSearches: string[];
+  addRecentSearch: (query: string) => void;
+  clearRecentSearches: () => void;
+
   // Wishlist
   wishlistIds: string[];
   toggleWishlist: (productId: string) => void;
@@ -134,6 +146,40 @@ export const ShoppingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Multi-Language ('hi' default for authentic Bharat e-commerce feel)
   const [language, setLanguage] = useState<'hi' | 'en'>('hi');
+
+  // Global Order Reselling State (Meesho Resell vs Buy Mode)
+  const [isOrderReselling, setIsOrderReselling] = useState<boolean>(false);
+  const [customerCollectAmount, setCustomerCollectAmount] = useState<number>(0);
+
+  // Recent Searches History
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('safargo_recent_searches');
+      return saved ? JSON.parse(saved) : ['Banarasi Saree', 'Rayon Kurti', 'Men Casual Shirt', 'Bluetooth Earbuds'];
+    } catch {
+      return ['Banarasi Saree', 'Rayon Kurti', 'Men Casual Shirt', 'Bluetooth Earbuds'];
+    }
+  });
+
+  const addRecentSearch = (term: string) => {
+    if (!term || !term.trim()) return;
+    const clean = term.trim();
+    setRecentSearches(prev => {
+      const filtered = prev.filter(t => t.toLowerCase() !== clean.toLowerCase());
+      const updated = [clean, ...filtered].slice(0, 10);
+      try {
+        localStorage.setItem('safargo_recent_searches', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
+
+  const clearRecentSearches = () => {
+    setRecentSearches([]);
+    try {
+      localStorage.removeItem('safargo_recent_searches');
+    } catch {}
+  };
 
   // Persistence helpers
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -445,8 +491,9 @@ export const ShoppingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const prepaidDiscount = paymentMethod === 'upi' ? 25 : paymentMethod === 'card' ? 20 : 0;
     const finalAmount = Math.max(0, cartTotalAmount - prepaidDiscount);
 
-    const hasResaleItems = cart.some(i => i.isResale && (i.resellerMargin || 0) > 0);
-    const totalMargin = cartTotalMargin;
+    const hasResaleItems = isOrderReselling || cart.some(i => i.isResale && (i.resellerMargin || 0) > 0);
+    const effectiveCollect = customerCollectAmount > 0 ? customerCollectAmount : Math.round(cartTotalAmount * 1.4);
+    const totalMargin = isOrderReselling ? Math.max(0, effectiveCollect - cartTotalAmount) : cartTotalMargin;
 
     const trackingSteps: TrackingStep[] = [
       {
@@ -586,6 +633,16 @@ export const ShoppingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         cartTotalAmount,
         cartTotalDiscount,
         cartTotalMargin,
+        isOrderReselling,
+        setIsOrderReselling,
+        customerCollectAmount: customerCollectAmount > 0 ? customerCollectAmount : (cartTotalAmount > 0 ? Math.round(cartTotalAmount * 1.4) : 0),
+        setCustomerCollectAmount,
+        orderResellerMargin: isOrderReselling 
+          ? Math.max(0, (customerCollectAmount > 0 ? customerCollectAmount : Math.round(cartTotalAmount * 1.4)) - cartTotalAmount) 
+          : cartTotalMargin,
+        recentSearches,
+        addRecentSearch,
+        clearRecentSearches,
         wishlistIds,
         toggleWishlist,
         isWishlisted,

@@ -11,7 +11,8 @@ import {
   Lock, 
   MapPin,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Package
 } from 'lucide-react';
 import { PaymentMethod } from '../../types';
 
@@ -20,6 +21,9 @@ export const PaymentScreen: React.FC = () => {
     cartTotalAmount, 
     cartTotalDiscount, 
     cartTotalMargin,
+    isOrderReselling,
+    customerCollectAmount,
+    orderResellerMargin,
     activeAddress, 
     setCurrentView, 
     placeOrder,
@@ -64,7 +68,7 @@ export const PaymentScreen: React.FC = () => {
             <MapPin className="w-4 h-4 text-[#9F2089] shrink-0 mt-0.5" />
             <div>
               <span className="font-bold text-gray-800 block">
-                {t('डिलीवरी पता:', 'Delivery Address:')} {activeAddress?.fullName}
+                {isOrderReselling ? t('ग्राहक का डिलीवरी पता:', 'Customer Delivery Address:') : t('डिलीवरी पता:', 'Delivery Address:')} {activeAddress?.fullName}
               </span>
               <p className="text-gray-500 line-clamp-1 text-[11px]">
                 {activeAddress?.houseNo}, {activeAddress?.roadNameArea}, {activeAddress?.city} ({activeAddress?.pincode})
@@ -79,19 +83,38 @@ export const PaymentScreen: React.FC = () => {
           </button>
         </div>
 
-        {/* Prepaid Savings Incentive Banner (Meesho USP) */}
-        <div className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-xl p-3 shadow-sm flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-yellow-300" />
-            <div>
-              <span className="text-xs font-bold block">{t('UPI भुगतान पर तुरंत ₹25 की अतिरिक्त छूट!', 'Instant ₹25 Extra Discount on UPI Payment!')}</span>
-              <span className="text-[10px] text-emerald-100">{t('PhonePe, GPay, Paytm या किसी भी UPI से भुगतान करें', 'Pay via GPay, PhonePe or Paytm to save extra')}</span>
+        {/* Reselling Order Notice Banner (Meesho Signature) */}
+        {isOrderReselling ? (
+          <div className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-xl p-3 shadow-sm space-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-yellow-300" />
+                <span className="text-xs font-bold">{t('रीसेलिंग ऑर्डर: कस्टमर से कैश ऑन डिलीवरी लिया जाएगा', 'Reselling Order: Cash to collect from customer')}</span>
+              </div>
+              <span className="text-base font-black text-yellow-300">₹{customerCollectAmount}</span>
             </div>
+            <p className="text-[11px] text-emerald-100">
+              {t(
+                `डिलीवरी के बाद आपका ₹${orderResellerMargin} का शुद्ध मुनाफा सीधे बैंक खाते में जमा हो जाएगा।`,
+                `Your net margin of ₹${orderResellerMargin} will be transferred to your bank on delivery.`
+              )}
+            </p>
           </div>
-          <span className="text-xs font-black bg-yellow-400 text-gray-950 px-2 py-0.5 rounded shadow-xs">
-            SAVE ₹25
-          </span>
-        </div>
+        ) : (
+          /* Prepaid Savings Incentive Banner (Meesho USP) */
+          <div className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-xl p-3 shadow-sm flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-yellow-300" />
+              <div>
+                <span className="text-xs font-bold block">{t('UPI भुगतान पर तुरंत ₹25 की अतिरिक्त छूट!', 'Instant ₹25 Extra Discount on UPI Payment!')}</span>
+                <span className="text-[10px] text-emerald-100">{t('PhonePe, GPay, Paytm या किसी भी UPI से भुगतान करें', 'Pay via GPay, PhonePe or Paytm to save extra')}</span>
+              </div>
+            </div>
+            <span className="text-xs font-black bg-yellow-400 text-gray-950 px-2 py-0.5 rounded shadow-xs">
+              SAVE ₹25
+            </span>
+          </div>
+        )}
 
         {/* Payment Methods Accordion / Radio Cards */}
         <div className="space-y-2">
@@ -116,7 +139,11 @@ export const PaymentScreen: React.FC = () => {
                     <span className="font-bold text-sm text-gray-900">{t('कैश ऑन डिलीवरी (Cash on Delivery)', 'Cash on Delivery (COD)')}</span>
                     <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">₹0 FEE</span>
                   </div>
-                  <p className="text-[11px] text-gray-500">{t('पार्सल घर पहुंचने पर नकद रुपये दें', 'Pay in cash when parcel reaches your doorstep')}</p>
+                  <p className="text-[11px] text-gray-500">
+                    {isOrderReselling 
+                      ? t(`कूरियर बॉय ग्राहक से ₹${customerCollectAmount} कैश कलेक्ट करेगा`, `Courier will collect ₹${customerCollectAmount} cash from customer`)
+                      : t('पार्सल घर पहुंचने पर नकद रुपये दें', 'Pay in cash when parcel reaches your doorstep')}
+                  </p>
                 </div>
               </div>
               <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
@@ -234,7 +261,7 @@ export const PaymentScreen: React.FC = () => {
         </div>
 
         {/* Reseller Earning Reassurance */}
-        {cartTotalMargin > 0 && (
+        {(isOrderReselling || cartTotalMargin > 0) && (
           <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3 text-xs text-emerald-950 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-emerald-600" />
@@ -243,7 +270,7 @@ export const PaymentScreen: React.FC = () => {
                 <span className="text-[11px] text-emerald-700">{t('डिलीवरी के बाद सीधे आपके बैंक में भेजी जाएगी', 'Will be transferred directly on Sunday')}</span>
               </div>
             </div>
-            <span className="text-xl font-black text-emerald-700">₹{cartTotalMargin}</span>
+            <span className="text-xl font-black text-emerald-700">₹{orderResellerMargin || cartTotalMargin}</span>
           </div>
         )}
 
@@ -254,6 +281,18 @@ export const PaymentScreen: React.FC = () => {
             <span>{t('प्रोडक्ट मूल्य', 'Product Wholesale Price')}</span>
             <span>₹{cartTotalAmount}</span>
           </div>
+          {isOrderReselling && (
+            <>
+              <div className="flex justify-between text-gray-900 font-bold">
+                <span>{t('ग्राहक से नकद वसूली (COD)', 'Cash to Collect from Customer')}</span>
+                <span>₹{customerCollectAmount}</span>
+              </div>
+              <div className="flex justify-between text-emerald-600 font-bold">
+                <span>{t('आपका मुनाफा (Bank Margin)', 'Your Bank Margin')}</span>
+                <span>+₹{orderResellerMargin}</span>
+              </div>
+            </>
+          )}
           {prepaidDiscount > 0 && (
             <div className="flex justify-between text-emerald-600 font-bold">
               <span>{t('ऑनलाइन प्री-पेड छूट', 'Prepaid Instant Discount')}</span>
@@ -265,7 +304,7 @@ export const PaymentScreen: React.FC = () => {
             <span className="text-emerald-600 font-bold">{t('फ्री (FREE)', 'FREE')}</span>
           </div>
           <div className="pt-2 border-t border-gray-200 flex justify-between text-base font-black text-gray-900">
-            <span>{t('कुल देय राशि', 'Total Amount Payable')}</span>
+            <span>{isOrderReselling ? t('होलसेल कुल देय', 'Wholesale Amount') : t('कुल देय राशि', 'Total Amount Payable')}</span>
             <span className="text-[#9F2089]">₹{finalPayable}</span>
           </div>
         </div>
@@ -281,8 +320,12 @@ export const PaymentScreen: React.FC = () => {
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 p-3 shadow-sticky">
         <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
           <div>
-            <span className="text-[10px] text-gray-500 block uppercase font-bold">{t('भुगतान राशि', 'Final Amount')}</span>
-            <span className="text-xl font-black text-[#9F2089]">₹{finalPayable}</span>
+            <span className="text-[10px] text-gray-500 block uppercase font-bold">
+              {isOrderReselling ? t('ग्राहक प्राइस', 'Customer COD') : t('भुगतान राशि', 'Final Amount')}
+            </span>
+            <span className="text-xl font-black text-[#9F2089]">
+              ₹{isOrderReselling ? customerCollectAmount : finalPayable}
+            </span>
           </div>
 
           <button
@@ -295,7 +338,7 @@ export const PaymentScreen: React.FC = () => {
             ) : (
               <>
                 <Lock className="w-4 h-4" />
-                <span>{t('ऑर्डर कन्फर्म करें (Place Order)', 'Place Order')}</span>
+                <span>{isOrderReselling ? t('रीसेलर ऑर्डर प्लेस करें', 'Place Customer Resell Order') : t('ऑर्डर कन्फर्म करें (Place Order)', 'Place Order')}</span>
               </>
             )}
           </button>
