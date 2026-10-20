@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.env
+*.html.dump
+dump_www.html
+rechargeapp_dump.html
+test-results/

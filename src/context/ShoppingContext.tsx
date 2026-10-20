@@ -86,47 +86,16 @@ interface ShoppingContextType {
   t: (hiText: string, enText: string) => string;
 }
 
-const DEFAULT_ADDRESSES: DeliveryAddress[] = [
-  {
-    id: 'addr-01',
-    fullName: 'Rahul Sharma',
-    phoneNumber: '9876543210',
-    houseNo: 'House No. 42, Ward 5',
-    roadNameArea: 'Near Ram Mandir, Civil Lines',
-    pincode: '452001',
-    city: 'Indore',
-    state: 'Madhya Pradesh',
-    landmark: 'Opposite State Bank ATM',
-    addressType: 'Home',
-    isDefault: true
-  }
-];
+const DEFAULT_ADDRESSES: DeliveryAddress[] = [];
 
 const DEFAULT_WALLET: ResellerWallet = {
-  totalMarginEarned: 1420,
-  pendingMargin: 350,
-  nextPayoutDate: 'Next Sunday (19 Oct 2026)',
-  bankAccountMasked: '•••• •••• •••• 4892',
-  bankIfsc: 'SBIN0001428',
-  upiIdMasked: 'rahul****@okhdfcbank',
-  payoutHistory: [
-    {
-      id: 'pay-001',
-      amount: 680,
-      date: '12 Oct 2026',
-      status: 'transferred',
-      bankReference: 'CMS7492048109',
-      orderNumber: 'SFG-892401'
-    },
-    {
-      id: 'pay-002',
-      amount: 740,
-      date: '05 Oct 2026',
-      status: 'transferred',
-      bankReference: 'CMS6381048123',
-      orderNumber: 'SFG-748190'
-    }
-  ]
+  totalMarginEarned: 0,
+  pendingMargin: 0,
+  nextPayoutDate: 'Next Sunday',
+  bankAccountMasked: '—',
+  bankIfsc: '—',
+  upiIdMasked: '—',
+  payoutHistory: []
 };
 
 const ShoppingContext = createContext<ShoppingContextType | undefined>(undefined);

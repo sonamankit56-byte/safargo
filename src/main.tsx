@@ -1,13 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import { ShoppingProvider } from './context/ShoppingContext';
+import { TravelProvider } from './context/TravelContext';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ShoppingProvider>
+    <TravelProvider>
       <App />
-    </ShoppingProvider>
+    </TravelProvider>
   </React.StrictMode>
 );

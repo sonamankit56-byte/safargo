@@ -1,0 +1,212 @@
+[
+  {
+    "name": "Path",
+    "value": "/",
+    "domain": "www.mobikwik.com",
+    "path": "/assets/images/v3/index_files/assets/images",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "Path",
+    "value": "/",
+    "domain": "www.mobikwik.com",
+    "path": "/assets/images/revampMBK/root_page/partners",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "Path",
+    "value": "/",
+    "domain": "www.mobikwik.com",
+    "path": "/assets/images/revampMBK/root_page/lottie",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "Path",
+    "value": "/",
+    "domain": "www.mobikwik.com",
+    "path": "/assets/images/revampMBK/root_page",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "Path",
+    "value": "/",
+    "domain": "www.mobikwik.com",
+    "path": "/assets/images/revamp_2023",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "Path",
+    "value": "/",
+    "domain": "www.mobikwik.com",
+    "path": "/assets/images/revampMBK",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "Path",
+    "value": "/",
+    "domain": "www.mobikwik.com",
+    "path": "/assets/images/upi",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "Path",
+    "value": "/",
+    "domain": "www.mobikwik.com",
+    "path": "/assets/images/edc",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "Path",
+    "value": "/",
+    "domain": "www.mobikwik.com",
+    "path": "/assets/loaders",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "Path",
+    "value": "/",
+    "domain": "www.mobikwik.com",
+    "path": "/assets/images",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "__cf_bm",
+    "value": "XjvAADKhpUN1TwhsKLX9gNyHW8SUM8W0W2mK31YQM0Y-1792389991.6991987-1.0.1.1-VKTvSHOoqqQ0fkQF3imZfXhy6S6imx.oWwu6K3wFHN18sQDY6fdHm2HUg8FTpxiB8OrNlAFiLvwdKYwVc4wkVnHym72D2rxb8JBKkCP_IAKOqoSs5jW1GqUlNgWcBGubxM5j2Zh79g.tQbelHmqLxA",
+    "domain": ".mobikwik.com",
+    "path": "/",
+    "expires": 1792391792.447354,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "Path",
+    "value": "/",
+    "domain": "www.mobikwik.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "_fbp",
+    "value": "fb.1.1792389994234.336317721952407179",
+    "domain": ".mobikwik.com",
+    "path": "/",
+    "expires": 1800165994,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "fr",
+    "value": "0X5LaLcpFpFVNIl2d..Bq1bNq...1.0.Bq1bNq.AWfmTmTFEKZs_UMcBBQmK9ng9Kc",
+    "domain": ".facebook.com",
+    "path": "/",
+    "expires": 1800165994.264949,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "_gcl_au",
+    "value": "1.1.1685271755.1792389994",
+    "domain": ".mobikwik.com",
+    "path": "/",
+    "expires": 1800165994,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "_ga_YHN08B1QXF",
+    "value": "GS2.1.s1792389994$o1$g0$t1792389994$j60$l0$h0",
+    "domain": ".mobikwik.com",
+    "path": "/",
+    "expires": 1826949994.513583,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "_ga",
+    "value": "GA1.1.2126503771.1792389995",
+    "domain": ".mobikwik.com",
+    "path": "/",
+    "expires": 1826949994.615234,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "_ga_Z9H7H1D8YX",
+    "value": "GS2.1.s1792389994$o1$g0$t1792389994$j60$l0$h0",
+    "domain": ".mobikwik.com",
+    "path": "/",
+    "expires": 1826949994.63637,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "WZRK_G",
+    "value": "c1381559f3e24969bdf2aefeee46d0b9",
+    "domain": ".mobikwik.com",
+    "path": "/",
+    "expires": 1823925994,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "WZRK_S_844-6K7-984Z",
+    "value": "%7B%22p%22%3A1%2C%22s%22%3A1792389994%2C%22t%22%3A1792389995%7D",
+    "domain": ".mobikwik.com",
+    "path": "/",
+    "expires": 1792391195,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "IDE",
+    "value": "AHWqTUl4uAVB5yI0EY4mLfWPCKPZQvQM5c509txD3ejC2lklVhbKZkdjG39Q4Thj",
+    "domain": ".doubleclick.net",
+    "path": "/",
+    "expires": 1826950001.019191,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  }
+]
