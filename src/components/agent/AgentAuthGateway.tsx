@@ -648,7 +648,7 @@ export const AgentAuthGateway: React.FC<AgentAuthGatewayProps> = ({ onClose, isM
       setIsOtpSent(true);
       setActiveOtpCode(res.otpCode);
       setOtpTimer(45);
-      setEnteredOtp(res.otpCode);
+      setEnteredOtp('');
       try {
         confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
       } catch {}

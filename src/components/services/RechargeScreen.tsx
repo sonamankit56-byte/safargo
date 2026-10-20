@@ -300,6 +300,7 @@ export const RechargeScreen: React.FC = () => {
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
   const [showUpiQr, setShowUpiQr] = useState<boolean>(false);
   const [hasInitiatedPayment, setHasInitiatedPayment] = useState<boolean>(false);
+  const [enteredUtr, setEnteredUtr] = useState<string>('');
 
   // Electricity Form
   const [discom, setDiscom] = useState('mppkvvcl_west');
@@ -396,10 +397,17 @@ export const RechargeScreen: React.FC = () => {
           operatorId: String(opId),
           circleId: String(cirId)
         });
-        const popGroup = res.groups.find(g => g.type === 'popular') || res.groups[0];
-        if (popGroup && popGroup.plans && popGroup.plans.length > 0) {
+        // Pick ₹299 plan by default as requested
+        const default299 = rawPlans.find(p => p.rs === 299) || 
+                           rawPlans.find(p => p.rs === 239) || 
+                           rawPlans[0] || 
+                           null;
+        if (default299) {
+          setSelectedLivePlan(default299);
+        }
+        const popGroup = smartGroups.find(g => g.type === 'popular') || smartGroups[0];
+        if (popGroup) {
           setActiveGroupTab(popGroup.type);
-          setSelectedLivePlan(popGroup.plans[0]);
         }
       }
     } catch {
@@ -429,10 +437,18 @@ export const RechargeScreen: React.FC = () => {
           const groups = res.groups || [];
           setLiveGroups(groups);
 
-          const popGroup = groups.find(g => g.type === 'popular') || groups[0];
-          if (popGroup && popGroup.plans && popGroup.plans.length > 0) {
+          const rawPlans: PlanItem[] = [];
+          (res.groups || []).forEach(g => (g.plans || []).forEach(p => { if (p) rawPlans.push(p); }));
+          const smartGroups = categorizePlans(rawPlans.length > 0 ? rawPlans : (res.groups?.[0]?.plans || []));
+          setLiveGroups(smartGroups);
+
+          const default299 = rawPlans.find(p => p.rs === 299) || rawPlans.find(p => p.rs === 239) || rawPlans[0];
+          if (default299) {
+            setSelectedLivePlan(default299);
+          }
+          const popGroup = smartGroups.find(g => g.type === 'popular') || smartGroups[0];
+          if (popGroup) {
             setActiveGroupTab(popGroup.type);
-            setSelectedLivePlan(popGroup.plans[0]);
           }
         }
       });
@@ -597,12 +613,7 @@ export const RechargeScreen: React.FC = () => {
   useEffect(() => {
     const handleReturn = () => {
       if (document.visibilityState === 'visible' && gatewayState === 'waiting' && activeOrderId) {
-        // If user initiated payment (clicked PhonePe/GPay/Paytm) and returned to tab, automatically fulfill!
-        if (hasInitiatedPayment) {
-          fulfillOrderSuccessfully();
-          setHasInitiatedPayment(false);
-          return;
-        }
+
 
         checkOrderStatus(activeOrderId).then(res => {
           if (res.success && res.data) {
@@ -1425,11 +1436,11 @@ export const RechargeScreen: React.FC = () => {
                       )}
                     </div>
                   ) : (
-                    displayedPlans.map((p) => {
+                    displayedPlans.map((p, pIdx) => {
                       const isSel = selectedLivePlan?.planCode === p.planCode;
                       return (
                         <div
-                          key={p.planCode}
+                          key={`${p.planCode || "plan"}-${p.rs}-${pIdx}`}
                           onClick={() => setSelectedLivePlan(p)}
                           className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
                             isSel
@@ -1905,27 +1916,22 @@ export const RechargeScreen: React.FC = () => {
 
             
 
-            {/* PhonePe Retry Error Solution / 1-Click Confirmation */}
-            <div className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl text-xs space-y-2">
-              <div className="flex items-start gap-2">
-                <span className="text-base shrink-0">💡</span>
-                <div className="space-y-0.5">
-                  <p className="font-black text-amber-900 leading-tight">
-                    PhonePe में 'Retry Error' या रुकावट आ रही है?
-                  </p>
-                  <p className="text-[11px] text-amber-800 leading-snug">
-                    चिंता न करें! PhonePe से भुगतान करने के बाद या सीधे नीचे दिए गए बटन पर क्लिक करके तुरंत आधिकारिक BBPS रसीद प्राप्त करें:
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => fulfillOrderSuccessfully()}
-                className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
-              >
-                <CheckCircle2 className="w-4 h-4 text-emerald-200" />
-                <span>✅ हाँ, मैंने PhonePe / UPI से भुगतान कर दिया है (तुरंत रसीद पाएं)</span>
-              </button>
+            {/* UPI Reference / UTR Verification Input */}
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-2">
+              <label className="block text-slate-700 font-bold text-[11px]">
+                UPI रेफरेंस / UTR संख्या (12-अंकीय प्रमाण)
+              </label>
+              <input
+                type="text"
+                maxLength={16}
+                value={enteredUtr}
+                onChange={(e) => setEnteredUtr(e.target.value.replace(/\D/g, ''))}
+                placeholder="उदा. 429812345678 (UPI Transaction ID)"
+                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <p className="text-[10px] text-slate-500">
+                PhonePe, Google Pay या Paytm से भुगतान के बाद प्राप्त 12-अंकीय UTR नंबर दर्ज करें।
+              </p>
             </div>
             {/* Dynamic QR Code Toggle */}
             <div className="space-y-2">
@@ -1979,11 +1985,11 @@ export const RechargeScreen: React.FC = () => {
             <div className="space-y-2 pt-1 border-t border-slate-200">
               <button
                 type="button"
-                onClick={() => fulfillOrderSuccessfully()}
+                onClick={() => fulfillOrderSuccessfully(enteredUtr.trim() || undefined)}
                 className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 active:scale-98 text-white font-black text-sm rounded-2xl shadow-xl shadow-emerald-600/30 transition flex items-center justify-center gap-2 border border-emerald-400 cursor-pointer"
               >
                 <CheckCircle2 className="w-5 h-5 text-emerald-200" />
-                <span>✅ तुरंत सफल करें एवं BBPS रसीद देखें</span>
+                <span>सत्यापित करें एवं BBPS रसीद देखें</span>
               </button>
 
               <button

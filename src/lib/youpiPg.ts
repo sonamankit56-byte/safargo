@@ -65,7 +65,7 @@ export function generateUpiDeepLinks(
 
   return {
     generic,
-    phonepe: `phonepe://pay?pa=${vpa}&pn=${name}&am=${formattedAmount}&cu=INR&tn=${cleanNote}&tr=${tr}`,
+    phonepe: `upi://pay?pa=${vpa}&pn=${name}&am=${formattedAmount}&cu=INR&tn=${cleanNote}&tr=${tr}`,
     gpay: `tez://upi/pay?pa=${vpa}&pn=${name}&am=${formattedAmount}&cu=INR&tn=${cleanNote}&tr=${tr}`,
     paytm: `paytmmp://pay?pa=${vpa}&pn=${name}&am=${formattedAmount}&cu=INR&tn=${cleanNote}&tr=${tr}`,
     cred: `cred://pay?pa=${vpa}&pn=${name}&am=${formattedAmount}&cu=INR&tn=${cleanNote}&tr=${tr}`,
