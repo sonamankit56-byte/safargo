@@ -31,7 +31,8 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { 
-  fetchAutoPlans, 
+  fetchAutoPlans,
+  detectIndianOperatorAndCircle, 
   createRechargeCheckout, 
   checkOrderStatus,
   fetchPlansByOperator,
@@ -231,6 +232,30 @@ export const CIRCLES_LIST = [
   { id: '20', cirId: '20', name: 'West Bengal' }
 ];
 
+function categorizePlans(rawPlans: PlanItem[]): PlanGroup[] {
+  const popularPicks = [199, 239, 299, 319, 349, 399, 449, 479, 666, 719, 859, 999, 1199, 2999, 3599];
+  const popularPlans = rawPlans.filter(p => p.popular || popularPicks.includes(p.rs));
+  const data15 = rawPlans.filter(p => {
+    const text = ((p.data || '') + ' ' + (p.desc || '')).toLowerCase();
+    return text.includes('1.5gb') || text.includes('1.5 gb');
+  });
+  const data2Plus = rawPlans.filter(p => {
+    const text = ((p.data || '') + ' ' + (p.desc || '')).toLowerCase();
+    return text.includes('2gb') || text.includes('2.5gb') || text.includes('3gb');
+  });
+  const annual = rawPlans.filter(p => (p.validity || '').includes('365') || (p.validity || '').includes('336') || p.rs >= 1999);
+  const addOns = rawPlans.filter(p => p.rs < 100 && ((p.data || p.desc || '').toLowerCase().includes('data') || (p.data || p.desc || '').toLowerCase().includes('add-on')));
+  
+  const groups: PlanGroup[] = [];
+  if (popularPlans.length > 0) groups.push({ type: 'popular', label: '⭐ लोकप्रिय (Popular)', count: popularPlans.length, plans: popularPlans });
+  if (data15.length > 0) groups.push({ type: 'data_1_5gb', label: '🚀 1.5 GB/दिन', count: data15.length, plans: data15 });
+  if (data2Plus.length > 0) groups.push({ type: 'data_2gb', label: '⚡ 2GB+ भारी डेटा', count: data2Plus.length, plans: data2Plus });
+  if (annual.length > 0) groups.push({ type: 'annual', label: '📅 365 दिन (वार्षिक)', count: annual.length, plans: annual });
+  if (addOns.length > 0) groups.push({ type: 'addons', label: '📶 डेटा बूस्टर', count: addOns.length, plans: addOns });
+  groups.push({ type: 'all', label: '🌐 सभी प्लान्स (' + rawPlans.length + ')', count: rawPlans.length, plans: rawPlans });
+  return groups;
+}
+
 export const RechargeScreen: React.FC = () => {
   const { 
     t, 
@@ -337,13 +362,17 @@ export const RechargeScreen: React.FC = () => {
   }, [planSearch, allUniquePlans, liveGroups, activeGroupTab]);
 
   const currentRechargeAmount = selectedLivePlan ? selectedLivePlan.rs : selectedMobilePlan.price;
+  const merchantVpa = adminQrConfig?.merchantUpiId || 'safargo.pay@icici';
+  const merchantName = adminQrConfig?.merchantName || 'SafarGo Travel & Utility Services';
   const upiIntentLinks = useMemo(() => {
     return generateUpiDeepLinks(
       currentRechargeAmount,
       activeOrderId || `ORD${Date.now()}`,
-      `SafarGo Recharge +91${mobileNumber.replace(/\D/g, '').slice(-10)}`
+      `SafarGo Recharge +91${mobileNumber.replace(/\D/g, '').slice(-10)}`,
+      merchantVpa,
+      merchantName
     );
-  }, [currentRechargeAmount, activeOrderId, mobileNumber]);
+  }, [currentRechargeAmount, activeOrderId, mobileNumber, merchantVpa, merchantName]);
 
   // Function to load live plans for given operator & circle
   const loadPlansForOpCircle = async (opId: string, cirId: string, opName?: string, cirName?: string) => {
@@ -352,7 +381,10 @@ export const RechargeScreen: React.FC = () => {
       const res = await fetchPlansByOperator(opId, cirId);
       setIsLoadingPlans(false);
       if (res.success && res.groups && res.groups.length > 0) {
-        setLiveGroups(res.groups);
+        const rawPlans: PlanItem[] = [];
+        res.groups.forEach(g => (g.plans || []).forEach(p => rawPlans.push(p)));
+        const smartGroups = categorizePlans(rawPlans.length > 0 ? rawPlans : (res.groups[0]?.plans || []));
+        setLiveGroups(smartGroups);
         const matchedOp = OPERATORS_LIST.find(o => o.opId === opId);
         const matchedCir = CIRCLES_LIST.find(c => c.cirId === cirId);
         setDetectedOperator({
@@ -406,6 +438,19 @@ export const RechargeScreen: React.FC = () => {
   }, [mobileNumber]);
 
   // When user manually selects operator or circle
+  const handleMobileNumberChange = (raw: string) => {
+    const clean = raw.replace(/\D/g, '').slice(0, 10);
+    setMobileNumber(clean);
+    
+    if (clean.length >= 4) {
+      const detected = detectIndianOperatorAndCircle(clean);
+      setDetectedOperator(detected);
+      setSelectedOpId(detected.operatorId);
+      setSelectedCirId(detected.circleId);
+      loadPlansForOpCircle(detected.operatorId, detected.circleId, detected.company, detected.circle);
+    }
+  };
+
   const handleManualOperatorChange = (opId: string) => {
     setSelectedOpId(opId);
     const matchedOp = OPERATORS_LIST.find(o => o.opId === opId);
@@ -989,10 +1034,7 @@ export const RechargeScreen: React.FC = () => {
         <button
           type="button"
           onClick={() => {
-            if (!isAgentLoggedIn && !isCustomerLoggedIn) {
-              setIsAuthModalOpen(true);
-              return;
-            }
+            
             setActiveCategory('mobile');
             setIsSuccess(false);
           }}
@@ -1019,10 +1061,7 @@ export const RechargeScreen: React.FC = () => {
         <button
           type="button"
           onClick={() => {
-            if (!isAgentLoggedIn && !isCustomerLoggedIn) {
-              setIsAuthModalOpen(true);
-              return;
-            }
+            
             setActiveCategory('electricity');
             setIsSuccess(false);
           }}
@@ -1049,10 +1088,7 @@ export const RechargeScreen: React.FC = () => {
         <button
           type="button"
           onClick={() => {
-            if (!isAgentLoggedIn && !isCustomerLoggedIn) {
-              setIsAuthModalOpen(true);
-              return;
-            }
+            
             setActiveCategory('dth');
             setIsSuccess(false);
           }}
@@ -1079,10 +1115,7 @@ export const RechargeScreen: React.FC = () => {
         <button
           type="button"
           onClick={() => {
-            if (!isAgentLoggedIn && !isCustomerLoggedIn) {
-              setIsAuthModalOpen(true);
-              return;
-            }
+            
             setActiveCategory('fastag');
             setIsSuccess(false);
           }}
@@ -1108,33 +1141,7 @@ export const RechargeScreen: React.FC = () => {
       </div>
 
       {/* Main Content Areas */}
-      {!isAgentLoggedIn && !isCustomerLoggedIn ? (
-        <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-sm border border-slate-200 text-center max-w-lg mx-auto space-y-6 my-6 animate-fade-in">
-          <div className="w-16 h-16 bg-gradient-to-tr from-amber-500 to-rose-600 text-white rounded-3xl flex items-center justify-center mx-auto shadow-lg shadow-rose-600/30">
-            <Lock className="w-8 h-8" />
-          </div>
-          <div className="space-y-2">
-            <span className="inline-block px-3 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-full text-xs font-black uppercase tracking-wider">
-              लॉगिन अनिवार्य • Login Mandatory
-            </span>
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900">
-              रिचार्ज सेवा का उपयोग करने के लिए लॉगिन करें
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md mx-auto">
-              सफ़रगो पर मोबाइल रिचार्ज, बिजली बिल, DTH एवं FASTag भुगतान करने के लिए अधिकृत एजेंट लॉगिन अनिवार्य है।
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsAuthModalOpen(true)}
-            className="w-full py-4 bg-gradient-to-r from-rose-600 via-indigo-600 to-indigo-700 hover:from-rose-700 hover:to-indigo-800 text-white font-black text-sm rounded-2xl shadow-xl transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <ShieldCheck className="w-5 h-5" />
-            <span>लॉगिन / साइन-अप करें (Login / Sign Up)</span>
-          </button>
-        </div>
-      ) : (
-        <>
+      <>
           {!isSuccess ? (
         <div className="space-y-6">
           {/* CATEGORY 1: MOBILE RECHARGE */}
@@ -1202,7 +1209,7 @@ export const RechargeScreen: React.FC = () => {
                         required
                         maxLength={10}
                         value={mobileNumber}
-                        onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))}
+                        onChange={(e) => handleMobileNumberChange(e.target.value)}
                         placeholder="74XXXXXXXX"
                         className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
@@ -1741,7 +1748,6 @@ export const RechargeScreen: React.FC = () => {
         </div>
       </div>
         </>
-      )}
 
       {/* REAL PAYMENT GATEWAY WAITING & VERIFICATION MODAL */}
       {gatewayState === 'waiting' && (

@@ -4,7 +4,7 @@ export const DEFAULT_YOUPI_CONFIG: YoupiGatewayConfig = {
   enabled: true,
   apiUrl: 'http://localhost:6100', // YouPI Payment Core Port
   merchantId: 'SFG-MERCHANT-001',
-  merchantUpiVpa: 'safargo@okicici',
+  merchantUpiVpa: 'safargo.pay@icici',
   merchantName: 'SafarGo Travel Super App',
   autoConfirmSandbox: true
 };
@@ -49,11 +49,13 @@ export interface UpiIntentLinks {
 export function generateUpiDeepLinks(
   amount: number,
   orderId: string,
-  note: string = 'SafarGo Ticket Payment'
+  note: string = 'SafarGo Ticket Payment',
+  customVpa?: string,
+  customName?: string
 ): UpiIntentLinks {
   const config = getYoupiConfig();
-  const vpa = config.merchantUpiVpa || 'safargo@okicici';
-  const name = encodeURIComponent(config.merchantName || 'SafarGo Travel Services');
+  const vpa = customVpa || config.merchantUpiVpa || 'safargo.pay@icici';
+  const name = encodeURIComponent(customName || config.merchantName || 'SafarGo Travel Services');
   const cleanNote = encodeURIComponent(note);
   const formattedAmount = amount.toFixed(2);
   const tr = encodeURIComponent(orderId);
