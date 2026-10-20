@@ -11,7 +11,7 @@ export interface EmailPayload {
   from?: string;
 }
 
-const DEFAULT_SENDER = 'SafarGo <noreply@safargo.in>';
+const DEFAULT_SENDER = 'SafarGo <onboarding@resend.dev>';
 const RESEND_API_KEY = (import.meta as any).env?.VITE_RESEND_API_KEY || '';
 
 /**
@@ -520,5 +520,58 @@ export async function sendTicketApprovalEmail(params: {
   });
 
   return res.success;
+}
+
+/**
+ * Send Instant Alert to Admin when any Agent submits Onboarding KYC
+ */
+export async function sendAdminKycAlertEmail(params: {
+  agentName: string;
+  agentId: string;
+  shopName: string;
+  mobile: string;
+  email: string;
+  district?: string;
+}): Promise<boolean> {
+  const { agentName, agentId, shopName, mobile, email, district } = params;
+  const adminUrl = (typeof window !== 'undefined' && window.location.origin) 
+    ? `${window.location.origin}/?action=admin_desk` 
+    : 'https://safargo.in/?action=admin_desk';
+
+  const html = `
+    <div style="font-family:sans-serif;max-width:540px;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:24px;color:#1e293b;">
+      <h2 style="color:#0f172a;margin-top:0;">🚨 नया SafarGo एजेंट KYC आवेदन प्राप्त हुआ!</h2>
+      <p style="font-size:14px;color:#475569;">एक नए एजेंट पार्टनर ने ऑनबोर्डिंग e-KYC दस्तावेज (आधार, पैन, बैंक) जमा किए हैं। कृपया सुपर एडमिन डेस्क में समीक्षा कर सत्यापित करें:</p>
+      <div style="background:#f8fafc;padding:16px;border-radius:12px;margin:16px 0;font-size:13px;border-left:4px solid #e11d48;">
+        <p style="margin:4px 0;"><strong>एजेंट का नाम:</strong> ${agentName}</p>
+        <p style="margin:4px 0;"><strong>एजेंट ID:</strong> <code style="color:#e11d48;font-weight:bold;">${agentId}</code></p>
+        <p style="margin:4px 0;"><strong>दुकान/केंद्र:</strong> ${shopName} (${district || 'मध्य प्रदेश'})</p>
+        <p style="margin:4px 0;"><strong>मोबाइल नंबर:</strong> +91 ${mobile}</p>
+        <p style="margin:4px 0;"><strong>ईमेल:</strong> ${email}</p>
+      </div>
+      <div style="text-align:center;margin-top:20px;">
+        <a href="${adminUrl}" style="background:#0f172a;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:bold;font-size:13px;display:inline-block;">
+          👑 सुपर एडमिन डेस्क खोलें (Review & Approve)
+        </a>
+      </div>
+    </div>
+  `;
+
+  // Dispatch to both jia647155@gmail.com and sonamankit56@gmail.com
+  sendResendEmail({
+    to: 'jia647155@gmail.com',
+    subject: `🚨 [SafarGo Admin Alert] नया एजेंट KYC आवेदन (${agentId}) - ${agentName}`,
+    html,
+    text: `नया एजेंट KYC आवेदन: ${agentName} (${shopName}), ID: ${agentId}, Mobile: ${mobile}.`
+  }).catch(console.error);
+
+  sendResendEmail({
+    to: 'sonamankit56@gmail.com',
+    subject: `🚨 [SafarGo Admin Alert] नया एजेंट KYC आवेदन (${agentId}) - ${agentName}`,
+    html,
+    text: `नया एजेंट KYC आवेदन: ${agentName} (${shopName}), ID: ${agentId}, Mobile: ${mobile}.`
+  }).catch(console.error);
+
+  return true;
 }
 

@@ -671,7 +671,7 @@ export const RechargeScreen: React.FC = () => {
   const handleMobileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!isAgentLoggedIn) {
+    if (!isAgentLoggedIn && !isCustomerLoggedIn) {
       setIsAuthModalOpen(true);
       setGatewayError('रिचार्ज करने के लिए कृपया पहले लॉगिन करें। (Login required to proceed with recharge)');
       return;
@@ -989,7 +989,7 @@ export const RechargeScreen: React.FC = () => {
         <button
           type="button"
           onClick={() => {
-            if (!isAgentLoggedIn) {
+            if (!isAgentLoggedIn && !isCustomerLoggedIn) {
               setIsAuthModalOpen(true);
               return;
             }
@@ -1019,7 +1019,7 @@ export const RechargeScreen: React.FC = () => {
         <button
           type="button"
           onClick={() => {
-            if (!isAgentLoggedIn) {
+            if (!isAgentLoggedIn && !isCustomerLoggedIn) {
               setIsAuthModalOpen(true);
               return;
             }
@@ -1049,7 +1049,7 @@ export const RechargeScreen: React.FC = () => {
         <button
           type="button"
           onClick={() => {
-            if (!isAgentLoggedIn) {
+            if (!isAgentLoggedIn && !isCustomerLoggedIn) {
               setIsAuthModalOpen(true);
               return;
             }
@@ -1079,7 +1079,7 @@ export const RechargeScreen: React.FC = () => {
         <button
           type="button"
           onClick={() => {
-            if (!isAgentLoggedIn) {
+            if (!isAgentLoggedIn && !isCustomerLoggedIn) {
               setIsAuthModalOpen(true);
               return;
             }
@@ -1108,7 +1108,7 @@ export const RechargeScreen: React.FC = () => {
       </div>
 
       {/* Main Content Areas */}
-      {!isAgentLoggedIn ? (
+      {!isAgentLoggedIn && !isCustomerLoggedIn ? (
         <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-sm border border-slate-200 text-center max-w-lg mx-auto space-y-6 my-6 animate-fade-in">
           <div className="w-16 h-16 bg-gradient-to-tr from-amber-500 to-rose-600 text-white rounded-3xl flex items-center justify-center mx-auto shadow-lg shadow-rose-600/30">
             <Lock className="w-8 h-8" />
@@ -1830,7 +1830,9 @@ export const RechargeScreen: React.FC = () => {
               <div className="grid grid-cols-2 gap-2">
                 {/* PhonePe */}
                 <a
-                  href={upiIntentLinks.phonepe}
+                  href={activeCheckoutUrl || upiIntentLinks.phonepe}
+                  target={activeCheckoutUrl ? "_blank" : undefined}
+                  rel="noreferrer"
                   onClick={() => setHasInitiatedPayment(true)}
                   className="p-2.5 bg-[#5f259f]/10 hover:bg-[#5f259f]/20 border border-[#5f259f]/30 rounded-xl flex items-center gap-2 transition active:scale-95 group text-slate-900"
                 >
@@ -1890,6 +1892,30 @@ export const RechargeScreen: React.FC = () => {
               </div>
             </div>
 
+            
+
+            {/* PhonePe Retry Error Solution / 1-Click Confirmation */}
+            <div className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl text-xs space-y-2">
+              <div className="flex items-start gap-2">
+                <span className="text-base shrink-0">💡</span>
+                <div className="space-y-0.5">
+                  <p className="font-black text-amber-900 leading-tight">
+                    PhonePe में 'Retry Error' या रुकावट आ रही है?
+                  </p>
+                  <p className="text-[11px] text-amber-800 leading-snug">
+                    चिंता न करें! PhonePe से भुगतान करने के बाद या सीधे नीचे दिए गए बटन पर क्लिक करके तुरंत आधिकारिक BBPS रसीद प्राप्त करें:
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => fulfillOrderSuccessfully()}
+                className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+              >
+                <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                <span>✅ हाँ, मैंने PhonePe / UPI से भुगतान कर दिया है (तुरंत रसीद पाएं)</span>
+              </button>
+            </div>
             {/* Dynamic QR Code Toggle */}
             <div className="space-y-2">
               <button

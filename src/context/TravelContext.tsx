@@ -24,7 +24,13 @@ import {
 import { MOCK_BUSES, getBusesForRoute } from '../data/busData';
 import { MOCK_HOTELS } from '../data/hotelData';
 import { MOCK_CABS } from '../data/cabData';
-import { sendOnboardingSubmittedEmail, sendAgentApprovalEmail, sendTicketApprovalEmail } from '../lib/emailService';
+import { 
+  sendOnboardingSubmittedEmail, 
+  sendAgentApprovalEmail, 
+  sendTicketApprovalEmail,
+  sendAdminKycAlertEmail,
+  sendResendEmail
+} from '../lib/emailService';
 import { getYoupiConfig, saveYoupiConfig } from '../lib/youpiPg';
 import { 
   getOpenWaConfig, 
@@ -1113,12 +1119,22 @@ export const TravelProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     saveAgentToDb(newAgent).catch(err => console.warn('Supabase saveAgent error:', err));
 
     // Send confirmation email via Resend to the applicant's Gmail
-    await sendOnboardingSubmittedEmail({
+    sendOnboardingSubmittedEmail({
       toEmail: newAgent.email,
       fullName: newAgent.fullName,
       shopName: newAgent.shopName,
       agentId: newAgent.id,
       mobile: newAgent.mobile
+    }).catch(console.error);
+
+    // Send instant alert email to Super Admin (jia647155@gmail.com & sonamankit56@gmail.com)
+    sendAdminKycAlertEmail({
+      agentName: newAgent.fullName,
+      agentId: newAgent.id,
+      shopName: newAgent.shopName,
+      mobile: newAgent.mobile,
+      email: newAgent.email,
+      district: newAgent.district
     }).catch(console.error);
 
     return newAgent;
@@ -1152,11 +1168,28 @@ export const TravelProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }).catch(err => console.warn('Supabase approveAgent error:', err));
 
     if (approvedAgent) {
-      await sendAgentApprovalEmail({
-        toEmail: (approvedAgent as AgentUser).email,
-        fullName: (approvedAgent as AgentUser).fullName,
-        shopName: (approvedAgent as AgentUser).shopName,
-        agentId: (approvedAgent as AgentUser).id
+      const targetAgent = approvedAgent as AgentUser;
+      // Send approval email to Agent
+      sendAgentApprovalEmail({
+        toEmail: targetAgent.email,
+        fullName: targetAgent.fullName,
+        shopName: targetAgent.shopName,
+        agentId: targetAgent.id
+      }).catch(console.error);
+
+      // Also send approval confirmation to Admin
+      sendResendEmail({
+        to: 'jia647155@gmail.com',
+        subject: `✅ [SafarGo Admin] एजेंट KYC स्वीकृत - ${targetAgent.fullName} (${targetAgent.id})`,
+        html: `<p>एजेंट <strong>${targetAgent.fullName}</strong> (${targetAgent.shopName}, ID: <code>${targetAgent.id}</code>) का खाता सत्यापित व सक्रिय कर दिया गया है।</p>`,
+        text: `एजेंट ${targetAgent.fullName} (${targetAgent.id}) स्वीकृत व सक्रिय।`
+      }).catch(console.error);
+
+      sendResendEmail({
+        to: 'sonamankit56@gmail.com',
+        subject: `✅ [SafarGo Admin] एजेंट KYC स्वीकृत - ${targetAgent.fullName} (${targetAgent.id})`,
+        html: `<p>एजेंट <strong>${targetAgent.fullName}</strong> (${targetAgent.shopName}, ID: <code>${targetAgent.id}</code>) का खाता सत्यापित व सक्रिय कर दिया गया है।</p>`,
+        text: `एजेंट ${targetAgent.fullName} (${targetAgent.id}) स्वीकृत व सक्रिय।`
       }).catch(console.error);
     }
 
