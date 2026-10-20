@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useTravel } from '../../context/TravelContext';
+import { useTravel, ADMIN_EMAILS } from '../../context/TravelContext';
 import { FIXED_AGENT_COMMISSION, AgentUser, BusItem, BusSeat, StopPoint, WalletTopUpRequest, TravelBooking } from '../../types/travel';
 import { 
   Wallet, 
@@ -110,7 +110,7 @@ export const AgentEarningDesk: React.FC = () => {
   } = useTravel();
 
   // Admin View States
-  const isAdmin = currentAgent?.role === 'admin' || currentAgent?.email?.startsWith('jia647155');
+  const isAdmin = currentAgent?.role === 'admin' || (currentAgent?.email && ADMIN_EMAILS.includes(currentAgent.email.toLowerCase()));
   const [adminActiveTab, setAdminActiveTab] = useState<'approvals' | 'manage_agents' | 'payments' | 'buses' | 'ticket_review' | 'promo_codes' | 'gateways' | 'marketing' | 'desk'>('approvals');
   const [appFilter, setAppFilter] = useState<'all' | 'pending' | 'approved'>('all');
   const [approvingId, setApprovingId] = useState<string | null>(null);
@@ -170,6 +170,10 @@ export const AgentEarningDesk: React.FC = () => {
   const [agentStatusFilter, setAgentStatusFilter] = useState<'all' | 'active' | 'suspended' | 'pending'>('all');
   const [suspendModalAgent, setSuspendModalAgent] = useState<AgentUser | null>(null);
   const [suspendReasonInput, setSuspendReasonInput] = useState('');
+  const [balanceModalAgent, setBalanceModalAgent] = useState<AgentUser | null>(null);
+  const [balanceAdjustAmount, setBalanceAdjustAmount] = useState<number>(500);
+  const [balanceAdjustType, setBalanceAdjustType] = useState<'credit' | 'debit'>('credit');
+  const [balanceAdjustNote, setBalanceAdjustNote] = useState<string>('एडमिन द्वारा वॉलेट टॉप-अप');
   const [passwordModalAgent, setPasswordModalAgent] = useState<AgentUser | null>(null);
   const [newPasswordInput, setNewPasswordInput] = useState('');
 
@@ -1059,6 +1063,31 @@ export const AgentEarningDesk: React.FC = () => {
                   {/* Admin Management Actions */}
                   <div className="pt-3 flex flex-wrap items-center justify-between gap-2.5">
                     <div className="flex items-center gap-2 flex-wrap">
+                      <a
+                        href={`https://api.whatsapp.com/send?phone=91${agent.mobile}&text=${encodeURIComponent(`नमस्ते ${agent.fullName}, SafarGo एडमिन टीम से संपर्क...`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold rounded-xl transition flex items-center gap-1 border border-emerald-200 cursor-pointer"
+                        title="एजेंट से WhatsApp पर चैट करें"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>WhatsApp</span>
+                      </a>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBalanceModalAgent(agent);
+                          setBalanceAdjustAmount(500);
+                          setBalanceAdjustType('credit');
+                          setBalanceAdjustNote('एडमिन द्वारा वॉलेट टॉप-अप');
+                        }}
+                        className="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold rounded-xl transition flex items-center gap-1 border border-amber-200 cursor-pointer"
+                        title="एजेंट का वॉलेट बैलेंस जोड़ें या घटाएं"
+                      >
+                        <Wallet className="w-3.5 h-3.5 text-amber-600" />
+                        <span>{t('💰 बैलेंस एडजस्ट', 'Adjust Balance')}</span>
+                      </button>
                       <button
                         type="button"
                         onClick={() => {
@@ -3123,6 +3152,115 @@ export const AgentEarningDesk: React.FC = () => {
         onApprove={handleApproveAgent}
         isApproving={approvingId === selectedDossierAgent?.id}
       />
+
+      {/* 3. Agent Balance Adjustment Modal */}
+      {balanceModalAgent && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-black">
+                  <Wallet className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <h4 className="font-black text-slate-900 text-base">वॉलेट बैलेंस एडजस्ट करें</h4>
+                  <p className="text-xs text-slate-500">{balanceModalAgent.fullName} ({balanceModalAgent.id})</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBalanceModalAgent(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setBalanceAdjustType('credit')}
+                  className={`py-2.5 px-3 rounded-xl font-bold transition flex items-center justify-center gap-1.5 ${
+                    balanceAdjustType === 'credit'
+                      ? 'bg-emerald-600 text-white shadow-md'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ क्रेडिट (जोड़ें)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setBalanceAdjustType('debit')}
+                  className={`py-2.5 px-3 rounded-xl font-bold transition flex items-center justify-center gap-1.5 ${
+                    balanceAdjustType === 'debit'
+                      ? 'bg-red-600 text-white shadow-md'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>- डेबिट (काटें)</span>
+                </button>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  राशि (रुपये में) *
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-2.5 font-bold text-slate-500">₹</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={balanceAdjustAmount}
+                    onChange={(e) => setBalanceAdjustAmount(Math.max(1, Number(e.target.value)))}
+                    className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  विवरण / ऑडिट नोट *
+                </label>
+                <input
+                  type="text"
+                  value={balanceAdjustNote}
+                  onChange={(e) => setBalanceAdjustNote(e.target.value)}
+                  placeholder="उदा. प्रोत्साहन बोनस / बैंक जमा समाधान"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900">
+                <span>वर्तमान बैलेंस: <strong>₹{(balanceModalAgent.walletBalance || 0).toFixed(2)}</strong></span>
+                <span className="block mt-0.5">नया संभावित बैलेंस: <strong>₹{Math.max(0, (balanceModalAgent.walletBalance || 0) + (balanceAdjustType === 'credit' ? balanceAdjustAmount : -balanceAdjustAmount)).toFixed(2)}</strong></span>
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setBalanceModalAgent(null)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl"
+              >
+                रद्द करें
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmAdjustBalance}
+                className={`px-5 py-2 text-white font-bold text-xs rounded-xl shadow-md transition ${
+                  balanceAdjustType === 'credit' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                बैलेंस अपडेट करें
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 2. Agent Fraud & Suspension Dialog */}
       {suspendModalAgent && (

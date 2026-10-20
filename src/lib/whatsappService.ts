@@ -309,6 +309,40 @@ export function unlinkWhatsAppNumber(): void {
   } catch {}
 }
 
+/**
+ * Automatically opens the official WhatsApp chat for that exact recipient mobile number
+ * on both Mobile App (whatsapp://) and Desktop Web (api.whatsapp.com/send).
+ */
+export function openWhatsAppChat(mobile: string, text: string): void {
+  const clean = sanitizeMobileNumber(mobile);
+  if (!clean || clean.length !== 10) return;
+  const encodedText = encodeURIComponent(text);
+  const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const appUrl = `whatsapp://send?phone=91${clean}&text=${encodedText}`;
+  const webUrl = `https://api.whatsapp.com/send?phone=91${clean}&text=${encodedText}`;
+
+  try {
+    if (typeof window !== 'undefined') {
+      if (isMobile) {
+        window.location.href = appUrl;
+      } else {
+        const opened = window.open(webUrl, '_blank');
+        if (!opened) {
+          const link = document.createElement('a');
+          link.href = webUrl;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Could not auto-open WhatsApp chat:', err);
+  }
+}
+
 export interface WhatsAppOtpResult {
   success: boolean;
   otpCode: string;
@@ -353,6 +387,11 @@ export async function sendWhatsAppOtp(
 
   // Attempt background dispatch via OpenWA if daemon is active
   sendOpenWaMessage(clean, waText).catch(() => {});
+
+  // Automatically launch chat for this exact mobile number!
+  try {
+    openWhatsAppChat(clean, waText);
+  } catch {}
 
   // Dispatch custom event for top WhatsApp banner toast
   try {

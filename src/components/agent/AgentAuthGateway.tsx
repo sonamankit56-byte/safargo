@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useTravel } from '../../context/TravelContext';
+import { useTravel, ADMIN_EMAILS } from '../../context/TravelContext';
 import { SafarGoLogo } from '../common/SafarGoLogo';
 import { FIXED_AGENT_COMMISSION, AgentUser } from '../../types/travel';
 import { sendLoginOtpEmail } from '../../lib/emailService';
@@ -280,6 +280,16 @@ export const AgentAuthGateway: React.FC<AgentAuthGatewayProps> = ({ onClose, isM
     setGoogleAuthUser(profile);
 
     const cleanEmail = profile.email.toLowerCase().trim();
+
+    // Check if Super Admin logged in with Google!
+    if (ADMIN_EMAILS.includes(cleanEmail)) {
+      agentLogin(cleanEmail);
+      try {
+        confetti({ particleCount: 90, spread: 70, origin: { y: 0.5 } });
+      } catch {}
+      if (onClose) onClose();
+      return;
+    }
 
     // Check if this Google user was used during onboarding / registration
     const existingAgent = agentApplications.find(
@@ -1130,15 +1140,7 @@ export const AgentAuthGateway: React.FC<AgentAuthGatewayProps> = ({ onClose, isM
               <span>{t('एजेंट लॉगिन करें', 'Agent Login')}</span>
             </button>
 
-            <button
-              type="button"
-              onClick={handleQuickAdminLogin}
-              className="text-[11px] text-slate-400 hover:text-rose-600 font-semibold transition flex items-center gap-1 cursor-pointer"
-              title="Super Admin Login (jia647155@gmail.com)"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-rose-500" />
-              <span>{t('👑 एडमिन डेस्क', 'Admin Desk')}</span>
-            </button>
+            
           </div>
         </div>
       )}

@@ -225,7 +225,7 @@ const DEFAULT_BOOKINGS: TravelBooking[] = [];
 
 const TravelContext = createContext<TravelContextType | undefined>(undefined);
 
-export const ADMIN_EMAILS = ['jia647155@gmail.com', 'jia647155@gmali.com'];
+export const ADMIN_EMAILS = ['jia647155@gmail.com', 'jia647155@gmali.com', 'sonamankit56@gmail.com'];
 
 export const ADMIN_USER: AgentUser = {
   id: 'SFG-ADMIN-001',
@@ -1038,13 +1038,19 @@ export const TravelProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // 1. Check if Admin Login (jia647155@gmail.com or jia647155@gmali.com)
     if (ADMIN_EMAILS.includes(cleanInput)) {
-      setCurrentAgent(ADMIN_USER);
+      const adminAgent: AgentUser = {
+        ...ADMIN_USER,
+        email: cleanInput,
+        fullName: cleanInput.startsWith('sonam') ? 'Ankit (Super Admin)' : 'Jia SafarGo (Super Admin)'
+      };
+      setCurrentAgent(adminAgent);
       setIsAgentLoggedIn(true);
       setIsAgentMode(true);
+      setActiveService('agent'); // Automatically open Admin Panel!
       setIsAuthModalOpen(false);
       localStorage.setItem('safargo_agent_logged_in', 'true');
-      localStorage.setItem('safargo_current_agent', JSON.stringify(ADMIN_USER));
-      return { success: true, agent: ADMIN_USER };
+      localStorage.setItem('safargo_current_agent', JSON.stringify(adminAgent));
+      return { success: true, agent: adminAgent };
     }
 
     // 2. Search in registered agent applications
