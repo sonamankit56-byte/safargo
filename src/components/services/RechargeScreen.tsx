@@ -260,10 +260,13 @@ export const RechargeScreen: React.FC = () => {
   const { 
     t, 
     isAgentLoggedIn, 
+    isCustomerLoggedIn,
+    userProfile,
     setIsAuthModalOpen, 
     currentAgent,
     agentWalletBalance,
-    creditAgentWalletCommission 
+    creditAgentWalletCommission,
+    adminQrConfig
   } = useTravel();
   const [activeCategory, setActiveCategory] = useState<'mobile' | 'electricity' | 'dth' | 'fastag'>('mobile');
 
@@ -1160,7 +1163,7 @@ export const RechargeScreen: React.FC = () => {
                 </div>
 
                 {/* Login Status Banner */}
-                {!isAgentLoggedIn ? (
+                {!isAgentLoggedIn && !isCustomerLoggedIn ? (
                   <div className="p-3 bg-gradient-to-r from-amber-50 to-rose-50 border border-amber-300 rounded-2xl flex items-center justify-between gap-2.5 animate-fade-in shadow-xs">
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="w-7 h-7 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
@@ -1168,33 +1171,34 @@ export const RechargeScreen: React.FC = () => {
                       </div>
                       <div className="min-w-0">
                         <span className="text-[11px] font-black text-slate-900 block truncate">
-                          लॉगिन आवश्यक है (Login Required)
+                          भुगतान हेतु लॉगिन आवश्यक • Login for Payment
                         </span>
                         <span className="text-[10px] text-slate-500 block truncate">
-                          रिचार्ज व रसीद पाने के लिए लॉगिन करें
+                          प्लान्स ब्राउज़ करें एवं रिचार्ज करने के लिए लॉगिन करें
                         </span>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => setIsAuthModalOpen(true)}
-                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[11px] rounded-xl shadow-xs transition shrink-0 cursor-pointer active:scale-95"
+                      className="px-3 py-1.5 bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-700 hover:to-rose-700 text-white font-black text-[11px] rounded-xl shadow-xs transition shrink-0 cursor-pointer active:scale-95 flex items-center gap-1"
                     >
-                      लॉगिन करें
+                      <Lock className="w-3 h-3" />
+                      <span>लॉगिन करें</span>
                     </button>
                   </div>
                 ) : (
                   <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-black shrink-0">
-                        {(currentAgent?.fullName || 'U').charAt(0).toUpperCase()}
+                        {(currentAgent?.fullName || userProfile?.name || 'U').charAt(0).toUpperCase()}
                       </div>
                       <span className="font-bold text-emerald-950 truncate text-[11px]">
-                        {currentAgent?.fullName || currentAgent?.mobile || 'लॉगिन खाता'}
+                        {currentAgent?.fullName || userProfile?.name || currentAgent?.mobile || userProfile?.phone || 'सत्यापित खाता'}
                       </span>
                     </div>
                     <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full shrink-0">
-                      ✓ सत्यापित खाता
+                      ✓ सत्यापित {isAgentLoggedIn ? 'एजेंट' : 'ग्राहक'}
                     </span>
                   </div>
                 )}
@@ -1308,9 +1312,9 @@ export const RechargeScreen: React.FC = () => {
                     type="submit"
                     disabled={gatewayState === 'initiating' || gatewayState === 'waiting'}
                     className={`w-full py-3.5 ${
-                      !isAgentLoggedIn
+                      !isAgentLoggedIn && !isCustomerLoggedIn
                         ? 'bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-700 hover:to-rose-700 shadow-rose-600/20'
-                        : 'bg-indigo-600 hover:bg-indigo-700'
+                        : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20'
                     } active:scale-98 text-white font-black text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer`}
                   >
                     {gatewayState === 'initiating' ? (
@@ -1318,15 +1322,16 @@ export const RechargeScreen: React.FC = () => {
                         <Loader2 className="w-4 h-4 animate-spin" />
                         <span>आगे बढ़ रहे हैं (Proceeding)...</span>
                       </>
-                    ) : !isAgentLoggedIn ? (
+                    ) : !isAgentLoggedIn && !isCustomerLoggedIn ? (
                       <>
                         <Lock className="w-4 h-4 text-yellow-300" />
-                        <span>लॉगिन करके रिचार्ज करें • ₹{selectedLivePlan ? selectedLivePlan.rs : selectedMobilePlan.price}</span>
+                        <span>लॉगिन करके सुरक्षित भुगतान करें • ₹{selectedLivePlan ? selectedLivePlan.rs : selectedMobilePlan.price}</span>
                         <ArrowRight className="w-4 h-4" />
                       </>
                     ) : (
                       <>
-                        <span>Proceed • ₹{selectedLivePlan ? selectedLivePlan.rs : selectedMobilePlan.price}</span>
+                        <ShieldCheck className="w-4 h-4 text-emerald-300" />
+                        <span>सुरक्षित भुगतान करें • ₹{selectedLivePlan ? selectedLivePlan.rs : selectedMobilePlan.price}</span>
                         <ArrowRight className="w-4 h-4" />
                       </>
                     )}
