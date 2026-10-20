@@ -256,6 +256,19 @@ function categorizePlans(rawPlans: PlanItem[]): PlanGroup[] {
   return groups;
 }
 
+function getInitialPlansForOperator(opKey: string = 'jio'): PlanItem[] {
+  const plans = POPULAR_MOBILE_PLANS[opKey] || POPULAR_MOBILE_PLANS.jio;
+  return plans.map(p => ({
+    planCode: p.id,
+    rs: p.price,
+    validity: p.validity,
+    data: p.data,
+    name: p.calls,
+    desc: p.desc,
+    popular: true
+  }));
+}
+
 export const RechargeScreen: React.FC = () => {
   const { 
     t, 
@@ -284,10 +297,10 @@ export const RechargeScreen: React.FC = () => {
     operatorId: '140',
     circleId: '14'
   });
-  const [liveGroups, setLiveGroups] = useState<PlanGroup[]>([]);
+  const [liveGroups, setLiveGroups] = useState<PlanGroup[]>(() => categorizePlans(getInitialPlansForOperator('jio')));
   const [activeGroupTab, setActiveGroupTab] = useState<string>('popular');
   const [isLoadingPlans, setIsLoadingPlans] = useState<boolean>(false);
-  const [selectedLivePlan, setSelectedLivePlan] = useState<PlanItem | null>(null);
+  const [selectedLivePlan, setSelectedLivePlan] = useState<PlanItem | null>(() => getInitialPlansForOperator('jio')[0]);
   const [planSearch, setPlanSearch] = useState<string>('');
   const [operator, setOperator] = useState('jio');
   const [circle, setCircle] = useState('mp');
@@ -466,6 +479,17 @@ export const RechargeScreen: React.FC = () => {
       setDetectedOperator(detected);
       setSelectedOpId(detected.operatorId);
       setSelectedCirId(detected.circleId);
+
+      let opKey = 'jio';
+      if (detected.operatorId === '1') opKey = 'airtel';
+      else if (detected.operatorId === '338') opKey = 'vi';
+      else if (detected.operatorId === '3') opKey = 'bsnl';
+
+      const initPlans = getInitialPlansForOperator(opKey);
+      setLiveGroups(categorizePlans(initPlans));
+      const def299 = initPlans.find(p => p.rs === 299) || initPlans[0];
+      if (def299) setSelectedLivePlan(def299);
+
       loadPlansForOpCircle(detected.operatorId, detected.circleId, detected.company, detected.circle);
     }
   };
@@ -473,6 +497,16 @@ export const RechargeScreen: React.FC = () => {
   const handleManualOperatorChange = (opId: string) => {
     setSelectedOpId(opId);
     const matchedOp = OPERATORS_LIST.find(o => o.opId === opId);
+    let opKey = 'jio';
+    if (opId === '1') opKey = 'airtel';
+    else if (opId === '338') opKey = 'vi';
+    else if (opId === '3') opKey = 'bsnl';
+    
+    const initPlans = getInitialPlansForOperator(opKey);
+    setLiveGroups(categorizePlans(initPlans));
+    const def299 = initPlans.find(p => p.rs === 299) || initPlans[0];
+    if (def299) setSelectedLivePlan(def299);
+
     loadPlansForOpCircle(opId, selectedCirId, matchedOp?.name);
   };
 
@@ -1155,7 +1189,33 @@ export const RechargeScreen: React.FC = () => {
       </div>
 
       {/* Main Content Areas */}
-      <>
+      {!isAgentLoggedIn && !isCustomerLoggedIn ? (
+        <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-sm border border-slate-200 text-center max-w-lg mx-auto space-y-6 my-6 animate-fade-in">
+          <div className="w-16 h-16 bg-gradient-to-tr from-amber-500 to-rose-600 text-white rounded-3xl flex items-center justify-center mx-auto shadow-lg shadow-rose-600/30">
+            <Lock className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <span className="inline-block px-3 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-full text-xs font-black uppercase tracking-wider">
+              लॉगिन अनिवार्य • Login Mandatory
+            </span>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900">
+              रिचार्ज सेवा का उपयोग करने के लिए लॉगिन करें
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md mx-auto">
+              सफ़रगो पर मोबाइल रिचार्ज, बिजली बिल, DTH एवं FASTag सेवाओं के लिए अधिकृत ग्राहक या एजेंट लॉगिन अनिवार्य है।
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsAuthModalOpen(true)}
+            className="w-full py-4 bg-gradient-to-r from-rose-600 via-indigo-600 to-indigo-700 hover:from-rose-700 hover:to-indigo-800 text-white font-black text-sm rounded-2xl shadow-xl transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <ShieldCheck className="w-5 h-5" />
+            <span>लॉगिन / साइन-अप करें (Login / Sign Up)</span>
+          </button>
+        </div>
+      ) : (
+        <>
           {!isSuccess ? (
         <div className="space-y-6">
           {/* CATEGORY 1: MOBILE RECHARGE */}
@@ -1764,6 +1824,7 @@ export const RechargeScreen: React.FC = () => {
         </div>
       </div>
         </>
+      )}
 
       {/* REAL PAYMENT GATEWAY WAITING & VERIFICATION MODAL */}
       {gatewayState === 'waiting' && (
