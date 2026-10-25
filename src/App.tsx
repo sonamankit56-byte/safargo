@@ -5,27 +5,27 @@ import { TravelBottomNav } from './components/common/TravelBottomNav';
 import { SafarGoLogo } from './components/common/SafarGoLogo';
 import { BusSearchCard } from './components/bus/BusSearchCard';
 import { BusList } from './components/bus/BusList';
-import { SeatLayoutPicker } from './components/bus/SeatLayoutPicker';
+const SeatLayoutPicker = React.lazy(() => import('./components/bus/SeatLayoutPicker').then(m => ({ default: m.SeatLayoutPicker })));
 import { BoardingDropping } from './components/bus/BoardingDropping';
-import { PassengerForm } from './components/bus/PassengerForm';
-import { BusBookingSuccess } from './components/bus/BusBookingSuccess';
+const PassengerForm = React.lazy(() => import('./components/bus/PassengerForm').then(m => ({ default: m.PassengerForm })));
+const BusBookingSuccess = React.lazy(() => import('./components/bus/BusBookingSuccess').then(m => ({ default: m.BusBookingSuccess })));
 import { HotelSearchCard } from './components/hotel/HotelSearchCard';
 import { HotelList } from './components/hotel/HotelList';
 import { CabBookingSection } from './components/cab/CabBookingSection';
-import { MyTripsScreen } from './components/trips/MyTripsScreen';
-import { AgentEarningDesk } from './components/agent/AgentEarningDesk';
-import { TravelAccountScreen } from './components/account/TravelAccountScreen';
-import { HotelComingSoon } from './components/services/HotelComingSoon';
-import { FlightComingSoon } from './components/services/FlightComingSoon';
-import { GoTifinComingSoon } from './components/services/GoTifinComingSoon';
-import { RechargeScreen } from './components/services/RechargeScreen';
-import { CabComingSoon } from './components/services/CabComingSoon';
+const MyTripsScreen = React.lazy(() => import('./components/trips/MyTripsScreen').then(m => ({ default: m.MyTripsScreen })));
+const AgentEarningDesk = React.lazy(() => import('./components/agent/AgentEarningDesk').then(m => ({ default: m.AgentEarningDesk })));
+const TravelAccountScreen = React.lazy(() => import('./components/account/TravelAccountScreen').then(m => ({ default: m.TravelAccountScreen })));
+const HotelComingSoon = React.lazy(() => import('./components/services/HotelComingSoon').then(m => ({ default: m.HotelComingSoon })));
+const FlightComingSoon = React.lazy(() => import('./components/services/FlightComingSoon').then(m => ({ default: m.FlightComingSoon })));
+const GoTifinComingSoon = React.lazy(() => import('./components/services/GoTifinComingSoon').then(m => ({ default: m.GoTifinComingSoon })));
+const RechargeScreen = React.lazy(() => import('./components/services/RechargeScreen').then(m => ({ default: m.RechargeScreen })));
+const CabComingSoon = React.lazy(() => import('./components/services/CabComingSoon').then(m => ({ default: m.CabComingSoon })));
 import { AuthModal } from './components/auth/AuthModal';
 import { IncomingSmsToast } from './components/common/IncomingSmsToast';
-import { SafarGoAiCopilot } from './components/common/SafarGoAiCopilot';
+const SafarGoAiCopilot = React.lazy(() => import('./components/common/SafarGoAiCopilot').then(m => ({ default: m.SafarGoAiCopilot })));
 import { PnrStatusModal } from './components/common/PnrStatusModal';
 import { WhatsAppLinkModal } from './components/common/WhatsAppLinkModal';
-import { AgencySwarmModal } from './components/common/AgencySwarmModal';
+const AgencySwarmModal = React.lazy(() => import('./components/common/AgencySwarmModal').then(m => ({ default: m.AgencySwarmModal })));
 import { ShieldCheck, PhoneCall, Sparkles, Award, Gift, Zap, Key, Lock, CheckCircle2, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -143,6 +143,12 @@ export const TravelApp: React.FC = () => {
 
         {/* Main Super App Router */}
         <main className="w-full">
+          <React.Suspense fallback={
+            <div className="py-20 flex flex-col items-center justify-center space-y-3">
+              <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+              <p className="text-xs font-bold text-slate-500">लोड हो रहा है...</p>
+            </div>
+          }>
           {/* BUS MODULE */}
           {activeService === 'bus' && (
             <div>
@@ -224,6 +230,7 @@ export const TravelApp: React.FC = () => {
 
           {/* MY ACCOUNT & OFFERS SYSTEM */}
           {(activeService === 'account' || activeService === 'offers') && <TravelAccountScreen />}
+        </React.Suspense>
         </main>
       </div>
 

@@ -17,7 +17,7 @@ import {
 import { useTravel } from '../../context/TravelContext';
 import { POPULAR_ROUTES } from '../../data/busData';
 import { MP_LOCATIONS, ALL_INDIA_CITIES } from '../../data/mpCitiesData';
-import { Bus3DHero } from '../3d/Bus3DHero';
+const Bus3DHero = React.lazy(() => import('../3d/Bus3DHero').then(m => ({ default: m.Bus3DHero })));
 
 export const BusSearchCard: React.FC = () => {
   const { 
@@ -128,7 +128,14 @@ export const BusSearchCard: React.FC = () => {
       {/* Interactive Three.js 3D Bus Hero Canvas */}
       {show3DHero && (
         <div className="animate-fadeIn">
-          <Bus3DHero />
+          <React.Suspense fallback={
+            <div className="w-full h-[360px] sm:h-[440px] rounded-3xl bg-slate-950 flex flex-col items-center justify-center text-white space-y-3 border border-slate-800">
+              <div className="w-10 h-10 border-4 border-rose-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-xs font-bold text-slate-400">3D वोल्वो बस लोड हो रही है...</span>
+            </div>
+          }>
+            <Bus3DHero />
+          </React.Suspense>
         </div>
       )}
 
