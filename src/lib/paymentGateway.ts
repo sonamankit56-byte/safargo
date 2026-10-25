@@ -32,7 +32,6 @@ export function getGatewayConfig(): GatewayConfig {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      // Auto-upgrade any old sandbox test keys to the user's real Razorpay live key
       if (!parsed.razorpayKeyId || parsed.razorpayKeyId.startsWith('rzp_test')) {
         parsed.razorpayKeyId = REAL_RAZORPAY_KEY_ID;
         parsed.razorpayKeySecret = REAL_RAZORPAY_SECRET;
@@ -118,10 +117,32 @@ export async function openPaymentGateway(
     return;
   }
 
+  // Attempt to create server-side order on Razorpay API if serverless endpoint is available
+  let razorpayOrderId: string | undefined = undefined;
+  try {
+    const orderRes = await fetch('/api/razorpay/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: params.amount,
+        receipt: params.orderId,
+        notes: params.notes
+      })
+    });
+    if (orderRes.ok) {
+      const orderData = await orderRes.json();
+      if (orderData.success && orderData.order?.id) {
+        razorpayOrderId = orderData.order.id;
+      }
+    }
+  } catch (e) {
+    console.warn('Serverless order creation skipped, using client checkout:', e);
+  }
+
   // Convert amount to paise (1 INR = 100 paise)
   const amountPaise = Math.round(params.amount * 100);
 
-  const options = {
+  const options: any = {
     key: config.razorpayKeyId || REAL_RAZORPAY_KEY_ID,
     amount: amountPaise,
     currency: 'INR',
@@ -132,7 +153,7 @@ export async function openPaymentGateway(
       if (response && response.razorpay_payment_id) {
         onSuccess({
           paymentId: response.razorpay_payment_id,
-          orderId: response.razorpay_order_id || params.orderId,
+          orderId: response.razorpay_order_id || razorpayOrderId || params.orderId,
           signature: response.razorpay_signature,
           provider: 'razorpay'
         });
@@ -161,12 +182,20 @@ export async function openPaymentGateway(
     }
   };
 
+  if (razorpayOrderId) {
+    options.order_id = razorpayOrderId;
+  }
+
   try {
     const rzpInstance = new (window as any).Razorpay(options);
     rzpInstance.on('payment.failed', function (response: any) {
       console.warn('Razorpay payment failed:', response.error);
-      const reason = response.error?.description || response.error?.reason || 'भुगतान असफल रहा';
-      onFailure(reason);
+      const desc = response.error?.description || response.error?.reason || 'भुगतान असफल रहा';
+      if (desc.toLowerCase().includes('domain') || desc.toLowerCase().includes('not register')) {
+        onFailure('Razorpay सुरक्षा अलर्ट: कृपया अपने Razorpay Dashboard में जाकर Account & Settings > Website Details में अपना यह डोमेन जोड़ें।');
+      } else {
+        onFailure(desc);
+      }
     });
     rzpInstance.open();
   } catch (err: any) {
