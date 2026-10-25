@@ -141,7 +141,7 @@ interface TravelContextType {
   setIsAgentLoggedIn: (val: boolean) => void;
   isCustomerLoggedIn: boolean;
   setIsCustomerLoggedIn: (val: boolean) => void;
-  customerLogin: (data: { name?: string; phone: string; email?: string }) => void;
+  customerLogin: (data: { name?: string; phone?: string; email?: string }) => void;
   customerLogout: () => void;
   currentAgent: AgentUser | null;
   setCurrentAgent: (agent: AgentUser | null) => void;
