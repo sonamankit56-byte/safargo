@@ -124,7 +124,7 @@ interface TravelContextType {
   bookings: TravelBooking[];
   latestBooking: TravelBooking | null;
   confirmBusBooking: (
-    paymentMethod: 'upi' | 'card' | 'netbanking' | 'pay_at_bus' | 'youpi_pg', 
+    paymentMethod: 'upi' | 'card' | 'netbanking' | 'pay_at_bus' | 'youpi_pg' | 'gateway', 
     contact: { fullName: string; mobile: string; email: string },
     utr?: string,
     youpiDetails?: { paymentId?: string; status?: 'PENDING' | 'SUCCESS' | 'FAILED' | 'EXPIRED' }
@@ -1503,7 +1503,7 @@ export const TravelProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const confirmBusBooking = (
-    paymentMethod: 'upi' | 'card' | 'netbanking' | 'pay_at_bus' | 'youpi_pg',
+    paymentMethod: 'upi' | 'card' | 'netbanking' | 'pay_at_bus' | 'youpi_pg' | 'gateway',
     contact: { fullName: string; mobile: string; email: string },
     utr?: string,
     youpiDetails?: { paymentId?: string; status?: 'PENDING' | 'SUCCESS' | 'FAILED' | 'EXPIRED' }
@@ -1512,7 +1512,7 @@ export const TravelProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const totalFare = selectedSeats.reduce((acc, s) => acc + s.fare, 0);
     const commission = isAgentMode ? FIXED_AGENT_COMMISSION : 0;
     
-    const isOnlinePayment = paymentMethod === 'youpi_pg' || paymentMethod === 'upi' || paymentMethod === 'card' || paymentMethod === 'netbanking';
+    const isOnlinePayment = paymentMethod === 'youpi_pg' || paymentMethod === 'gateway' || paymentMethod === 'upi' || paymentMethod === 'card' || paymentMethod === 'netbanking';
     const bookingStatus: 'confirmed' | 'pending' = (isOnlinePayment || !isAgentMode) ? 'confirmed' : 'pending';
 
     const newBooking: TravelBooking = {

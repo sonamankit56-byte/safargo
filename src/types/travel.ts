@@ -174,7 +174,7 @@ export interface TravelBooking {
   travelDate: string;
   status: 'confirmed' | 'boarding_soon' | 'completed' | 'cancelled' | 'pending';
   totalAmount: number;
-  paymentMethod: 'upi' | 'card' | 'netbanking' | 'pay_at_bus' | 'youpi_pg';
+  paymentMethod: 'upi' | 'card' | 'netbanking' | 'pay_at_bus' | 'youpi_pg' | 'gateway';
   passengerDetails: {
     fullName: string;
     mobile: string;

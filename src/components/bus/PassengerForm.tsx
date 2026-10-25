@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { openPaymentGateway } from '../../lib/paymentGateway';
 import { useTravel } from '../../context/TravelContext';
 import { 
   ArrowLeft, 
@@ -61,7 +62,7 @@ export const PassengerForm: React.FC = () => {
   const [fullName, setFullName] = useState(() => currentAgent?.fullName || userProfile?.name || '');
   const [mobile, setMobile] = useState(() => currentAgent?.mobile || userProfile?.phone || '');
   const [email, setEmail] = useState(() => currentAgent?.email || userProfile?.email || '');
-  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card' | 'netbanking' | 'pay_at_bus' | 'youpi_pg'>('youpi_pg');
+  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card' | 'netbanking' | 'pay_at_bus' | 'youpi_pg' | 'gateway'>('gateway');
   const [optTravelInsurance, setOptTravelInsurance] = useState(true);
 
   // YouPI PG Sovereign Gateway States
@@ -174,6 +175,45 @@ export const PassengerForm: React.FC = () => {
 
     if (!mobile || mobile.length < 10) {
       alert('Please enter a valid 10-digit mobile number');
+      return;
+    }
+
+    // Official Indian Payment Gateway (Razorpay / UPI Intent / Cards)
+    if (paymentMethod === 'gateway') {
+      openPaymentGateway(
+        {
+          amount: finalPayable,
+          orderId: `SFG-BUS-${Date.now()}`,
+          title: `${selectedBus?.operatorName || 'SafarGo'} Bus (${selectedBus?.sourceCity} → ${selectedBus?.destinationCity})`,
+          customer: {
+            name: passengersList[0]?.name || fullName,
+            email: email || 'passenger@safargo.in',
+            phone: mobile
+          },
+          notes: {
+            busName: selectedBus?.operatorName || '',
+            seats: selectedSeats.map(s => s.seatNumber).join(', ')
+          }
+        },
+        (res) => {
+          confirmBusBooking(
+            'gateway',
+            {
+              fullName: passengersList[0]?.name || fullName,
+              mobile,
+              email
+            },
+            res.paymentId,
+            {
+              paymentId: res.paymentId,
+              status: 'SUCCESS'
+            }
+          );
+        },
+        (errMsg) => {
+          alert(`पेमेंट रद्द या असफल: ${errMsg}`);
+        }
+      );
       return;
     }
 
@@ -474,6 +514,44 @@ export const PassengerForm: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              {/* Option 0: Official Real Payment Gateway */}
+              <label 
+                onClick={() => setPaymentMethod('gateway')}
+                className={`p-3.5 rounded-2xl border-2 cursor-pointer flex items-center gap-3 transition relative overflow-hidden sm:col-span-2 ${
+                  paymentMethod === 'gateway' 
+                    ? 'border-indigo-600 bg-indigo-50/80 text-indigo-950 shadow-md ring-2 ring-indigo-500/20' 
+                    : 'border-slate-200 hover:border-slate-300 bg-white'
+                }`}
+              >
+                <div className="absolute top-0 right-0 bg-gradient-to-l from-indigo-600 via-purple-600 to-rose-600 text-white text-[9px] font-black px-2.5 py-0.5 rounded-bl-lg uppercase tracking-wider flex items-center gap-1 shadow-xs">
+                  <Sparkles className="w-3 h-3 text-yellow-300" />
+                  <span>Real Gateway • Instant Confirm</span>
+                </div>
+                <input
+                  type="radio"
+                  name="payment"
+                  checked={paymentMethod === 'gateway'}
+                  onChange={() => setPaymentMethod('gateway')}
+                  className="text-indigo-600 mt-1"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-indigo-600" />
+                    <p className="font-black text-xs sm:text-sm text-slate-900">
+                      असली पेमेंट गेटवे (Online Payment Gateway)
+                    </p>
+                  </div>
+                  <p className="text-[10px] sm:text-[11px] text-indigo-700 font-semibold mt-1 flex flex-wrap items-center gap-1.5">
+                    <span className="bg-white/90 px-1.5 py-0.5 rounded border border-indigo-200 font-bold">PhonePe</span>
+                    <span className="bg-white/90 px-1.5 py-0.5 rounded border border-indigo-200 font-bold">Google Pay</span>
+                    <span className="bg-white/90 px-1.5 py-0.5 rounded border border-indigo-200 font-bold">Paytm</span>
+                    <span className="bg-white/90 px-1.5 py-0.5 rounded border border-indigo-200 font-bold">QR Code</span>
+                    <span className="bg-white/90 px-1.5 py-0.5 rounded border border-indigo-200 font-bold">ATM कार्ड</span>
+                    <span className="bg-white/90 px-1.5 py-0.5 rounded border border-indigo-200 font-bold">नेटबैंकिंग</span>
+                  </p>
+                </div>
+              </label>
+
               {/* Option 1: YouPI PG - Instant UPI (0% Fee) */}
               <label 
                 onClick={() => setPaymentMethod('youpi_pg')}
