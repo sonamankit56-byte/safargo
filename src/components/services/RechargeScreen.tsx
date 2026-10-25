@@ -698,11 +698,7 @@ export const RechargeScreen: React.FC = () => {
   const handleMobileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!isAgentLoggedIn && !isCustomerLoggedIn) {
-      setIsAuthModalOpen(true);
-      setGatewayError('रिचार्ज करने के लिए कृपया पहले लॉगिन करें। (Login required to proceed with recharge)');
-      return;
-    }
+// Direct recharge without forced login
 
     const clean = mobileNumber.replace(/\D/g, '').slice(-10);
     if (clean.length !== 10) {
@@ -744,6 +740,15 @@ export const RechargeScreen: React.FC = () => {
       setActiveCheckoutUrl(checkoutUrl);
       setHasInitiatedPayment(false);
       setGatewayState('waiting');
+
+      // Directly open Paybeez / Zaakpay checkout gateway!
+      if (checkoutUrl) {
+        try {
+          window.location.href = checkoutUrl;
+        } catch {
+          window.open(checkoutUrl, '_self');
+        }
+      }
 
       // Save pending order to localStorage
       try {
@@ -1141,45 +1146,7 @@ export const RechargeScreen: React.FC = () => {
                   )}
                 </div>
 
-                {/* Login Status Banner */}
-                {!isAgentLoggedIn ? (
-                  <div className="p-3 bg-gradient-to-r from-amber-50 to-rose-50 border border-amber-300 rounded-2xl flex items-center justify-between gap-2.5 animate-fade-in shadow-xs">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
-                        <Lock className="w-3.5 h-3.5" />
-                      </div>
-                      <div className="min-w-0">
-                        <span className="text-[11px] font-black text-slate-900 block truncate">
-                          लॉगिन आवश्यक है (Login Required)
-                        </span>
-                        <span className="text-[10px] text-slate-500 block truncate">
-                          रिचार्ज व रसीद पाने के लिए लॉगिन करें
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsAuthModalOpen(true)}
-                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[11px] rounded-xl shadow-xs transition shrink-0 cursor-pointer active:scale-95"
-                    >
-                      लॉगिन करें
-                    </button>
-                  </div>
-                ) : (
-                  <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-black shrink-0">
-                        {(currentAgent?.fullName || 'U').charAt(0).toUpperCase()}
-                      </div>
-                      <span className="font-bold text-emerald-950 truncate text-[11px]">
-                        {currentAgent?.fullName || currentAgent?.mobile || 'लॉगिन खाता'}
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full shrink-0">
-                      ✓ सत्यापित खाता
-                    </span>
-                  </div>
-                )}
+
 
                 <form onSubmit={handleMobileSubmit} className="space-y-4 text-xs">
                   <div>
@@ -1289,26 +1256,17 @@ export const RechargeScreen: React.FC = () => {
                   <button
                     type="submit"
                     disabled={gatewayState === 'initiating' || gatewayState === 'waiting'}
-                    className={`w-full py-3.5 ${
-                      !isAgentLoggedIn
-                        ? 'bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-700 hover:to-rose-700 shadow-rose-600/20'
-                        : 'bg-indigo-600 hover:bg-indigo-700'
-                    } active:scale-98 text-white font-black text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer`}
+                    className="w-full py-3.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-700 hover:from-emerald-700 hover:to-indigo-800 active:scale-98 text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-600/25 transition flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
                   >
                     {gatewayState === 'initiating' ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>आगे बढ़ रहे हैं (Proceeding)...</span>
-                      </>
-                    ) : !isAgentLoggedIn ? (
-                      <>
-                        <Lock className="w-4 h-4 text-yellow-300" />
-                        <span>लॉगिन करके रिचार्ज करें • ₹{selectedLivePlan ? selectedLivePlan.rs : selectedMobilePlan.price}</span>
-                        <ArrowRight className="w-4 h-4" />
+                        <span>Paybeez गेटवे लोड हो रहा है...</span>
                       </>
                     ) : (
                       <>
-                        <span>Proceed • ₹{selectedLivePlan ? selectedLivePlan.rs : selectedMobilePlan.price}</span>
+                        <Sparkles className="w-4 h-4 text-yellow-300" />
+                        <span>तुरंत रिचार्ज करें (Paybeez / Zaakpay) • ₹{selectedLivePlan ? selectedLivePlan.rs : selectedMobilePlan.price}</span>
                         <ArrowRight className="w-4 h-4" />
                       </>
                     )}
