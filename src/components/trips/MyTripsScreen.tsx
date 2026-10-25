@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTravel } from '../../context/TravelContext';
 import { TravelBooking, SupportTicket, AgentReferral } from '../../types/travel';
+import { Ticket3DCard } from '../3d/Ticket3DCard';
 import { 
   Navigation, 
   MapPin, 
@@ -63,8 +64,9 @@ export const MyTripsScreen: React.FC = () => {
   // Bookings Filter: All | Confirmed/Success | Pending | Cancelled
   const [bookingFilter, setBookingFilter] = useState<'all' | 'confirm' | 'pending' | 'cancel'>('all');
 
-  // Live GPS Route Tracker Modal
+  // Live GPS Route Tracker Modal & 3D Boarding Pass
   const [activeTrackingBooking, setActiveTrackingBooking] = useState<TravelBooking | null>(null);
+  const [active3DBooking, setActive3DBooking] = useState<TravelBooking | null>(null);
 
   // Support Ticket States
   const [ticketFilter, setTicketFilter] = useState<'all' | 'pending' | 'resolved' | 'closed'>('all');
@@ -445,14 +447,25 @@ export const MyTripsScreen: React.FC = () => {
                       <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
                         <div className="flex flex-wrap items-center gap-2">
                           {!isCancelled && isBus && !isPending && (
-                            <button
-                              type="button"
-                              onClick={() => setActiveTrackingBooking(booking)}
-                              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-sm shadow-emerald-600/30 active:scale-95"
-                            >
-                              <Navigation className="w-3.5 h-3.5 animate-pulse" />
-                              <span>{t('लाइव GPS बस ट्रैक करें', 'Track Live GPS Bus')}</span>
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setActive3DBooking(booking)}
+                                className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-rose-600 hover:from-indigo-700 hover:to-rose-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-md shadow-indigo-500/20 active:scale-95"
+                              >
+                                <Sparkles className="w-3.5 h-3.5 text-yellow-300 animate-spin" />
+                                <span>{t('✨ 3D बोर्डिंग पास', '✨ 3D Pass')}</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setActiveTrackingBooking(booking)}
+                                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-sm shadow-emerald-600/30 active:scale-95"
+                              >
+                                <Navigation className="w-3.5 h-3.5 animate-pulse" />
+                                <span>{t('लाइव GPS बस ट्रैक करें', 'Track Live GPS Bus')}</span>
+                              </button>
+                            </>
                           )}
 
                           {isPending ? (
@@ -1129,6 +1142,37 @@ export const MyTripsScreen: React.FC = () => {
             >
               {t('ट्रैकर बंद करें', 'Close Tracker')}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* 3D Flippable Digital Boarding Pass Modal */}
+      {active3DBooking && (
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fadeIn">
+          <div className="w-full max-w-lg relative py-4">
+            <div className="flex items-center justify-between pb-2 text-white px-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-yellow-400 animate-spin" />
+                <h3 className="font-black text-xs sm:text-sm text-white uppercase tracking-wider">
+                  3D होलोग्राफिक बोर्डिंग पास (क्लिक करके 3D पलटें)
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActive3DBooking(null)}
+                className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <Ticket3DCard booking={active3DBooking as any} />
+
+            <div className="text-center mt-3">
+              <p className="text-[11px] text-white/60">
+                💡 कार्ड पर कहीं भी क्लिक/टैप करके फ्रंट और बैक 3D में देखें।
+              </p>
+            </div>
           </div>
         </div>
       )}

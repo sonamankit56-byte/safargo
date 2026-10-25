@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useTravel } from '../../context/TravelContext';
 import { BusSeat } from '../../types/travel';
-import { ArrowLeft, Check, Info, ShieldCheck, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Check, Info, ShieldCheck, ChevronRight, Sparkles } from 'lucide-react';
+import { BusCabin3D } from '../3d/BusCabin3D';
 
 export const SeatLayoutPicker: React.FC = () => {
   const { 
@@ -19,6 +20,7 @@ export const SeatLayoutPicker: React.FC = () => {
   const isAnyUserLoggedIn = isAgentLoggedIn || isCustomerLoggedIn;
 
   const [activeDeckTab, setActiveDeckTab] = useState<'lower' | 'upper'>('lower');
+  const [cabinViewMode, setCabinViewMode] = useState<'3d' | 'classic'>('3d');
 
   if (!selectedBus) {
     return (
@@ -147,96 +149,143 @@ export const SeatLayoutPicker: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Visual Bus Container (2 cols on large screen) */}
         <div className="lg:col-span-2 bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
-          {/* Deck Switcher Tabs */}
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
-            <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
-              <span>{t('सीट चुनें', 'Select Seat')}</span>
-              <span className="text-xs font-normal text-slate-500">({t('अधिकतम 6 सीटें', 'Max 6 seats')})</span>
-            </h3>
+          {/* Deck & View Mode Switcher Tabs */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4 mb-5">
+            <div>
+              <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
+                <span>{t('सीट चुनें', 'Select Seat')}</span>
+                <span className="text-xs font-normal text-slate-500">({t('अधिकतम 6 सीटें', 'Max 6 seats')})</span>
+              </h3>
+            </div>
 
-            <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200">
-              <button
-                type="button"
-                onClick={() => setActiveDeckTab('lower')}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  activeDeckTab === 'lower' 
-                    ? 'bg-emerald-600 text-white shadow-sm' 
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {t('लोअर डेक', 'Lower Deck')} ({lowerDeckSeats.filter(s => s.status !== 'booked').length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveDeckTab('upper')}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  activeDeckTab === 'upper' 
-                    ? 'bg-emerald-600 text-white shadow-sm' 
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {t('अपर डेक (स्लीपर)', 'Upper Deck')} ({upperDeckSeats.filter(s => s.status !== 'booked').length})
-              </button>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* 3D vs 2D View Switcher */}
+              <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setCabinViewMode('3d')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                    cabinViewMode === '3d'
+                      ? 'bg-gradient-to-r from-indigo-600 to-rose-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+                  <span>3D केबिन</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCabinViewMode('classic')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    cabinViewMode === 'classic'
+                      ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span>क्लासिक 2D</span>
+                </button>
+              </div>
+
+              {/* Deck Tabs */}
+              <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setActiveDeckTab('lower')}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    activeDeckTab === 'lower' 
+                      ? 'bg-emerald-600 text-white shadow-sm' 
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {t('लोअर डेक', 'Lower')} ({lowerDeckSeats.filter(s => s.status !== 'booked').length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveDeckTab('upper')}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    activeDeckTab === 'upper' 
+                      ? 'bg-emerald-600 text-white shadow-sm' 
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {t('अपर डेक', 'Upper')} ({upperDeckSeats.filter(s => s.status !== 'booked').length})
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Seat Layout Diagram / Bus Chassis */}
-          <div className="bg-slate-50 border-2 border-slate-300 rounded-2xl p-4 sm:p-6 relative max-w-md mx-auto">
-            {/* Front of Bus Driver Steering Indicator */}
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-5">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                {t('आगे का भाग (फ्रंट)', 'Front / Driver Side')}
+          {/* Conditional Layout: 3D Cabin vs Classic 2D Chassis */}
+          {cabinViewMode === '3d' ? (
+            <BusCabin3D
+              seats={selectedBus.seats}
+              selectedSeats={selectedSeats.map(s => s.seatNumber)}
+              deck={activeDeckTab}
+              onToggleSeat={(seatNum) => {
+                const target = selectedBus.seats.find(s => s.seatNumber === seatNum);
+                if (target) {
+                  toggleSeatSelection(target);
+                }
+              }}
+            />
+          ) : (
+            /* Classic 2D Seat Layout Diagram / Bus Chassis */
+            <div className="bg-slate-50 border-2 border-slate-300 rounded-2xl p-4 sm:p-6 relative max-w-md mx-auto">
+              {/* Front of Bus Driver Steering Indicator */}
+              <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-5">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  {t('आगे का भाग (फ्रंट)', 'Front / Driver Side')}
+                </div>
+                {/* Steering Wheel Graphic */}
+                <div className="flex items-center gap-2 text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200 text-xs font-medium">
+                  <svg className="w-5 h-5 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 2a10 10 0 0 0 0 20M12 12l7 4M12 12l-7 4M12 12V2" />
+                  </svg>
+                  <span>{t('चालक', 'Driver')}</span>
+                </div>
               </div>
-              {/* Steering Wheel Graphic */}
-              <div className="flex items-center gap-2 text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200 text-xs font-medium">
-                <svg className="w-5 h-5 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 2a10 10 0 0 0 0 20M12 12l7 4M12 12l-7 4M12 12V2" />
-                </svg>
-                <span>{t('चालक', 'Driver')}</span>
-              </div>
-            </div>
 
-            {/* Seat Grid - Rows */}
-            <div className="space-y-4">
-              {rows.map((rowNum) => {
-                const rowSeats = activeDeckSeats.filter(s => s.row === rowNum);
-                const col1 = rowSeats.find(s => s.col === 1);
-                const col2 = rowSeats.find(s => s.col === 2);
-                const col3 = rowSeats.find(s => s.col === 3);
+              {/* Seat Grid - Rows */}
+              <div className="space-y-4">
+                {rows.map((rowNum) => {
+                  const rowSeats = activeDeckSeats.filter(s => s.row === rowNum);
+                  const col1 = rowSeats.find(s => s.col === 1);
+                  const col2 = rowSeats.find(s => s.col === 2);
+                  const col3 = rowSeats.find(s => s.col === 3);
 
-                return (
-                  <div key={rowNum} className="flex items-center justify-between px-2">
-                    {/* Left Single Seat or Sleeper */}
-                    <div className="flex items-center justify-center">
-                      {col1 ? renderSeatItem(col1) : <div className="w-12 h-14" />}
-                    </div>
+                  return (
+                    <div key={rowNum} className="flex items-center justify-between px-2">
+                      {/* Left Single Seat or Sleeper */}
+                      <div className="flex items-center justify-center">
+                        {col1 ? renderSeatItem(col1) : <div className="w-12 h-14" />}
+                      </div>
 
-                    {/* Aisle Walking Space */}
-                    <div className="flex-1 flex items-center justify-center">
-                      <div className="h-full border-r border-dashed border-slate-300 py-3 text-[10px] text-slate-400 font-mono tracking-widest select-none">
-                        AISLE
+                      {/* Aisle Walking Space */}
+                      <div className="flex-1 flex items-center justify-center">
+                        <div className="h-full border-r border-dashed border-slate-300 py-3 text-[10px] text-slate-400 font-mono tracking-widest select-none">
+                          AISLE
+                        </div>
+                      </div>
+
+                      {/* Right Pair Seats */}
+                      <div className="flex items-center gap-3">
+                        {col2 ? renderSeatItem(col2) : <div className="w-12 h-14" />}
+                        {col3 ? renderSeatItem(col3) : <div className="w-12 h-14" />}
                       </div>
                     </div>
+                  );
+                })}
+              </div>
 
-                    {/* Right Pair Seats */}
-                    <div className="flex items-center gap-3">
-                      {col2 ? renderSeatItem(col2) : <div className="w-12 h-14" />}
-                      {col3 ? renderSeatItem(col3) : <div className="w-12 h-14" />}
-                    </div>
-                  </div>
-                );
-              })}
+              {/* Rear of bus */}
+              <div className="mt-6 pt-3 border-t border-slate-200 text-center">
+                <p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">
+                  {t('बस का पिछला भाग (रियर)', 'Rear / Back Side')}
+                </p>
+              </div>
             </div>
-
-            {/* Rear of bus */}
-            <div className="mt-6 pt-3 border-t border-slate-200 text-center">
-              <p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">
-                {t('बस का पिछला भाग (रियर)', 'Rear / Back Side')}
-              </p>
-            </div>
-          </div>
+          )}
 
           {/* Seat Legend */}
           <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs">

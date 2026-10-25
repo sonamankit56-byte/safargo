@@ -9,11 +9,15 @@ import {
   Zap,
   TrendingUp,
   X,
-  Check
+  Check,
+  Sparkles,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useTravel } from '../../context/TravelContext';
 import { POPULAR_ROUTES } from '../../data/busData';
 import { MP_LOCATIONS, ALL_INDIA_CITIES } from '../../data/mpCitiesData';
+import { Bus3DHero } from '../3d/Bus3DHero';
 
 export const BusSearchCard: React.FC = () => {
   const { 
@@ -36,6 +40,7 @@ export const BusSearchCard: React.FC = () => {
   // Autocomplete Dropdown State
   const [activeDropdown, setActiveDropdown] = useState<'from' | 'to' | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [show3DHero, setShow3DHero] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -97,15 +102,35 @@ export const BusSearchCard: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-3 py-3 space-y-4" ref={dropdownRef}>
-      {/* Hero Headline */}
-      <div className="text-center sm:text-left pt-2 pb-1">
-        <h1 className="text-xl sm:text-3xl font-black text-gray-900 tracking-tight leading-tight">
-          {t('भारत और मध्य प्रदेश के हर गाँव-शहर की बसें बुक करें', "Book Buses Across India & MP's Smallest Towns")}
-        </h1>
-        <p className="text-xs sm:text-sm text-gray-500 mt-1">
-          {t('MP के 55 जिले, 150+ कस्बे व गाँव • लाइव बस जीपीएस ट्रैकिंग • जीरो कैंसिलेशन शुल्क', 'Covering 55 MP Districts, Tehsils & Villages • Live GPS Tracking on Route')}
-        </p>
+      {/* Hero Headline & 3D Interactive Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 pb-1">
+        <div>
+          <h1 className="text-xl sm:text-3xl font-black text-gray-900 tracking-tight leading-tight">
+            {t('भारत और मध्य प्रदेश के हर गाँव-शहर की बसें बुक करें', "Book Buses Across India & MP's Smallest Towns")}
+          </h1>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">
+            {t('MP के 55 जिले, 150+ कस्बे व गाँव • लाइव बस जीपीएस ट्रैकिंग • जीरो कैंसिलेशन शुल्क', 'Covering 55 MP Districts, Tehsils & Villages • Live GPS Tracking on Route')}
+          </p>
+        </div>
+
+        {/* 3D Bus Showcase Toggle */}
+        <button
+          type="button"
+          onClick={() => setShow3DHero(!show3DHero)}
+          className="self-start sm:self-center px-3.5 py-1.5 rounded-full bg-gradient-to-r from-indigo-900 to-slate-900 text-white font-bold text-xs flex items-center gap-2 shadow-sm border border-indigo-400/30 hover:scale-105 active:scale-95 transition-all"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-yellow-400 animate-spin" />
+          <span>{show3DHero ? '3D बस छुपाएं' : '✨ 3D वोल्वो बस देखें'}</span>
+          {show3DHero ? <EyeOff className="w-3.5 h-3.5 text-slate-400" /> : <Eye className="w-3.5 h-3.5 text-emerald-400" />}
+        </button>
       </div>
+
+      {/* Interactive Three.js 3D Bus Hero Canvas */}
+      {show3DHero && (
+        <div className="animate-fadeIn">
+          <Bus3DHero />
+        </div>
+      )}
 
       {/* Main Search Card */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-md p-4 sm:p-6 space-y-4">

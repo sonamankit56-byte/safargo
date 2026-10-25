@@ -102,8 +102,8 @@ export const TravelHeader: React.FC = () => {
       label: 'Buses', 
       hindiLabel: 'बसें', 
       icon: <Bus className="w-4 h-4" />,
-      badge: '⚡ लाइव',
-      badgeStyle: 'bg-emerald-100 text-emerald-900 border border-emerald-300 font-black'
+      badge: '✨ 3D',
+      badgeStyle: 'bg-gradient-to-r from-indigo-600 to-rose-600 text-white font-black shadow-xs animate-pulse'
     },
     { 
       id: 'hotel', 

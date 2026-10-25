@@ -30,6 +30,7 @@ import {
   Lock
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { Card3D } from '../common/Card3D';
 import { 
   fetchAutoPlans,
   detectIndianOperatorAndCircle, 
@@ -1416,47 +1417,54 @@ export const RechargeScreen: React.FC = () => {
                     displayedPlans.map((p, pIdx) => {
                       const isSel = selectedLivePlan?.planCode === p.planCode;
                       return (
-                        <div
+                        <Card3D
                           key={`${p.planCode || 'plan'}-${p.rs}-${pIdx}`}
-                          onClick={() => {
-                            if (!isAgentLoggedIn && !isCustomerLoggedIn) {
-                              setIsAuthModalOpen(true);
-                              return;
-                            }
-                            setSelectedLivePlan(p);
-                          }}
-                          className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
-                            isSel
-                              ? 'bg-indigo-50/80 border-2 border-indigo-600 shadow-sm ring-2 ring-indigo-500/20'
-                              : 'bg-white hover:bg-slate-50 border-slate-200'
-                          }`}
+                          maxTilt={6}
+                          depth={8}
+                          glare={false}
+                          className="h-full"
                         >
-                          <div>
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-xl font-black text-slate-900">₹{p.rs}</span>
-                              {p.popular && (
-                                <span className="text-[10px] font-black uppercase bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded-full">
-                                  पॉपुलर
-                                </span>
-                              )}
+                          <div
+                            onClick={() => {
+                              if (!isAgentLoggedIn && !isCustomerLoggedIn) {
+                                setIsAuthModalOpen(true);
+                                return;
+                              }
+                              setSelectedLivePlan(p);
+                            }}
+                            className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between h-full ${
+                              isSel
+                                ? 'bg-indigo-50/80 border-2 border-indigo-600 shadow-md ring-2 ring-indigo-500/20'
+                                : 'bg-white hover:bg-slate-50 border-slate-200 shadow-xs'
+                            }`}
+                          >
+                            <div>
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xl font-black text-slate-900">₹{p.rs}</span>
+                                {p.popular && (
+                                  <span className="text-[10px] font-black uppercase bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded-full">
+                                    पॉपुलर
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3 text-xs font-bold text-slate-700 mb-1">
+                                <span>वैलिडिटी: {p.validity}</span>
+                                <span>•</span>
+                                <span className="text-indigo-600">{p.data || 'डेटा'}</span>
+                              </div>
+                              <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">{p.desc}</p>
                             </div>
-                            <div className="flex items-center gap-3 text-xs font-bold text-slate-700 mb-1">
-                              <span>वैलिडिटी: {p.validity}</span>
-                              <span>•</span>
-                              <span className="text-indigo-600">{p.data || 'डेटा'}</span>
-                            </div>
-                            <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">{p.desc}</p>
-                          </div>
 
-                          <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                            <span className="text-indigo-600 font-semibold text-[11px] truncate max-w-[140px]">
-                              {p.name || 'वॉयस + डेटा पैक'}
-                            </span>
-                            <span className={`font-black ${isSel ? 'text-indigo-600' : 'text-slate-400'}`}>
-                              {isSel ? '✓ चुना गया' : 'चुनें'}
-                            </span>
+                            <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                              <span className="text-indigo-600 font-semibold text-[11px] truncate max-w-[140px]">
+                                {p.name || 'वॉयस + डेटा पैक'}
+                              </span>
+                              <span className={`font-black ${isSel ? 'text-indigo-600' : 'text-slate-400'}`}>
+                                {isSel ? '✓ चुना गया' : 'चुनें'}
+                              </span>
+                            </div>
                           </div>
-                        </div>
+                        </Card3D>
                       );
                     })
                   )}
