@@ -638,7 +638,29 @@ export const RechargeScreen: React.FC = () => {
 
       if (action === 'recharge_return' || status === 'success' || (action && action.includes('return'))) {
         window.history.replaceState({}, document.title, window.location.pathname);
-        fulfillOrderSuccessfully(paramOrderId || undefined);
+        const saved = localStorage.getItem('safargo_active_recharge_order');
+        const targetId = paramOrderId || (saved ? JSON.parse(saved).orderId : null);
+        if (targetId) {
+          setIsVerifying(true);
+          setGatewayState('waiting');
+          setActiveOrderId(targetId);
+          checkOrderStatus(targetId).then(res => {
+            setIsVerifying(false);
+            if (res.success && res.data) {
+              if (res.data.status === 'FULFILLED' || res.data.status === 'PAID') {
+                fulfillOrderSuccessfully(res.data.operatorRef || res.data.gatewayOrderId || targetId, Number(res.data.amountPaise) / 100);
+              } else if (res.data.status === 'FAILED') {
+                try { localStorage.removeItem('safargo_active_recharge_order'); } catch {}
+                setGatewayState('failed');
+                setGatewayError(res.data.errorMessage || 'भुगतान पूरा नहीं हुआ या विफल रहा। (Payment Incomplete/Failed)');
+              } else {
+                setGatewayError('पेमेंट प्रोसेस हो रहा है। कृपया कुछ सेकंड बाद "स्टेटस चेक करें" दबाएं।');
+              }
+            } else {
+              setGatewayError('ऑर्डर स्टेटस की पुष्टि नहीं हो सकी। कृपया "स्टेटस चेक करें" दबाएं।');
+            }
+          });
+        }
         return;
       }
 
@@ -749,20 +771,7 @@ export const RechargeScreen: React.FC = () => {
       setHasInitiatedPayment(false);
       setGatewayState('waiting');
 
-      // Directly open payment checkout gateway!
-      if (checkoutUrl) {
-        try {
-          window.location.href = checkoutUrl;
-        } catch {
-          window.open(checkoutUrl, '_self');
-        }
-      } else {
-        setGatewayState('failed');
-        setGatewayError(checkoutRes.error || 'पेमेंट गेटवे सर्वर से लिंक प्राप्त नहीं हो सका। कृपया पुनः प्रयास करें।');
-        return;
-      }
-
-      // Save pending order to localStorage
+      // Save pending order to localStorage first
       try {
         localStorage.setItem('safargo_active_recharge_order', JSON.stringify({
           orderId,
@@ -776,6 +785,22 @@ export const RechargeScreen: React.FC = () => {
           timestamp: Date.now()
         }));
       } catch {}
+
+      // Open checkout gateway in dedicated window so SafarGo stays open in background
+      if (checkoutUrl) {
+        try {
+          const pgWindow = window.open(checkoutUrl, '_blank');
+          if (!pgWindow || pgWindow.closed || typeof pgWindow.closed === 'undefined') {
+            window.location.href = checkoutUrl;
+          }
+        } catch {
+          window.location.href = checkoutUrl;
+        }
+      } else {
+        setGatewayState('failed');
+        setGatewayError(checkoutRes.error || 'पेमेंट गेटवे सर्वर से लिंक प्राप्त नहीं हो सका। कृपया पुनः प्रयास करें।');
+        return;
+      }
     } catch (err: any) {
       setGatewayState('failed');
       setGatewayError(err.message || 'नेटवर्क समस्या। कृपया पुनः प्रयास करें।');
