@@ -749,13 +749,17 @@ export const RechargeScreen: React.FC = () => {
       setHasInitiatedPayment(false);
       setGatewayState('waiting');
 
-      // Directly open Paybeez / Zaakpay checkout gateway!
+      // Directly open payment checkout gateway!
       if (checkoutUrl) {
         try {
           window.location.href = checkoutUrl;
         } catch {
           window.open(checkoutUrl, '_self');
         }
+      } else {
+        setGatewayState('failed');
+        setGatewayError(checkoutRes.error || 'पेमेंट गेटवे सर्वर से लिंक प्राप्त नहीं हो सका। कृपया पुनः प्रयास करें।');
+        return;
       }
 
       // Save pending order to localStorage
