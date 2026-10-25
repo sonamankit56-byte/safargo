@@ -28,6 +28,7 @@ export const BusSearchCard: React.FC = () => {
     setBusFilter,
     setCurrentStep,
     isAgentLoggedIn,
+    isCustomerLoggedIn,
     setIsAuthModalOpen,
     t 
   } = useTravel();
@@ -49,7 +50,7 @@ export const BusSearchCard: React.FC = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isAgentLoggedIn) {
+    if (!isAgentLoggedIn && !isCustomerLoggedIn) {
       setIsAuthModalOpen(true);
       return;
     }
@@ -57,7 +58,7 @@ export const BusSearchCard: React.FC = () => {
   };
 
   const handleSelectPopularRoute = (from: string, to: string) => {
-    if (!isAgentLoggedIn) {
+    if (!isAgentLoggedIn && !isCustomerLoggedIn) {
       setIsAuthModalOpen(true);
       return;
     }

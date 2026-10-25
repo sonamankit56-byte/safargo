@@ -11,9 +11,12 @@ export const SeatLayoutPicker: React.FC = () => {
     clearSeatSelection, 
     setCurrentStep,
     isAgentLoggedIn,
+    isCustomerLoggedIn,
     setIsAuthModalOpen,
     t 
   } = useTravel();
+
+  const isAnyUserLoggedIn = isAgentLoggedIn || isCustomerLoggedIn;
 
   const [activeDeckTab, setActiveDeckTab] = useState<'lower' | 'upper'>('lower');
 
@@ -336,7 +339,7 @@ export const SeatLayoutPicker: React.FC = () => {
               type="button"
               disabled={selectedSeats.length === 0}
               onClick={() => {
-                if (!isAgentLoggedIn) {
+                if (!isAnyUserLoggedIn) {
                   setIsAuthModalOpen(true);
                   return;
                 }
@@ -344,14 +347,14 @@ export const SeatLayoutPicker: React.FC = () => {
               }}
               className={`w-full mt-5 py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md ${
                 selectedSeats.length > 0
-                  ? !isAgentLoggedIn
+                  ? !isAnyUserLoggedIn
                     ? 'bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-700 hover:to-rose-700 text-white shadow-rose-600/30 cursor-pointer'
                     : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30 cursor-pointer'
                   : 'bg-slate-200 text-slate-400 cursor-not-allowed'
               }`}
             >
               <span>
-                {!isAgentLoggedIn
+                {!isAnyUserLoggedIn
                   ? t('🔒 लॉगिन करके आगे बढ़ें', '🔒 Login to Continue')
                   : t('बोर्डिंग और ड्रॉपिंग पॉइंट चुनें', 'Select Boarding & Drop Points')}
               </span>

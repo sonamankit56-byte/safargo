@@ -52,6 +52,7 @@ export const MyTripsScreen: React.FC = () => {
     agentReferrals,
     creditReferralBonus,
     isAgentLoggedIn,
+    isCustomerLoggedIn,
     setIsAuthModalOpen,
     t 
   } = useTravel();
@@ -137,7 +138,7 @@ export const MyTripsScreen: React.FC = () => {
     return true;
   });
 
-  if (!isAgentLoggedIn) {
+  if (!isAgentLoggedIn && !isCustomerLoggedIn) {
     return (
       <div className="max-w-md mx-auto my-12 px-4 animate-fade-in text-center">
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200 space-y-5">

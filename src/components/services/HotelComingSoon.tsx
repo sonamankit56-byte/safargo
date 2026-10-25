@@ -17,14 +17,14 @@ import { MOCK_HOTELS } from '../../data/hotelData';
 import confetti from 'canvas-confetti';
 
 export const HotelComingSoon: React.FC = () => {
-  const { t, setActiveService, isAgentLoggedIn, setIsAuthModalOpen } = useTravel();
+  const { t, setActiveService, isAgentLoggedIn, isCustomerLoggedIn, setIsAuthModalOpen } = useTravel();
   const [notifyCity, setNotifyCity] = useState('Jaipur');
   const [notifyMobile, setNotifyMobile] = useState('');
   const [isNotified, setIsNotified] = useState(false);
 
   const handleNotify = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isAgentLoggedIn) {
+    if (!isAgentLoggedIn && !isCustomerLoggedIn) {
       setIsAuthModalOpen(true);
       return;
     }

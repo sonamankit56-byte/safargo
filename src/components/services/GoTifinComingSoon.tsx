@@ -23,7 +23,7 @@ import {
 import confetti from 'canvas-confetti';
 
 export const GoTifinComingSoon: React.FC = () => {
-  const { t, setActiveService, isAgentLoggedIn, setIsAuthModalOpen } = useTravel();
+  const { t, setActiveService, isAgentLoggedIn, isCustomerLoggedIn, setIsAuthModalOpen } = useTravel();
   const [activeTab, setActiveTab] = useState<'all' | 'women' | 'subscribers'>('all');
   const [preRegisterRole, setPreRegisterRole] = useState<'chef' | 'student_worker'>('chef');
   const [applicantName, setApplicantName] = useState('');
@@ -33,7 +33,7 @@ export const GoTifinComingSoon: React.FC = () => {
 
   const handleSubmitWaitlist = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isAgentLoggedIn) {
+    if (!isAgentLoggedIn && !isCustomerLoggedIn) {
       setIsAuthModalOpen(true);
       return;
     }

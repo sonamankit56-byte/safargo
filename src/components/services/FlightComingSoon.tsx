@@ -15,13 +15,13 @@ import {
 import confetti from 'canvas-confetti';
 
 export const FlightComingSoon: React.FC = () => {
-  const { t, setActiveService, isAgentLoggedIn, setIsAuthModalOpen } = useTravel();
+  const { t, setActiveService, isAgentLoggedIn, isCustomerLoggedIn, setIsAuthModalOpen } = useTravel();
   const [notifyEmail, setNotifyEmail] = useState('');
   const [isNotified, setIsNotified] = useState(false);
 
   const handleNotify = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isAgentLoggedIn) {
+    if (!isAgentLoggedIn && !isCustomerLoggedIn) {
       setIsAuthModalOpen(true);
       return;
     }

@@ -50,9 +50,12 @@ export const PassengerForm: React.FC = () => {
     bookings,
     applyPromoCode,
     isAgentLoggedIn,
+    isCustomerLoggedIn,
     setIsAuthModalOpen,
     t 
   } = useTravel();
+
+  const isAnyUserLoggedIn = isAgentLoggedIn || isCustomerLoggedIn;
 
   // Contact details pre-filled from logged-in agent or user profile
   const [fullName, setFullName] = useState(() => currentAgent?.fullName || userProfile?.name || '');
@@ -164,7 +167,7 @@ export const PassengerForm: React.FC = () => {
   const handleSubmitBooking = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!isAgentLoggedIn) {
+    if (!isAnyUserLoggedIn) {
       setIsAuthModalOpen(true);
       return;
     }
@@ -253,7 +256,7 @@ export const PassengerForm: React.FC = () => {
       </div>
 
       {/* Login Gate Alert Banner */}
-      {!isAgentLoggedIn && (
+      {!isAnyUserLoggedIn && (
         <div className="p-4 bg-gradient-to-r from-amber-50 to-rose-50 border border-amber-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 animate-fade-in shadow-xs">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
@@ -951,14 +954,14 @@ export const PassengerForm: React.FC = () => {
             <button
               type="submit"
               className={`w-full mt-5 py-3.5 px-4 ${
-                !isAgentLoggedIn
+                !isAnyUserLoggedIn
                   ? 'bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-700 hover:to-rose-700 shadow-rose-600/30'
                   : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/30'
               } active:scale-95 text-white font-black text-sm rounded-xl transition shadow-lg flex items-center justify-center gap-2 cursor-pointer`}
             >
               <Lock className="w-4 h-4 text-yellow-300" />
               <span>
-                {!isAgentLoggedIn
+                {!isAnyUserLoggedIn
                   ? t('लॉगिन करके टिकट बुक करें', 'Login to Confirm Booking')
                   : t('टिकट बुक करें (Confirm Booking)', 'Confirm & Book Ticket')}
               </span>

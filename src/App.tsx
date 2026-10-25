@@ -38,6 +38,7 @@ export const TravelApp: React.FC = () => {
     agentLogin, 
     setActiveService,
     isAgentLoggedIn,
+    isCustomerLoggedIn,
     setIsAuthModalOpen 
   } = useTravel();
 
@@ -112,8 +113,8 @@ export const TravelApp: React.FC = () => {
         {/* Sticky Header with Logo, Navigation Tabs, Language & Agent Toggle */}
         <TravelHeader />
 
-        {/* Global Mandatory Login Alert for Unauthenticated Users */}
-        {!isAgentLoggedIn && (
+        {/* Global Mandatory Login Alert for Unauthenticated Users (Hidden when Logged In or on Recharge tab) */}
+        {!isAgentLoggedIn && !isCustomerLoggedIn && activeService !== 'recharge' && (
           <div className="max-w-5xl mx-auto px-3 sm:px-4 pt-3">
             <div className="p-3 sm:p-4 bg-gradient-to-r from-amber-500 via-rose-600 to-indigo-700 rounded-2xl text-white shadow-lg flex items-center justify-between gap-3 animate-fade-in">
               <div className="flex items-center gap-2.5 min-w-0">
