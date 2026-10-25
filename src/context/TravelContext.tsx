@@ -1512,9 +1512,8 @@ export const TravelProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const totalFare = selectedSeats.reduce((acc, s) => acc + s.fare, 0);
     const commission = isAgentMode ? FIXED_AGENT_COMMISSION : 0;
     
-    // In bus ticket booking, ALL bookings require mandatory Super Admin approval!
-    // No ticket is auto-confirmed. It goes into 'pending' review until Super Admin approves UTR.
-    const bookingStatus: 'pending' = 'pending';
+    const isOnlinePayment = paymentMethod === 'youpi_pg' || paymentMethod === 'upi' || paymentMethod === 'card' || paymentMethod === 'netbanking';
+    const bookingStatus: 'confirmed' | 'pending' = (isOnlinePayment || !isAgentMode) ? 'confirmed' : 'pending';
 
     const newBooking: TravelBooking = {
       id: `bk-${Date.now()}`,
@@ -1528,8 +1527,8 @@ export const TravelProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       utr: utr ? utr.trim().toUpperCase() : (youpiDetails?.paymentId ? `YOUPI-${youpiDetails.paymentId.slice(-8).toUpperCase()}` : undefined),
       agentId: isAgentMode ? (currentAgent?.id || 'SFG-AGENT-ACTIVE') : undefined,
       agentEmail: isAgentMode ? (currentAgent?.email || contact.email) : undefined,
-      verifiedByAdmin: false,
-      verifiedAt: undefined,
+      verifiedByAdmin: bookingStatus === 'confirmed',
+      verifiedAt: bookingStatus === 'confirmed' ? new Date().toISOString() : undefined,
       youpiPaymentId: youpiDetails?.paymentId,
       youpiStatus: youpiDetails?.status,
       passengerDetails: contact,
