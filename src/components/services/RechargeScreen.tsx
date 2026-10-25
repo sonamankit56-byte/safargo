@@ -441,15 +441,10 @@ export const RechargeScreen: React.FC = () => {
     }
   }, [mobileNumber]);
 
-  // When user manually selects operator or circle
+  // When user enters or modifies mobile number
   const handleMobileNumberChange = (raw: string) => {
     const clean = raw.replace(/\D/g, '').slice(0, 10);
     setMobileNumber(clean);
-    
-    if (!isAgentLoggedIn && !isCustomerLoggedIn && clean.length > 0) {
-      setIsAuthModalOpen(true);
-      return;
-    }
 
     if (clean.length >= 4) {
       const detected = detectIndianOperatorAndCircle(clean);
@@ -1196,16 +1191,23 @@ export const RechargeScreen: React.FC = () => {
                         required
                         maxLength={10}
                         value={mobileNumber}
-                        onFocus={() => {
-                          if (!isAgentLoggedIn && !isCustomerLoggedIn) {
-                            setIsAuthModalOpen(true);
-                          }
-                        }}
                         onChange={(e) => handleMobileNumberChange(e.target.value)}
                         placeholder="74XXXXXXXX"
                         className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                     </div>
+                    {!isAgentLoggedIn && !isCustomerLoggedIn && mobileNumber.length === 10 && (
+                      <div className="mt-1.5 p-2 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center justify-between gap-2 animate-fadeIn">
+                        <span className="text-[11px] font-medium">🔒 प्लान चुनने और रिचार्ज करने के लिए लॉगिन करें</span>
+                        <button
+                          type="button"
+                          onClick={() => setIsAuthModalOpen(true)}
+                          className="px-2.5 py-1 bg-amber-600 text-white rounded-lg font-bold text-[11px] hover:bg-amber-700 transition"
+                        >
+                          लॉगिन
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Operator & Circle Section */}
