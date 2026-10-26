@@ -16,6 +16,7 @@ import {
   Phone
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { GoogleMapRouteView } from '../common/GoogleMapRouteView';
 
 export const CabBookingSection: React.FC = () => {
   const { isAgentMode, t } = useTravel();
@@ -137,6 +138,26 @@ export const CabBookingSection: React.FC = () => {
             />
           </div>
         </div>
+      </div>
+
+      {/* Google Maps Live Route Preview for Cabs */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between px-1">
+          <span className="text-xs font-black uppercase tracking-wider text-slate-500">
+            {t('📍 गूगल मैप्स लाइव रूट एवं दूरी (Route Corridor)', '📍 Google Maps Live Route Corridor')}
+          </span>
+          <span className="text-xs text-emerald-600 font-bold">
+            {pickupCity} → {dropCity}
+          </span>
+        </div>
+        <GoogleMapRouteView
+          originCity={pickupCity}
+          destinationCity={dropCity}
+          vehicleType="cab"
+          currentProgressPct={30}
+          currentSpeedKmH={80}
+          height="280px"
+        />
       </div>
 
       {/* Available Cabs Listing */}

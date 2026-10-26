@@ -13,7 +13,8 @@ import {
   ChevronDown,
   ChevronUp,
   Radio,
-  ArrowRight
+  ArrowRight,
+  ExternalLink
 } from 'lucide-react';
 import { LiveRouteModal } from './LiveRouteModal';
 
@@ -240,7 +241,19 @@ export const BusCard: React.FC<BusCardProps> = ({ bus }) => {
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-500 mt-0.5">{bp.address}</p>
-                    <p className="text-[10px] text-slate-400">Landmark: {bp.landmark}</p>
+                    <div className="mt-1.5 flex items-center justify-between">
+                      <span className="text-[10px] text-slate-400">Landmark: {bp.landmark}</span>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${bp.name}, ${bp.address || ''}, ${bus.sourceCity}`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1 transition"
+                      >
+                        <MapPin className="w-2.5 h-2.5 text-emerald-600" />
+                        <span>Google Map</span>
+                        <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                      </a>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -259,7 +272,19 @@ export const BusCard: React.FC<BusCardProps> = ({ bus }) => {
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-500 mt-0.5">{dp.address}</p>
-                    <p className="text-[10px] text-slate-400">Landmark: {dp.landmark}</p>
+                    <div className="mt-1.5 flex items-center justify-between">
+                      <span className="text-[10px] text-slate-400">Landmark: {dp.landmark}</span>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${dp.name}, ${dp.address || ''}, ${bus.destinationCity}`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded border border-indigo-200 flex items-center gap-1 transition"
+                      >
+                        <MapPin className="w-2.5 h-2.5 text-indigo-600" />
+                        <span>Google Map</span>
+                        <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                      </a>
+                    </div>
                   </div>
                 ))}
               </div>

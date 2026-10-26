@@ -13,8 +13,11 @@ import {
   Coffee,
   ChevronRight,
   Compass,
-  ArrowRight
+  ArrowRight,
+  ExternalLink
 } from 'lucide-react';
+import { GoogleMapRouteView } from '../common/GoogleMapRouteView';
+import { getGoogleMapsDirectionsUrl } from '../../lib/googleMaps';
 
 interface LiveRouteModalProps {
   bus: BusItem;
@@ -24,7 +27,7 @@ interface LiveRouteModalProps {
 
 export const LiveRouteModal: React.FC<LiveRouteModalProps> = ({ bus, onClose, onSelectSeats }) => {
   const { t } = useTravel();
-  const [activeTab, setActiveTab] = useState<'map' | 'timeline'>('map');
+  const [activeTab, setActiveTab] = useState<'gmaps' | 'highway' | 'timeline'>('gmaps');
   const [liveSpeed, setLiveSpeed] = useState<number>(bus.liveTelemetry?.currentSpeedKmH || 72);
 
   // Realistic speed variation simulation (fluctuates between 68 and 76 km/h)
@@ -156,18 +159,30 @@ export const LiveRouteModal: React.FC<LiveRouteModalProps> = ({ bus, onClose, on
           </div>
         </div>
 
-        {/* View Switcher (Map View vs Timeline) */}
+        {/* View Switcher (Google Maps vs Highway HUD vs Timeline) */}
         <div className="flex bg-slate-100 p-1.5 border-b border-slate-200">
           <button
-            onClick={() => setActiveTab('map')}
+            onClick={() => setActiveTab('gmaps')}
             className={`flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition ${
-              activeTab === 'map'
+              activeTab === 'gmaps'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Navigation className="w-4 h-4" />
+            <span>{t('🗺️ Google Maps लाइव (Real Map)', '🗺️ Google Maps Live')}</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('highway')}
+            className={`flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition ${
+              activeTab === 'highway'
                 ? 'bg-white text-slate-900 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Navigation className="w-4 h-4 text-emerald-600" />
-            <span>{t('इंटरएक्टिव रूट मैप (Live Map)', 'Interactive Route Map')}</span>
+            <Gauge className="w-4 h-4 text-emerald-600" />
+            <span>{t('🛣️ हाईवे रडार HUD', 'Highway HUD')}</span>
           </button>
 
           <button
@@ -179,13 +194,28 @@ export const LiveRouteModal: React.FC<LiveRouteModalProps> = ({ bus, onClose, on
             }`}
           >
             <Clock className="w-4 h-4 text-indigo-600" />
-            <span>{t('सभी स्टॉप्स व ठहराव (Stops Timeline)', 'All Stops Timeline')}</span>
+            <span>{t('⏱️ सभी स्टॉप्स व ठहराव', 'Stops Timeline')}</span>
           </button>
         </div>
 
         {/* Modal Scrollable Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 bg-slate-50/50">
-          {activeTab === 'map' ? (
+          {activeTab === 'gmaps' && (
+            <div className="space-y-4">
+              <GoogleMapRouteView
+                originCity={bus.sourceCity}
+                destinationCity={bus.destinationCity}
+                operatorName={bus.operatorName}
+                vehicleNumber={bus.busNumber}
+                currentProgressPct={progressPercent}
+                currentSpeedKmH={liveSpeed}
+                stops={bus.boardingPoints}
+                height="420px"
+              />
+            </div>
+          )}
+
+          {activeTab === 'highway' && (
             <div className="space-y-4">
               {/* Distance Progress Bar */}
               <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-2">
@@ -288,7 +318,9 @@ export const LiveRouteModal: React.FC<LiveRouteModalProps> = ({ bus, onClose, on
                 </div>
               </div>
             </div>
-          ) : (
+                    )}
+
+          {activeTab === 'timeline' && (
             /* Timeline View of All Stops */
             <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-4">
               <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -343,6 +375,18 @@ export const LiveRouteModal: React.FC<LiveRouteModalProps> = ({ bus, onClose, on
                         <p className="text-xs text-slate-500 mt-1 font-medium">
                           {wp.landmark} • {wp.distanceKm} km
                         </p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${wp.stopName}, ${bus.sourceCity}`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-lg border border-indigo-200 transition"
+                          >
+                            <MapPin className="w-3 h-3 text-indigo-500" />
+                            <span>{t('Google Maps पर स्टॉप देखें', 'View Stop on Google Maps')}</span>
+                            <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                          </a>
+                        </div>
 
                         {isCurrent && (
                           <div className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-black text-amber-900 bg-amber-200/80 px-2.5 py-1 rounded-lg">
@@ -377,6 +421,16 @@ export const LiveRouteModal: React.FC<LiveRouteModalProps> = ({ bus, onClose, on
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
+            <a
+              href={getGoogleMapsDirectionsUrl(bus.sourceCity, bus.destinationCity, 'driving')}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-3 bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold rounded-xl transition flex items-center gap-1.5 shadow-md active:scale-95"
+            >
+              <Navigation className="w-4 h-4 text-emerald-400" />
+              <span>{t('Google Maps नेविगेशन', 'Google Navigation')}</span>
+            </a>
+
             <button
               onClick={onClose}
               className="flex-1 sm:flex-none px-4 py-3 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs sm:text-sm font-bold transition"

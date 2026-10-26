@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTravel } from '../../context/TravelContext';
-import { ArrowLeft, MapPin, Clock, CheckCircle2, ChevronRight, AlertCircle } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, CheckCircle2, ChevronRight, AlertCircle, ExternalLink } from 'lucide-react';
 
 export const BoardingDropping: React.FC = () => {
   const { 
@@ -128,6 +128,19 @@ export const BoardingDropping: React.FC = () => {
                         </div>
                         <p className="text-xs text-slate-600 mt-1">{point.address}</p>
                         <p className="text-[11px] text-slate-400 mt-0.5">Landmark: {point.landmark}</p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${point.name}, ${point.address || ''}, ${selectedBus.sourceCity}`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100/80 hover:bg-emerald-200 px-2.5 py-0.5 rounded-lg border border-emerald-300 transition"
+                          >
+                            <MapPin className="w-3 h-3 text-emerald-600" />
+                            <span>Google Maps पर लोकेशन देखें</span>
+                            <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                          </a>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -171,6 +184,19 @@ export const BoardingDropping: React.FC = () => {
                         </div>
                         <p className="text-xs text-slate-600 mt-1">{point.address}</p>
                         <p className="text-[11px] text-slate-400 mt-0.5">Landmark: {point.landmark}</p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${point.name}, ${point.address || ''}, ${selectedBus.destinationCity}`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-700 bg-indigo-100/80 hover:bg-indigo-200 px-2.5 py-0.5 rounded-lg border border-indigo-300 transition"
+                          >
+                            <MapPin className="w-3 h-3 text-indigo-600" />
+                            <span>Google Maps पर लोकेशन देखें</span>
+                            <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                          </a>
+                        </div>
                       </div>
                     </div>
                   </div>

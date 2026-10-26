@@ -37,6 +37,7 @@ import {
   Wallet
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { GoogleMapRouteView } from '../common/GoogleMapRouteView';
 
 export const MyTripsScreen: React.FC = () => {
   const { 
@@ -407,7 +408,18 @@ export const MyTripsScreen: React.FC = () => {
                             <div>
                               <span className="text-slate-400 block font-medium">{t('बोर्डिंग स्टॉप', 'Boarding Stop')}</span>
                               <span className="font-bold text-slate-900 block truncate">{booking.busDetails.boardingPoint.name}</span>
-                              <span className="text-emerald-700 font-semibold">{booking.busDetails.boardingPoint.time}</span>
+                              <div className="flex items-center justify-between gap-1 mt-0.5">
+                                <span className="text-emerald-700 font-semibold">{booking.busDetails.boardingPoint.time}</span>
+                                <a
+                                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${booking.busDetails.boardingPoint.name}, ${booking.busDetails.bus.sourceCity}`)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-100/70 hover:bg-emerald-200 px-1.5 py-0.5 rounded flex items-center gap-1 transition"
+                                >
+                                  <MapPin className="w-2.5 h-2.5" />
+                                  <span>Google Maps</span>
+                                </a>
+                              </div>
                             </div>
                             <div>
                               <span className="text-slate-400 block font-medium">{t('ड्रॉपिंग स्टॉप', 'Dropping Stop')}</span>
@@ -1060,6 +1072,19 @@ export const MyTripsScreen: React.FC = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {/* Live Google Maps Integration */}
+            {activeTrackingBooking.busDetails?.bus && (
+              <GoogleMapRouteView
+                originCity={activeTrackingBooking.busDetails.bus.sourceCity}
+                destinationCity={activeTrackingBooking.busDetails.bus.destinationCity}
+                operatorName={activeTrackingBooking.busDetails.bus.operatorName}
+                vehicleNumber={activeTrackingBooking.busDetails.bus.busNumber}
+                currentProgressPct={55}
+                currentSpeedKmH={68}
+                height="260px"
+              />
+            )}
 
             {/* Simulated Live GPS Map Graphic */}
             <div className="relative rounded-2xl bg-slate-900 p-5 text-white overflow-hidden shadow-inner">
