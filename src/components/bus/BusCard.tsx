@@ -69,9 +69,16 @@ export const BusCard: React.FC<BusCardProps> = ({ bus }) => {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
           {/* Left Side: Operator Info */}
           <div className="md:col-span-4">
-            <h3 className="font-bold text-slate-900 text-base sm:text-lg tracking-tight">
-              {bus.operatorName}
-            </h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-bold text-slate-900 text-base sm:text-lg tracking-tight">
+                {bus.operatorName}
+              </h3>
+              {bus.busNumber && (
+                <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-300">
+                  {bus.busNumber}
+                </span>
+              )}
+            </div>
             <p className="text-xs text-slate-500 mt-0.5 font-medium">
               {bus.busType}
             </p>
@@ -125,9 +132,26 @@ export const BusCard: React.FC<BusCardProps> = ({ bus }) => {
                 </span>
               </div>
               <div className="text-xl sm:text-2xl font-black text-slate-900">
-                ₹{bus.fare}
+                ₹{bus.seaterFare ? Math.min(bus.seaterFare, bus.fare) : bus.fare}
               </div>
-              <p className="text-[11px] text-slate-500">
+
+              {/* Seater vs Sleeper Pricing Breakdown (AbhiBus Style) */}
+              {(bus.seaterFare || bus.sleeperFare) && (
+                <div className="flex flex-wrap gap-1 mt-1 md:justify-end text-[10px] font-bold">
+                  {bus.seaterFare && (
+                    <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
+                      💺 {t('सीटर', 'Seat')}: ₹{bus.seaterFare}
+                    </span>
+                  )}
+                  {bus.sleeperFare && (
+                    <span className="bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded border border-indigo-200">
+                      🛏️ {t('स्लीपर', 'Sleep')}: ₹{bus.sleeperFare}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <p className="text-[11px] text-slate-500 mt-0.5">
                 {bus.availableSeats} {t('सीटें शेष', 'seats left')}
               </p>
             </div>

@@ -96,6 +96,13 @@ export interface BusItem {
   boardingPoints: StopPoint[];
   droppingPoints: StopPoint[];
   seats: BusSeat[];
+  seaterFare?: number;
+  sleeperFare?: number;
+  upperSleeperFare?: number;
+  isActive?: boolean;
+  busNumber?: string;
+  operatorContact?: string;
+  cancellationPolicy?: string;
   liveRouteWaypoints?: {
     id: string;
     stopName: string;

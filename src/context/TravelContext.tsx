@@ -1463,6 +1463,7 @@ export const TravelProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const filteredBuses = React.useMemo(() => {
     // 1. Direct match in existing busesList
     const matchesFromList = busesList.filter((bus) => {
+      if (bus.isActive === false) return false;
       const matchesFrom = fromCity.toLowerCase().includes(bus.sourceCity.toLowerCase()) || bus.sourceCity.toLowerCase().includes(fromCity.toLowerCase());
       const matchesTo = toCity.toLowerCase().includes(bus.destinationCity.toLowerCase()) || bus.destinationCity.toLowerCase().includes(toCity.toLowerCase());
       const isRouteMatch = (matchesFrom && matchesTo);

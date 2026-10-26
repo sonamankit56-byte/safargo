@@ -1,8 +1,16 @@
 import { BusItem, BusSeat, StopPoint } from '../types/travel';
 import { MP_LOCATIONS } from './mpCitiesData';
 
-// Helper to generate realistic 2-deck 2+1 sleeper/seater bus layout
-export const generateSeats = (baseFare: number): BusSeat[] => {
+// Helper to generate realistic 2-deck 2+1 sleeper/seater bus layout with distinct seater vs sleeper pricing
+export const generateSeats = (
+  baseFare: number,
+  customSeaterFare?: number,
+  customSleeperFare?: number,
+  customUpperSleeperFare?: number
+): BusSeat[] => {
+  const seaterPrice = customSeaterFare || baseFare;
+  const lowerSleeperPrice = customSleeperFare || (baseFare + 100);
+  const upperSleeperPrice = customUpperSleeperFare || (baseFare + 150);
   const seats: BusSeat[] = [];
 
   // Lower Deck: 12 Seater + 6 Sleeper
@@ -20,7 +28,7 @@ export const generateSeats = (baseFare: number): BusSeat[] => {
       type: r <= 4 ? 'seater' : 'sleeper',
       isWindow: true,
       status: isBooked1 ? 'booked' : isLadies1 ? 'ladies_reserved' : 'available',
-      fare: baseFare
+      fare: (r <= 4 ? seaterPrice : lowerSleeperPrice)
     });
 
     // Right inner
@@ -34,7 +42,7 @@ export const generateSeats = (baseFare: number): BusSeat[] => {
       type: r <= 4 ? 'seater' : 'sleeper',
       isWindow: false,
       status: isBooked2 ? 'booked' : 'available',
-      fare: baseFare
+      fare: (r <= 4 ? seaterPrice : lowerSleeperPrice)
     });
 
     // Right window
@@ -48,7 +56,7 @@ export const generateSeats = (baseFare: number): BusSeat[] => {
       type: r <= 4 ? 'seater' : 'sleeper',
       isWindow: true,
       status: isBooked3 ? 'booked' : 'available',
-      fare: baseFare + 50
+      fare: (r <= 4 ? seaterPrice + 50 : lowerSleeperPrice + 50)
     });
   }
 
@@ -65,7 +73,7 @@ export const generateSeats = (baseFare: number): BusSeat[] => {
       type: 'sleeper',
       isWindow: true,
       status: isBookedU1 ? 'booked' : 'available',
-      fare: baseFare + 150
+      fare: upperSleeperPrice
     });
 
     // Upper Double Sleeper Left
@@ -79,7 +87,7 @@ export const generateSeats = (baseFare: number): BusSeat[] => {
       type: 'sleeper',
       isWindow: false,
       status: isBookedU2 ? 'booked' : 'available',
-      fare: baseFare + 100
+      fare: upperSleeperPrice - 50
     });
 
     // Upper Double Sleeper Window
